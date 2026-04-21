@@ -9,7 +9,6 @@ local enabledByDefault = {
 	hideHighLevelTalents = true,
 	hideHighLevelSpells = true,
 	showPlayerMarks = true,
-	showMinimapButton = true,
 }
 
 for key, value in pairs(enabledByDefault) do

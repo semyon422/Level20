@@ -83,8 +83,9 @@ button:SetScript("OnDragStop", function(self)
 end)
 
 function addon.RefreshMinimapButton()
-	button:SetShown(Level20DB.showMinimapButton)
+	button:Show()
 	SetButtonPosition()
 end
 
+addon.RefreshMinimapButton()
 Minimap:HookScript("OnSizeChanged", SetButtonPosition)

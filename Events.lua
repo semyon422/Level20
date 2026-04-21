@@ -17,7 +17,6 @@ eventFrame:RegisterEvent("DISABLE_XP_GAIN")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_LOGIN" then
 		addon.RestoreWindowPosition()
-		addon.RefreshMinimapButton()
 		addon.RefreshXPWarning()
 		addon.InstallTalentFilter()
 		addon.InstallPvPTalentFilter()

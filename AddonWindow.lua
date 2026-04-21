@@ -296,17 +296,6 @@ local debugModeCheckbox = CreateCheckbox(
 )
 debugModeCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
 
-local minimapButtonCheckbox = CreateCheckbox(
-	settingsPanel,
-	"Show minimap button",
-	"Shows the Level20 button near the minimap.",
-	function(checked)
-		Level20DB.showMinimapButton = checked
-		addon.RefreshMinimapButton()
-	end
-)
-minimapButtonCheckbox:SetPoint("TOPLEFT", debugModeCheckbox, "BOTTOMLEFT", 0, -8)
-
 function addon.RestoreWindowPosition()
 	if not Level20DB.windowPoint then
 		return
@@ -327,7 +316,6 @@ function addon.RefreshWindow()
 	spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	debugModeCheckbox:SetChecked(Level20DB.debugMode)
-	minimapButtonCheckbox:SetChecked(Level20DB.showMinimapButton)
 	addon.RefreshInfoPanel()
 end
 
