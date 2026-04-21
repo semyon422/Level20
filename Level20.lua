@@ -18,4 +18,5 @@ for key, value in pairs(enabledByDefault) do
 	end
 end
 
+Level20DB.debugMode = Level20DB.debugMode or false
 Level20DB.minimapButtonAngle = Level20DB.minimapButtonAngle or 195

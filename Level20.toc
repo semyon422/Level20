@@ -11,6 +11,7 @@ PvPTalentFilter.lua
 SpellBookFilter.lua
 AddonWindow.lua
 PlayerMarks.lua
+XPWarning.lua
 MinimapButton.lua
 SlashCommands.lua
 Events.lua

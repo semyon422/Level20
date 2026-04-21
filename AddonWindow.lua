@@ -198,6 +198,18 @@ local playerMarksCheckbox = CreateCheckbox(
 )
 playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
 
+local debugModeCheckbox = CreateCheckbox(
+	settingsPanel,
+	"Debug mode",
+	"Shows player marks on all visible players and forces the XP warning to display.",
+	function(checked)
+		Level20DB.debugMode = checked
+		addon.RefreshPlayerMarks()
+		addon.RefreshXPWarning()
+	end
+)
+debugModeCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
+
 local minimapButtonCheckbox = CreateCheckbox(
 	settingsPanel,
 	"Show minimap button",
@@ -207,7 +219,7 @@ local minimapButtonCheckbox = CreateCheckbox(
 		addon.RefreshMinimapButton()
 	end
 )
-minimapButtonCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
+minimapButtonCheckbox:SetPoint("TOPLEFT", debugModeCheckbox, "BOTTOMLEFT", 0, -8)
 
 function addon.RestoreWindowPosition()
 	if not Level20DB.windowPoint then
@@ -228,6 +240,7 @@ function addon.RefreshWindow()
 	talentFilterCheckbox:SetChecked(Level20DB.hideHighLevelTalents)
 	spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
+	debugModeCheckbox:SetChecked(Level20DB.debugMode)
 	minimapButtonCheckbox:SetChecked(Level20DB.showMinimapButton)
 	addon.RefreshInfoPanel()
 end

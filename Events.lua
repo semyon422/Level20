@@ -18,6 +18,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_LOGIN" then
 		addon.RestoreWindowPosition()
 		addon.RefreshMinimapButton()
+		addon.RefreshXPWarning()
 		addon.InstallTalentFilter()
 		addon.InstallPvPTalentFilter()
 		addon.InstallSpellBookFilter()
@@ -37,6 +38,14 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.RefreshPvPTalentFrame()
 		addon.RefreshSpellBookFrame()
 		addon.RefreshPlayerMarks()
+	end
+
+	if event == "PLAYER_ENTERING_WORLD"
+		or event == "PLAYER_LEVEL_UP"
+		or event == "PLAYER_LEVEL_CHANGED"
+		or event == "ENABLE_XP_GAIN"
+		or event == "DISABLE_XP_GAIN" then
+		addon.RefreshXPWarning()
 	end
 
 	if addon.IsWindowShown() then

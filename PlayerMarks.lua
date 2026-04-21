@@ -12,7 +12,11 @@ local function GetNamePlateUnit(plate)
 end
 
 local function ShouldMarkUnit(unit)
-	return Level20DB.showPlayerMarks and unit and UnitExists(unit) and UnitIsPlayer(unit) and UnitLevel(unit) == addon.LEVEL_CAP
+	return Level20DB.showPlayerMarks
+		and unit
+		and UnitExists(unit)
+		and UnitIsPlayer(unit)
+		and (Level20DB.debugMode or UnitLevel(unit) == addon.LEVEL_CAP)
 end
 
 local function GetMark(plate)
