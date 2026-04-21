@@ -56,13 +56,31 @@ local function ApplyTalentLayoutOffset(talentsFrame)
 		return
 	end
 
-	if not talentsFrame.level20BasePanOffsetX then
-		talentsFrame.level20BasePanOffsetX = talentsFrame.basePanOffsetX or 0
-		talentsFrame.level20BasePanOffsetY = talentsFrame.basePanOffsetY or 0
+	local currentBasePanOffsetX = talentsFrame.basePanOffsetX or 0
+	local currentBasePanOffsetY = talentsFrame.basePanOffsetY or 0
+	local previousOffsetY = talentsFrame.level20AppliedLayoutOffsetY or 0
+
+	local basePanOffsetX = currentBasePanOffsetX
+	local basePanOffsetY = currentBasePanOffsetY
+	if talentsFrame.level20AdjustedBasePanOffsetX == currentBasePanOffsetX
+		and talentsFrame.level20AdjustedBasePanOffsetY == currentBasePanOffsetY then
+		basePanOffsetY = currentBasePanOffsetY - previousOffsetY
 	end
 
 	local offsetY = Level20DB.hideHighLevelTalents and -((TALENT_ROW_HEIGHT * TALENT_ROW_OFFSET) / TALENT_POSITION_SCALE) or 0
-	talentsFrame:SetBasePanOffset(talentsFrame.level20BasePanOffsetX, talentsFrame.level20BasePanOffsetY + offsetY)
+	local adjustedBasePanOffsetY = basePanOffsetY + offsetY
+	talentsFrame:SetBasePanOffset(basePanOffsetX, adjustedBasePanOffsetY)
+	talentsFrame.level20AppliedLayoutOffsetY = offsetY
+	talentsFrame.level20AdjustedBasePanOffsetX = basePanOffsetX
+	talentsFrame.level20AdjustedBasePanOffsetY = adjustedBasePanOffsetY
+
+	if talentsFrame.UpdateAllTalentButtonPositions then
+		talentsFrame:UpdateAllTalentButtonPositions()
+	end
+
+	if talentsFrame.UpdateAllGatePositions then
+		talentsFrame:UpdateAllGatePositions()
+	end
 end
 
 function addon.RefreshTalentsFrame()
@@ -86,6 +104,12 @@ function addon.InstallTalentFilter()
 	talentsFrame:SetNodesFilter(function(nodeIDs)
 		return FilterTalentNodes(talentsFrame, nodeIDs)
 	end)
+
+	if talentsFrame.UpdateClassVisuals then
+		hooksecurefunc(talentsFrame, "UpdateClassVisuals", function()
+			ApplyTalentLayoutOffset(talentsFrame)
+		end)
+	end
 
 	talentFilterInstalled = true
 	addon.RefreshTalentsFrame()
