@@ -16,16 +16,19 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.RefreshMinimapButton()
 		addon.InstallTalentFilter()
 		addon.InstallPvPTalentFilter()
+		addon.InstallSpellBookFilter()
 		print("|cff00ff98Level20|r loaded. Click the minimap button or type /level20 to open settings.")
 	elseif event == "ADDON_LOADED" then
 		local loadedAddonName = ...
 		if loadedAddonName == "Blizzard_PlayerSpells" then
 			addon.InstallTalentFilter()
 			addon.InstallPvPTalentFilter()
+			addon.InstallSpellBookFilter()
 		end
 	elseif event == "TRAIT_CONFIG_UPDATED" or event == "PLAYER_LEVEL_UP" or event == "PLAYER_LEVEL_CHANGED" then
 		addon.RefreshTalentsFrame()
 		addon.RefreshPvPTalentFrame()
+		addon.RefreshSpellBookFrame()
 	end
 
 	if addon.IsSettingsWindowShown() then

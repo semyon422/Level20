@@ -8,6 +8,7 @@
 Level20.lua
 TalentFilter.lua
 PvPTalentFilter.lua
+SpellBookFilter.lua
 SettingsWindow.lua
 MinimapButton.lua
 SlashCommands.lua

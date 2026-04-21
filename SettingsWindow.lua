@@ -1,7 +1,7 @@
 local addon = Level20
 
 local frame = CreateFrame("Frame", "Level20SettingsFrame", UIParent, "BasicFrameTemplateWithInset")
-frame:SetSize(330, 150)
+frame:SetSize(330, 180)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
 frame:SetClampedToScreen(true)
@@ -45,6 +45,16 @@ local talentFilterCheckbox = CreateCheckbox(
 )
 talentFilterCheckbox:SetPoint("TOPLEFT", frame, "TOPLEFT", 22, -44)
 
+local spellBookFilterCheckbox = CreateCheckbox(
+	frame,
+	"Level-20 spellbook filtering",
+	"Hides spellbook abilities learned above level 20.",
+	function(checked)
+		addon.SetSpellBookFilterEnabled(checked)
+	end
+)
+spellBookFilterCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -8)
+
 local minimapButtonCheckbox = CreateCheckbox(
 	frame,
 	"Show minimap button",
@@ -54,7 +64,7 @@ local minimapButtonCheckbox = CreateCheckbox(
 		addon.RefreshMinimapButton()
 	end
 )
-minimapButtonCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -8)
+minimapButtonCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
 
 function addon.RestoreSettingsWindowPosition()
 	if not Level20DB.settingsPoint then
@@ -73,6 +83,7 @@ end
 
 function addon.RefreshSettingsWindow()
 	talentFilterCheckbox:SetChecked(Level20DB.hideHighLevelTalents)
+	spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
 	minimapButtonCheckbox:SetChecked(Level20DB.showMinimapButton)
 end
 
