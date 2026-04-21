@@ -2,14 +2,18 @@ local addon = Level20
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
 eventFrame:RegisterEvent("PLAYER_LEVEL_UP")
 eventFrame:RegisterEvent("PLAYER_LEVEL_CHANGED")
+eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 eventFrame:RegisterEvent("ZONE_CHANGED")
 eventFrame:RegisterEvent("ZONE_CHANGED_INDOORS")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("PLAYER_MONEY")
+eventFrame:RegisterEvent("ENABLE_XP_GAIN")
+eventFrame:RegisterEvent("DISABLE_XP_GAIN")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_LOGIN" then
 		addon.RestoreSettingsWindowPosition()
@@ -25,7 +29,10 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 			addon.InstallPvPTalentFilter()
 			addon.InstallSpellBookFilter()
 		end
-	elseif event == "TRAIT_CONFIG_UPDATED" or event == "PLAYER_LEVEL_UP" or event == "PLAYER_LEVEL_CHANGED" then
+	elseif event == "TRAIT_CONFIG_UPDATED"
+		or event == "PLAYER_LEVEL_UP"
+		or event == "PLAYER_LEVEL_CHANGED"
+		or event == "PLAYER_SPECIALIZATION_CHANGED" then
 		addon.RefreshTalentsFrame()
 		addon.RefreshPvPTalentFrame()
 		addon.RefreshSpellBookFrame()
