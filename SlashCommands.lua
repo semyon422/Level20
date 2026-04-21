@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = addon.L
 
 local function HandleSlashCommand(message)
 	message = string.lower(message or "")
@@ -8,8 +9,8 @@ local function HandleSlashCommand(message)
 	elseif message == "talents off" then
 		addon.SetTalentFilterEnabled(false)
 	elseif message == "talents" then
-		local stateText = Level20DB.hideHighLevelTalents and "enabled" or "disabled"
-		print("|cff00ff98Level20|r level-20 talent filtering is " .. stateText .. ". Use /l20 talents on or /l20 talents off.")
+		local stateText = Level20DB.hideHighLevelTalents and L.STATE_ENABLED or L.STATE_DISABLED
+		print(string.format(L.TALENT_FILTER_SLASH_STATUS, stateText))
 	else
 		addon.ToggleWindow()
 	end

@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = addon.L
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
@@ -22,7 +23,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.InstallPvPTalentFilter()
 		addon.InstallSpellBookFilter()
 		addon.InstallCharacterInfoFilter()
-		print("|cff00ff98Level20|r loaded. Click the minimap button or type /level20 to open Level20.")
+		print(L.LOADED_MESSAGE)
 	elseif event == "ADDON_LOADED" then
 		local loadedAddonName = ...
 		if loadedAddonName == "Blizzard_PlayerSpells" then

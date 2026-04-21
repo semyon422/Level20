@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = addon.L
 
 local talentFilterInstalled = false
 local TALENT_ROW_HEIGHT = 600
@@ -98,6 +99,6 @@ function addon.SetTalentFilterEnabled(enabled)
 	addon.RefreshPvPTalentFrame()
 	addon.RefreshWindow()
 
-	local stateText = enabled and "enabled" or "disabled"
-	print("|cff00ff98Level20|r level-20 talent filtering " .. stateText .. ".")
+	local stateText = enabled and L.STATE_ENABLED or L.STATE_DISABLED
+	print(string.format(L.TALENT_FILTER_STATUS, stateText))
 end

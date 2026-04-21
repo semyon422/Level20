@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = addon.L
 
 local warning = CreateFrame("Frame", "Level20XPWarning", UIParent, "BackdropTemplate")
 warning:SetSize(560, 44)
@@ -19,7 +20,7 @@ warning.text = warning:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge"
 warning.text:SetPoint("LEFT", warning, "LEFT", 16, 0)
 warning.text:SetPoint("RIGHT", warning, "RIGHT", -16, 0)
 warning.text:SetJustifyH("CENTER")
-warning.text:SetText("Warning: you are level 20 with active subscription and XP gain enabled.")
+warning.text:SetText(L.XP_WARNING)
 warning.text:SetTextColor(1.0, 0.82, 0.0)
 warning.text:SetShadowColor(0, 0, 0, 1)
 warning.text:SetShadowOffset(1, -1)

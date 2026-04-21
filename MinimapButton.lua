@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = addon.L
 
 local button = CreateFrame("Button", "Level20MinimapButton", Minimap)
 button:SetSize(33, 33)
@@ -65,9 +66,9 @@ end)
 
 button:SetScript("OnEnter", function(self)
 	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-	GameTooltip:SetText("Level20")
-	GameTooltip:AddLine("Open Level20", 1, 1, 1)
-	GameTooltip:AddLine("Drag to move", 0.7, 0.7, 0.7)
+	GameTooltip:SetText(L.ADDON_TITLE)
+	GameTooltip:AddLine(L.MINIMAP_OPEN, 1, 1, 1)
+	GameTooltip:AddLine(L.MINIMAP_DRAG, 0.7, 0.7, 0.7)
 	GameTooltip:Show()
 end)
 

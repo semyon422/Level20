@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = addon.L
 
 local spellBookFilterInstalled = false
 
@@ -76,6 +77,6 @@ function addon.SetSpellBookFilterEnabled(enabled)
 	addon.RefreshSpellBookFrame()
 	addon.RefreshWindow()
 
-	local stateText = enabled and "enabled" or "disabled"
-	print("|cff00ff98Level20|r level-20 spellbook filtering " .. stateText .. ".")
+	local stateText = enabled and L.STATE_ENABLED or L.STATE_DISABLED
+	print(string.format(L.SPELLBOOK_FILTER_STATUS, stateText))
 end

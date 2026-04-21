@@ -1,4 +1,5 @@
 local addonName, addon = ...
+local L = addon.L
 
 local frame = CreateFrame("Frame", "Level20Frame", UIParent, "BasicFrameTemplateWithInset")
 frame:SetSize(380, 270)
@@ -21,7 +22,7 @@ frame:Hide()
 
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 frame.title:SetPoint("LEFT", frame.TitleBg, "LEFT", 8, 0)
-frame.title:SetText("Level20")
+frame.title:SetText(L.ADDON_TITLE)
 
 local activeTab
 
@@ -32,13 +33,13 @@ local function CreateTab(parent, label)
 	return button
 end
 
-local infoTab = CreateTab(frame, "Info")
+local infoTab = CreateTab(frame, L.TAB_INFO)
 infoTab:SetPoint("TOPLEFT", frame, "TOPLEFT", 18, -31)
 
-local settingsTab = CreateTab(frame, "Settings")
+local settingsTab = CreateTab(frame, L.TAB_SETTINGS)
 settingsTab:SetPoint("LEFT", infoTab, "RIGHT", 6, 0)
 
-local waypointsTab = CreateTab(frame, "Waypoints")
+local waypointsTab = CreateTab(frame, L.TAB_WAYPOINTS)
 waypointsTab:SetPoint("LEFT", settingsTab, "RIGHT", 6, 0)
 
 local infoPanel = CreateFrame("Frame", nil, frame)
@@ -73,42 +74,42 @@ local function CreateInfoRow(parent, label, previous)
 	row.value:SetPoint("LEFT", row.label, "RIGHT", 12, 0)
 	row.value:SetPoint("RIGHT", row, "RIGHT", 0, 0)
 	row.value:SetJustifyH("LEFT")
-	row.value:SetText("Unknown")
+	row.value:SetText(L.UNKNOWN)
 
 	return row
 end
 
-local accountTypeRow = CreateInfoRow(infoPanel, "Account type:")
-local subscriptionRow = CreateInfoRow(infoPanel, "Subscription:", accountTypeRow)
-local xpGainRow = CreateInfoRow(infoPanel, "XP gain:", subscriptionRow)
-local chromieTimeRow = CreateInfoRow(infoPanel, "Chromie Time:", xpGainRow)
+local accountTypeRow = CreateInfoRow(infoPanel, L.ACCOUNT_TYPE)
+local subscriptionRow = CreateInfoRow(infoPanel, L.SUBSCRIPTION, accountTypeRow)
+local xpGainRow = CreateInfoRow(infoPanel, L.XP_GAIN, subscriptionRow)
+local chromieTimeRow = CreateInfoRow(infoPanel, L.CHROMIE_TIME, xpGainRow)
 
 local waypointData = {
-	{ label = "Chromie", faction = "Alliance", mapID = 84, x = 56.26, y = 17.32 },
-	{ label = "Chromie", faction = "Horde", mapID = 85, x = 40.82, y = 80.16 },
-	{ label = "XP Stop - Behsten", faction = "Alliance", mapID = 84, x = 87.70, y = 36.09 },
-	{ label = "XP Stop - Slahtz", faction = "Horde", mapID = 85, x = 74.26, y = 44.32 },
-	{ label = "Lorewalker Cho", faction = "Alliance", mapID = 84, x = 64.23, y = 16.12 },
-	{ label = "Lorewalker Cho", faction = "Horde", mapID = 85, x = 54.25, y = 56.60 },
+	{ labelKey = "WAYPOINT_CHROMIE", faction = "Alliance", mapID = 84, x = 56.26, y = 17.32 },
+	{ labelKey = "WAYPOINT_CHROMIE", faction = "Horde", mapID = 85, x = 40.82, y = 80.16 },
+	{ labelKey = "WAYPOINT_XP_STOP_BEHSTEN", faction = "Alliance", mapID = 84, x = 87.70, y = 36.09 },
+	{ labelKey = "WAYPOINT_XP_STOP_SLAHTZ", faction = "Horde", mapID = 85, x = 74.26, y = 44.32 },
+	{ labelKey = "WAYPOINT_LOREWALKER_CHO", faction = "Alliance", mapID = 84, x = 64.23, y = 16.12 },
+	{ labelKey = "WAYPOINT_LOREWALKER_CHO", faction = "Horde", mapID = 85, x = 54.25, y = 56.60 },
 }
 
 local function SetWaypoint(waypoint)
 	if not C_Map.CanSetUserWaypointOnMap(waypoint.mapID) then
-		print("|cff00ff98Level20|r cannot set waypoint on this map right now.")
+		print(L.CANNOT_SET_WAYPOINT)
 		return
 	end
 
 	local point = UiMapPoint.CreateFromCoordinates(waypoint.mapID, waypoint.x / 100, waypoint.y / 100)
 	C_Map.SetUserWaypoint(point)
 	C_SuperTrack.SetSuperTrackedUserWaypoint(true)
-	print(string.format("|cff00ff98Level20|r waypoint set: %s (%.2f, %.2f).", waypoint.label, waypoint.x, waypoint.y))
+	print(string.format(L.WAYPOINT_SET, L[waypoint.labelKey], waypoint.x, waypoint.y))
 end
 
 local function CreateWaypointButton(parent, waypoint)
 	local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
 	button:SetSize(250, 24)
 
-	button:SetText(waypoint.label)
+	button:SetText(L[waypoint.labelKey])
 	button:SetScript("OnClick", function()
 		SetWaypoint(waypoint)
 	end)
@@ -132,7 +133,7 @@ local function RefreshWaypointButtons()
 			waypointButtons[row] = button
 			button:ClearAllPoints()
 			button:SetPoint("TOP", waypointsPanel, "TOP", 0, -((row - 1) * 34))
-			button:SetText(waypoint.label)
+			button:SetText(L[waypoint.labelKey])
 			button:SetScript("OnClick", function()
 				SetWaypoint(waypoint)
 			end)
@@ -144,59 +145,59 @@ end
 local clearWaypointButton = CreateFrame("Button", nil, waypointsPanel, "UIPanelButtonTemplate")
 clearWaypointButton:SetSize(250, 24)
 clearWaypointButton:SetPoint("TOP", waypointsPanel, "TOP", 0, -114)
-clearWaypointButton:SetText("Clear waypoint")
+clearWaypointButton:SetText(L.CLEAR_WAYPOINT)
 clearWaypointButton:SetScript("OnClick", function()
 	C_Map.ClearUserWaypoint()
-	print("|cff00ff98Level20|r waypoint cleared.")
+	print(L.WAYPOINT_CLEARED)
 end)
 
 local function GetAccountTypeText()
 	if IsTrialAccount() then
-		return "Trial"
+		return L.ACCOUNT_TRIAL
 	end
 
 	if IsVeteranTrialAccount() then
-		return "Veteran"
+		return L.ACCOUNT_VETERAN
 	end
 
-	return "Standard"
+	return L.ACCOUNT_STANDARD
 end
 
 local function GetSubscriptionText()
 	local levelCap = GetRestrictedAccountData()
 	if levelCap == addon.LEVEL_CAP then
-		return "Inactive"
+		return L.SUBSCRIPTION_INACTIVE
 	end
 
-	return "Active"
+	return L.SUBSCRIPTION_ACTIVE
 end
 
 local function GetXPGainText()
-	return IsXPUserDisabled() and "Disabled" or "Enabled"
+	return IsXPUserDisabled() and L.XP_DISABLED or L.XP_ENABLED
 end
 
 local function GetChromieTimeText()
 	if not C_PlayerInfo.IsPlayerInChromieTime() then
-		return "Present"
+		return L.CHROMIE_TIME_PRESENT
 	end
 
 	local chromieTimeID = UnitChromieTimeID("player")
 	if not chromieTimeID then
-		return "Unknown"
+		return L.UNKNOWN
 	end
 
 	local options = C_ChromieTime.GetChromieTimeExpansionOptions()
 	if type(options) ~= "table" then
-		return "Unknown"
+		return L.UNKNOWN
 	end
 
 	for _, option in ipairs(options) do
 		if option.id == chromieTimeID then
-			return option.name or "Unknown"
+			return option.name or L.UNKNOWN
 		end
 	end
 
-	return "Unknown"
+	return L.UNKNOWN
 end
 
 function addon.RefreshInfoPanel()
@@ -255,8 +256,8 @@ end
 
 local talentFilterCheckbox = CreateCheckbox(
 	settingsPanel,
-	"Level-20 talent filtering",
-	"Filters class/spec and PvP talent UI to the level-20 usable view.",
+	L.TALENT_FILTER_LABEL,
+	L.TALENT_FILTER_TOOLTIP,
 	function(checked)
 		addon.SetTalentFilterEnabled(checked)
 	end
@@ -265,8 +266,8 @@ talentFilterCheckbox:SetPoint("TOPLEFT", settingsPanel, "TOPLEFT", 0, 0)
 
 local spellBookFilterCheckbox = CreateCheckbox(
 	settingsPanel,
-	"Level-20 spellbook filtering",
-	"Hides spellbook abilities learned above level 20.",
+	L.SPELLBOOK_FILTER_LABEL,
+	L.SPELLBOOK_FILTER_TOOLTIP,
 	function(checked)
 		addon.SetSpellBookFilterEnabled(checked)
 	end
@@ -275,8 +276,8 @@ spellBookFilterCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 
 
 local playerMarksCheckbox = CreateCheckbox(
 	settingsPanel,
-	"Level-20 player marks",
-	"Shows a level-20 badge above visible level-20 player nameplates.",
+	L.PLAYER_MARKS_LABEL,
+	L.PLAYER_MARKS_TOOLTIP,
 	function(checked)
 		Level20DB.showPlayerMarks = checked
 		addon.RefreshPlayerMarks()
@@ -286,8 +287,8 @@ playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0
 
 local debugModeCheckbox = CreateCheckbox(
 	settingsPanel,
-	"Debug mode",
-	"Shows player marks on all visible players and forces the XP warning to display.",
+	L.DEBUG_MODE_LABEL,
+	L.DEBUG_MODE_TOOLTIP,
 	function(checked)
 		Level20DB.debugMode = checked
 		addon.RefreshPlayerMarks()
