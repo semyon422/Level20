@@ -187,6 +187,17 @@ local spellBookFilterCheckbox = CreateCheckbox(
 )
 spellBookFilterCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -8)
 
+local playerMarksCheckbox = CreateCheckbox(
+	settingsPanel,
+	"Level-20 player marks",
+	"Shows a level-20 badge above visible level-20 player nameplates.",
+	function(checked)
+		Level20DB.showPlayerMarks = checked
+		addon.RefreshPlayerMarks()
+	end
+)
+playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
+
 local minimapButtonCheckbox = CreateCheckbox(
 	settingsPanel,
 	"Show minimap button",
@@ -196,7 +207,7 @@ local minimapButtonCheckbox = CreateCheckbox(
 		addon.RefreshMinimapButton()
 	end
 )
-minimapButtonCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
+minimapButtonCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
 
 function addon.RestoreWindowPosition()
 	if not Level20DB.windowPoint then
@@ -216,6 +227,7 @@ end
 function addon.RefreshWindow()
 	talentFilterCheckbox:SetChecked(Level20DB.hideHighLevelTalents)
 	spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
+	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	minimapButtonCheckbox:SetChecked(Level20DB.showMinimapButton)
 	addon.RefreshInfoPanel()
 end

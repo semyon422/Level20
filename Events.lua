@@ -36,6 +36,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.RefreshTalentsFrame()
 		addon.RefreshPvPTalentFrame()
 		addon.RefreshSpellBookFrame()
+		addon.RefreshPlayerMarks()
 	end
 
 	if addon.IsWindowShown() then

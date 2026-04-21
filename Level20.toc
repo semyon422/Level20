@@ -10,6 +10,7 @@ TalentFilter.lua
 PvPTalentFilter.lua
 SpellBookFilter.lua
 AddonWindow.lua
+PlayerMarks.lua
 MinimapButton.lua
 SlashCommands.lua
 Events.lua
