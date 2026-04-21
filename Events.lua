@@ -21,6 +21,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.InstallTalentFilter()
 		addon.InstallPvPTalentFilter()
 		addon.InstallSpellBookFilter()
+		addon.InstallCharacterInfoFilter()
 		print("|cff00ff98Level20|r loaded. Click the minimap button or type /level20 to open Level20.")
 	elseif event == "ADDON_LOADED" then
 		local loadedAddonName = ...
@@ -28,6 +29,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 			addon.InstallTalentFilter()
 			addon.InstallPvPTalentFilter()
 			addon.InstallSpellBookFilter()
+		elseif loadedAddonName == "Blizzard_UIPanels_Game" then
+			addon.InstallCharacterInfoFilter()
 		end
 	elseif event == "TRAIT_CONFIG_UPDATED"
 		or event == "PLAYER_LEVEL_UP"
@@ -37,6 +40,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.RefreshPvPTalentFrame()
 		addon.RefreshSpellBookFrame()
 		addon.RefreshPlayerMarks()
+		addon.RefreshCharacterInfo()
 	end
 
 	if event == "PLAYER_ENTERING_WORLD"

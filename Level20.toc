@@ -9,6 +9,7 @@ Level20.lua
 TalentFilter.lua
 PvPTalentFilter.lua
 SpellBookFilter.lua
+CharacterInfo.lua
 AddonWindow.lua
 PlayerMarks.lua
 XPWarning.lua
