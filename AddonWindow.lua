@@ -38,6 +38,9 @@ infoTab:SetPoint("TOPLEFT", frame, "TOPLEFT", 18, -31)
 local settingsTab = CreateTab(frame, "Settings")
 settingsTab:SetPoint("LEFT", infoTab, "RIGHT", 6, 0)
 
+local waypointsTab = CreateTab(frame, "Waypoints")
+waypointsTab:SetPoint("LEFT", settingsTab, "RIGHT", 6, 0)
+
 local infoPanel = CreateFrame("Frame", nil, frame)
 infoPanel:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -66)
 infoPanel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 20)
@@ -45,6 +48,10 @@ infoPanel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 20)
 local settingsPanel = CreateFrame("Frame", nil, frame)
 settingsPanel:SetPoint("TOPLEFT", infoPanel)
 settingsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
+
+local waypointsPanel = CreateFrame("Frame", nil, frame)
+waypointsPanel:SetPoint("TOPLEFT", infoPanel)
+waypointsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
 local function CreateInfoRow(parent, label, previous)
 	local row = CreateFrame("Frame", nil, parent)
@@ -75,6 +82,73 @@ local accountTypeRow = CreateInfoRow(infoPanel, "Account type:")
 local subscriptionRow = CreateInfoRow(infoPanel, "Subscription:", accountTypeRow)
 local xpGainRow = CreateInfoRow(infoPanel, "XP gain:", subscriptionRow)
 local chromieTimeRow = CreateInfoRow(infoPanel, "Chromie Time:", xpGainRow)
+
+local waypointData = {
+	{ label = "Chromie", faction = "Alliance", mapID = 84, x = 56.26, y = 17.32 },
+	{ label = "Chromie", faction = "Horde", mapID = 85, x = 40.82, y = 80.16 },
+	{ label = "XP Stop - Behsten", faction = "Alliance", mapID = 84, x = 87.70, y = 36.09 },
+	{ label = "XP Stop - Slahtz", faction = "Horde", mapID = 85, x = 74.26, y = 44.32 },
+	{ label = "Lorewalker Cho", faction = "Alliance", mapID = 84, x = 64.23, y = 16.12 },
+	{ label = "Lorewalker Cho", faction = "Horde", mapID = 85, x = 54.25, y = 56.60 },
+}
+
+local function SetWaypoint(waypoint)
+	if not C_Map.CanSetUserWaypointOnMap(waypoint.mapID) then
+		print("|cff00ff98Level20|r cannot set waypoint on this map right now.")
+		return
+	end
+
+	local point = UiMapPoint.CreateFromCoordinates(waypoint.mapID, waypoint.x / 100, waypoint.y / 100)
+	C_Map.SetUserWaypoint(point)
+	C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+	print(string.format("|cff00ff98Level20|r waypoint set: %s (%.2f, %.2f).", waypoint.label, waypoint.x, waypoint.y))
+end
+
+local function CreateWaypointButton(parent, waypoint)
+	local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	button:SetSize(250, 24)
+
+	button:SetText(waypoint.label)
+	button:SetScript("OnClick", function()
+		SetWaypoint(waypoint)
+	end)
+
+	return button
+end
+
+local waypointButtons = {}
+local function RefreshWaypointButtons()
+	local faction = UnitFactionGroup("player")
+	local row = 0
+
+	for _, button in ipairs(waypointButtons) do
+		button:Hide()
+	end
+
+	for _, waypoint in ipairs(waypointData) do
+		if waypoint.faction == faction then
+			row = row + 1
+			local button = waypointButtons[row] or CreateWaypointButton(waypointsPanel, waypoint)
+			waypointButtons[row] = button
+			button:ClearAllPoints()
+			button:SetPoint("TOP", waypointsPanel, "TOP", 0, -((row - 1) * 34))
+			button:SetText(waypoint.label)
+			button:SetScript("OnClick", function()
+				SetWaypoint(waypoint)
+			end)
+			button:Show()
+		end
+	end
+end
+
+local clearWaypointButton = CreateFrame("Button", nil, waypointsPanel, "UIPanelButtonTemplate")
+clearWaypointButton:SetSize(250, 24)
+clearWaypointButton:SetPoint("TOP", waypointsPanel, "TOP", 0, -114)
+clearWaypointButton:SetText("Clear waypoint")
+clearWaypointButton:SetScript("OnClick", function()
+	C_Map.ClearUserWaypoint()
+	print("|cff00ff98Level20|r waypoint cleared.")
+end)
 
 local function GetAccountTypeText()
 	if IsTrialAccount() then
@@ -133,17 +207,25 @@ function addon.RefreshInfoPanel()
 end
 
 local function ShowTab(tab)
-	activeTab = tab == "settings" and "settings" or "info"
+	if tab == "settings" or tab == "waypoints" then
+		activeTab = tab
+	else
+		activeTab = "info"
+	end
 
 	infoPanel:SetShown(activeTab == "info")
 	settingsPanel:SetShown(activeTab == "settings")
+	waypointsPanel:SetShown(activeTab == "waypoints")
 	infoTab:SetEnabled(activeTab ~= "info")
 	settingsTab:SetEnabled(activeTab ~= "settings")
+	waypointsTab:SetEnabled(activeTab ~= "waypoints")
 
 	if activeTab == "info" then
 		addon.RefreshInfoPanel()
-	else
+	elseif activeTab == "settings" then
 		addon.RefreshWindow()
+	elseif activeTab == "waypoints" then
+		RefreshWaypointButtons()
 	end
 end
 
@@ -153,6 +235,10 @@ end)
 
 settingsTab:SetScript("OnClick", function()
 	ShowTab("settings")
+end)
+
+waypointsTab:SetScript("OnClick", function()
+	ShowTab("waypoints")
 end)
 
 local function CreateCheckbox(parent, label, tooltip, onClick)
