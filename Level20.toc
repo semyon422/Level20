@@ -1,0 +1,14 @@
+## Interface: 120001
+## Title: Level20
+## Notes: A tiny learning addon that shows a movable info window.
+## Author: You
+## Version: 0.1.0
+## SavedVariables: Level20DB
+
+Level20.lua
+TalentFilter.lua
+PvPTalentFilter.lua
+SettingsWindow.lua
+MinimapButton.lua
+SlashCommands.lua
+Events.lua

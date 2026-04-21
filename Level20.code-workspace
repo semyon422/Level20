@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../BlizzardInterfaceCode"
+		}
+	],
+	"settings": {
+			"files.exclude": {
+			"**/.git": true
+		},
+			"search.exclude": {
+			"**/.git": true
+		}
+	}
+}
