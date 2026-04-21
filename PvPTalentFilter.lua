@@ -1,4 +1,4 @@
-local addon = Level20
+local addonName, addon = ...
 
 local pvpTalentFilterInstalled = false
 local PVP_TALENT_SLOT_WIDTH = 58

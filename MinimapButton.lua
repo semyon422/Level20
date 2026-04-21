@@ -1,21 +1,4 @@
-local addon = Level20
-
-local minimapShapes = {
-	ROUND = { true, true, true, true },
-	SQUARE = { false, false, false, false },
-	["CORNER-TOPLEFT"] = { false, false, false, true },
-	["CORNER-TOPRIGHT"] = { false, false, true, false },
-	["CORNER-BOTTOMLEFT"] = { false, true, false, false },
-	["CORNER-BOTTOMRIGHT"] = { true, false, false, false },
-	["SIDE-LEFT"] = { false, true, false, true },
-	["SIDE-RIGHT"] = { true, false, true, false },
-	["SIDE-TOP"] = { false, false, true, true },
-	["SIDE-BOTTOM"] = { true, true, false, false },
-	["TRICORNER-TOPLEFT"] = { false, true, true, true },
-	["TRICORNER-TOPRIGHT"] = { true, false, true, true },
-	["TRICORNER-BOTTOMLEFT"] = { true, true, false, true },
-	["TRICORNER-BOTTOMRIGHT"] = { true, true, true, false },
-}
+local addonName, addon = ...
 
 local button = CreateFrame("Button", "Level20MinimapButton", Minimap)
 button:SetSize(33, 33)
@@ -52,58 +35,17 @@ button.text:SetShadowColor(0, 0, 0, 1)
 button.text:SetShadowOffset(1, -1)
 
 local function SetButtonPosition()
-	local rounding = 10
 	local angle = math.rad(Level20DB.minimapButtonAngle or 195)
 	local angleCos = math.cos(angle)
 	local angleSin = math.sin(angle)
-	local quadrant = 1
-
-	if angleCos < 0 then
-		quadrant = quadrant + 1
-	end
-
-	if angleSin > 0 then
-		quadrant = quadrant + 2
-	end
-
 	local horizontalRadius = Minimap:GetWidth() / 2 + 5
 	local verticalRadius = Minimap:GetHeight() / 2 + 5
-	local minimapShape = GetMinimapShape and GetMinimapShape() or "ROUND"
-	local quadrantTable = minimapShapes[minimapShape] or minimapShapes.ROUND
-	local x, y
 
-	if quadrantTable[quadrant] then
-		x = angleCos * horizontalRadius
-		y = angleSin * verticalRadius
-	else
-		local horizontalDiagonalRadius = math.sqrt(2 * (horizontalRadius ^ 2)) - rounding
-		local verticalDiagonalRadius = math.sqrt(2 * (verticalRadius ^ 2)) - rounding
-
-		x = math.max(-horizontalRadius, math.min(angleCos * horizontalDiagonalRadius, horizontalRadius))
-		y = math.max(-verticalRadius, math.min(angleSin * verticalDiagonalRadius, verticalRadius))
-	end
-
-	button:SetPoint("CENTER", Minimap, "CENTER", x, y)
+	button:SetPoint("CENTER", Minimap, "CENTER", angleCos * horizontalRadius, angleSin * verticalRadius)
 end
 
 local function CalculateAngle(y, x)
-	if math.atan2 then
-		return math.atan2(y, x)
-	end
-
-	if x > 0 then
-		return math.atan(y / x)
-	elseif x < 0 and y >= 0 then
-		return math.atan(y / x) + math.pi
-	elseif x < 0 then
-		return math.atan(y / x) - math.pi
-	elseif y > 0 then
-		return math.pi / 2
-	elseif y < 0 then
-		return -math.pi / 2
-	end
-
-	return 0
+	return math.atan2(y, x)
 end
 
 local function UpdateButtonAngle()
@@ -118,13 +60,13 @@ local function UpdateButtonAngle()
 end
 
 button:SetScript("OnClick", function()
-	addon.ToggleSettingsWindow()
+	addon.ToggleWindow()
 end)
 
 button:SetScript("OnEnter", function(self)
 	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
 	GameTooltip:SetText("Level20")
-	GameTooltip:AddLine("Open settings", 1, 1, 1)
+	GameTooltip:AddLine("Open Level20", 1, 1, 1)
 	GameTooltip:AddLine("Drag to move", 0.7, 0.7, 0.7)
 	GameTooltip:Show()
 end)

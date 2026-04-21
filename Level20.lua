@@ -1,8 +1,7 @@
-local addonName = ...
+local addonName, addon = ...
 
-Level20 = Level20 or {}
-Level20.addonName = addonName
-Level20.LEVEL_CAP = 20
+addon.addonName = addonName
+addon.LEVEL_CAP = 20
 
 Level20DB = Level20DB or {}
 Level20DB.hideHighLevelTalents = Level20DB.hideHighLevelTalents ~= false

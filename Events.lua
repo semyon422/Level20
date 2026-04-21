@@ -1,4 +1,4 @@
-local addon = Level20
+local addonName, addon = ...
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
@@ -16,12 +16,12 @@ eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_LOGIN" then
-		addon.RestoreSettingsWindowPosition()
+		addon.RestoreWindowPosition()
 		addon.RefreshMinimapButton()
 		addon.InstallTalentFilter()
 		addon.InstallPvPTalentFilter()
 		addon.InstallSpellBookFilter()
-		print("|cff00ff98Level20|r loaded. Click the minimap button or type /level20 to open settings.")
+		print("|cff00ff98Level20|r loaded. Click the minimap button or type /level20 to open Level20.")
 	elseif event == "ADDON_LOADED" then
 		local loadedAddonName = ...
 		if loadedAddonName == "Blizzard_PlayerSpells" then
@@ -38,7 +38,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.RefreshSpellBookFrame()
 	end
 
-	if addon.IsSettingsWindowShown() then
-		addon.RefreshSettingsWindow()
+	if addon.IsWindowShown() then
+		addon.RefreshWindow()
 	end
 end)

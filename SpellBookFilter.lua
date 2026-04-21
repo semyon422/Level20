@@ -1,4 +1,4 @@
-local addon = Level20
+local addonName, addon = ...
 
 local spellBookFilterInstalled = false
 
@@ -74,7 +74,7 @@ function addon.SetSpellBookFilterEnabled(enabled)
 	Level20DB.hideHighLevelSpells = enabled
 	addon.InstallSpellBookFilter()
 	addon.RefreshSpellBookFrame()
-	addon.RefreshSettingsWindow()
+	addon.RefreshWindow()
 
 	local stateText = enabled and "enabled" or "disabled"
 	print("|cff00ff98Level20|r level-20 spellbook filtering " .. stateText .. ".")

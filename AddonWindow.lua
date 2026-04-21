@@ -1,6 +1,6 @@
-local addon = Level20
+local addonName, addon = ...
 
-local frame = CreateFrame("Frame", "Level20SettingsFrame", UIParent, "BasicFrameTemplateWithInset")
+local frame = CreateFrame("Frame", "Level20Frame", UIParent, "BasicFrameTemplateWithInset")
 frame:SetSize(380, 270)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
@@ -12,10 +12,10 @@ frame:SetScript("OnDragStop", function(self)
 	self:StopMovingOrSizing()
 
 	local point, _, relativePoint, xOfs, yOfs = self:GetPoint()
-	Level20DB.settingsPoint = point
-	Level20DB.settingsRelativePoint = relativePoint
-	Level20DB.settingsXOfs = xOfs
-	Level20DB.settingsYOfs = yOfs
+	Level20DB.windowPoint = point
+	Level20DB.windowRelativePoint = relativePoint
+	Level20DB.windowXOfs = xOfs
+	Level20DB.windowYOfs = yOfs
 end)
 frame:Hide()
 
@@ -143,7 +143,7 @@ local function ShowTab(tab)
 	if activeTab == "info" then
 		addon.RefreshInfoPanel()
 	else
-		addon.RefreshSettingsWindow()
+		addon.RefreshWindow()
 	end
 end
 
@@ -161,7 +161,7 @@ local function CreateCheckbox(parent, label, tooltip, onClick)
 	checkbox.tooltipText = tooltip
 	checkbox:SetScript("OnClick", function(self)
 		onClick(self:GetChecked())
-		addon.RefreshSettingsWindow()
+		addon.RefreshWindow()
 	end)
 
 	return checkbox
@@ -198,42 +198,42 @@ local minimapButtonCheckbox = CreateCheckbox(
 )
 minimapButtonCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
 
-function addon.RestoreSettingsWindowPosition()
-	if not Level20DB.settingsPoint then
+function addon.RestoreWindowPosition()
+	if not Level20DB.windowPoint then
 		return
 	end
 
 	frame:ClearAllPoints()
 	frame:SetPoint(
-		Level20DB.settingsPoint,
+		Level20DB.windowPoint,
 		UIParent,
-		Level20DB.settingsRelativePoint or Level20DB.settingsPoint,
-		Level20DB.settingsXOfs or 0,
-		Level20DB.settingsYOfs or 0
+		Level20DB.windowRelativePoint or Level20DB.windowPoint,
+		Level20DB.windowXOfs or 0,
+		Level20DB.windowYOfs or 0
 	)
 end
 
-function addon.RefreshSettingsWindow()
+function addon.RefreshWindow()
 	talentFilterCheckbox:SetChecked(Level20DB.hideHighLevelTalents)
 	spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
 	minimapButtonCheckbox:SetChecked(Level20DB.showMinimapButton)
 	addon.RefreshInfoPanel()
 end
 
-function addon.ShowSettingsWindow()
-	addon.RefreshSettingsWindow()
+function addon.ShowWindow()
+	addon.RefreshWindow()
 	ShowTab("info")
 	frame:Show()
 end
 
-function addon.ToggleSettingsWindow()
+function addon.ToggleWindow()
 	if frame:IsShown() then
 		frame:Hide()
 	else
-		addon.ShowSettingsWindow()
+		addon.ShowWindow()
 	end
 end
 
-function addon.IsSettingsWindowShown()
+function addon.IsWindowShown()
 	return frame:IsShown()
 end
