@@ -6,6 +6,26 @@ local TALENT_ROW_HEIGHT = 600
 local TALENT_ROW_OFFSET = 3
 local TALENT_POSITION_SCALE = 10
 
+local function GetTalentOwnerLevel(talentsFrame)
+	if talentsFrame.IsInspecting and talentsFrame:IsInspecting() and talentsFrame.GetInspectUnit then
+		local inspectUnit = talentsFrame:GetInspectUnit()
+		if inspectUnit then
+			return UnitLevel(inspectUnit)
+		end
+	end
+
+	return UnitLevel("player")
+end
+
+local function ShouldFilterTalents(talentsFrame)
+	if not Level20DB.hideHighLevelTalents then
+		return false
+	end
+
+	local level = GetTalentOwnerLevel(talentsFrame)
+	return level and level > 0 and level <= addon.LEVEL_CAP
+end
+
 local function PrepareTalentsFrame()
 	local talentsFrame = PlayerSpellsFrame and PlayerSpellsFrame.TalentsFrame
 	if not talentsFrame then
@@ -36,7 +56,7 @@ local function IsUnavailableAndUninvested(talentsFrame, nodeID)
 end
 
 local function FilterTalentNodes(talentsFrame, nodeIDs)
-	if not Level20DB.hideHighLevelTalents then
+	if not ShouldFilterTalents(talentsFrame) then
 		return nodeIDs
 	end
 
@@ -67,7 +87,7 @@ local function ApplyTalentLayoutOffset(talentsFrame)
 		basePanOffsetY = currentBasePanOffsetY - previousOffsetY
 	end
 
-	local offsetY = Level20DB.hideHighLevelTalents and -((TALENT_ROW_HEIGHT * TALENT_ROW_OFFSET) / TALENT_POSITION_SCALE) or 0
+	local offsetY = ShouldFilterTalents(talentsFrame) and -((TALENT_ROW_HEIGHT * TALENT_ROW_OFFSET) / TALENT_POSITION_SCALE) or 0
 	local adjustedBasePanOffsetY = basePanOffsetY + offsetY
 	talentsFrame:SetBasePanOffset(basePanOffsetX, adjustedBasePanOffsetY)
 	talentsFrame.level20AppliedLayoutOffsetY = offsetY
