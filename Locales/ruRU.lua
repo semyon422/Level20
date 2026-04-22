@@ -51,7 +51,6 @@ L.MINIMAP_DRAG = "Перетащите, чтобы переместить"
 L.STATE_ENABLED = "включен"
 L.STATE_DISABLED = "отключен"
 L.TALENT_FILTER_STATUS = "|cff00ff98Level20|r фильтр талантов 20-го уровня %s."
-L.TALENT_FILTER_SLASH_STATUS = "|cff00ff98Level20|r фильтр талантов 20-го уровня %s. Используйте /l20 talents on или /l20 talents off."
 L.SPELLBOOK_FILTER_STATUS = "|cff00ff98Level20|r фильтр книги заклинаний 20-го уровня %s."
 
 L.XP_WARNING = "Внимание: у вас 20-й уровень, активная подписка и включено получение опыта."
