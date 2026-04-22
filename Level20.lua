@@ -9,6 +9,7 @@ local enabledByDefault = {
 	hideHighLevelTalents = true,
 	hideHighLevelSpells = true,
 	showPlayerMarks = true,
+	shadowlandsProtection = true,
 }
 
 for key, value in pairs(enabledByDefault) do

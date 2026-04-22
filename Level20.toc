@@ -13,6 +13,8 @@ TalentFilter.lua
 PvPTalentFilter.lua
 SpellBookFilter.lua
 CharacterInfo.lua
+ShadowlandsInfo.lua
+ShadowlandsProtection.lua
 AddonWindow.lua
 PlayerMarks.lua
 XPWarning.lua

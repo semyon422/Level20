@@ -17,6 +17,7 @@ L.ACCOUNT_TYPE = "Тип учетной записи:"
 L.SUBSCRIPTION = "Подписка:"
 L.XP_GAIN = "Получение опыта:"
 L.CHROMIE_TIME = "Время Хроми:"
+L.SHADOWLANDS_STATE = "Темные Земли:"
 
 L.ACCOUNT_TRIAL = "Пробная"
 L.ACCOUNT_VETERAN = "Ветеранская"
@@ -42,6 +43,8 @@ L.SPELLBOOK_FILTER_LABEL = "Фильтр книги заклинаний 20-го
 L.SPELLBOOK_FILTER_TOOLTIP = "Скрывает в книге заклинаний способности, изучаемые после 20-го уровня."
 L.PLAYER_MARKS_LABEL = "Метки игроков 20-го уровня"
 L.PLAYER_MARKS_TOOLTIP = "Показывает значок 20-го уровня над индикаторами видимых игроков 20-го уровня."
+L.SL_PROTECTION_LABEL = "Защита Темных Земель"
+L.SL_PROTECTION_TOOLTIP = "Блокирует пропуск кампании Темных Земель и предупреждает перед выбором ковенанта."
 L.DEBUG_MODE_LABEL = "Режим отладки"
 L.DEBUG_MODE_TOOLTIP = "Показывает метки на всех видимых игроках и принудительно отображает предупреждение об опыте."
 
@@ -54,3 +57,19 @@ L.TALENT_FILTER_STATUS = "|cff00ff98Level20|r фильтр талантов 20-�
 L.SPELLBOOK_FILTER_STATUS = "|cff00ff98Level20|r фильтр книги заклинаний 20-го уровня %s."
 
 L.XP_WARNING = "Внимание: у вас 20-й уровень, активная подписка и включено получение опыта."
+
+L.SL_STATE_CLEAR = "Чисто"
+L.SL_STATE_CAMPAIGN = "Кампания"
+L.SL_STATE_CAMPAIGN_COMPLETE = "Кампания завершена"
+L.SL_STATE_THREADS = "Нити судьбы"
+L.SL_STATE_THREADS_CHOOSING = "Выбор ковенанта"
+L.SL_STATE_THREADS_COVENANT = "Нити + ковенант"
+L.SL_STATE_COVENANT = "Ковенант выбран"
+L.SL_STATE_COVENANT_CHOICE = "Выбор ковенанта"
+
+L.SL_WARNING_TITLE = "Предупреждение Темных Земель"
+L.SL_COVENANT_WARNING = "Не выбирайте ковенант и не завершайте задание Выбор цели. Это может сделать контент Темных Земель недоступным для персонажа 20-го уровня."
+L.SL_CANCEL_COVENANT_QUEST = "Отменить задание"
+L.SL_COVENANT_QUEST_CANCELLED = "|cff00ff98Level20|r задание Выбор цели отменено."
+L.SL_COVENANT_QUEST_CANCEL_FAILED = "|cff00ff98Level20|r не удалось отменить задание Выбор цели."
+L.SL_SKIP_BLOCKED_MESSAGE = "|cff00ff98Level20|r пропуск кампании Темных Земель заблокирован."

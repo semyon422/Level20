@@ -15,10 +15,18 @@ eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
+eventFrame:RegisterEvent("QUEST_ACCEPTED")
+eventFrame:RegisterEvent("QUEST_REMOVED")
+eventFrame:RegisterEvent("QUEST_TURNED_IN")
+eventFrame:RegisterEvent("GOSSIP_SHOW")
+eventFrame:RegisterEvent("GOSSIP_CLOSED")
+eventFrame:RegisterEvent("COVENANT_CHOSEN")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_LOGIN" then
 		addon.RestoreWindowPosition()
 		addon.RefreshXPWarning()
+		addon.RefreshShadowlandsProtection()
+		addon.InstallShadowlandsProtection()
 		addon.InstallTalentFilter()
 		addon.InstallPvPTalentFilter()
 		addon.InstallSpellBookFilter()
@@ -33,6 +41,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		elseif loadedAddonName == "Blizzard_UIPanels_Game" then
 			addon.InstallCharacterInfoFilter()
 		end
+
+		addon.InstallShadowlandsProtection()
 	elseif event == "TRAIT_CONFIG_UPDATED"
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED"
@@ -50,6 +60,16 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "ENABLE_XP_GAIN"
 		or event == "DISABLE_XP_GAIN" then
 		addon.RefreshXPWarning()
+	end
+
+	if event == "PLAYER_ENTERING_WORLD"
+		or event == "QUEST_ACCEPTED"
+		or event == "QUEST_REMOVED"
+		or event == "QUEST_TURNED_IN"
+		or event == "GOSSIP_SHOW"
+		or event == "GOSSIP_CLOSED"
+		or event == "COVENANT_CHOSEN" then
+		addon.RefreshShadowlandsProtection()
 	end
 
 	if addon.IsWindowShown() then

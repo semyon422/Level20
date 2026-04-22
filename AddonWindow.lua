@@ -2,7 +2,7 @@ local addonName, addon = ...
 local L = addon.L
 
 local frame = CreateFrame("Frame", "Level20Frame", UIParent, "BasicFrameTemplateWithInset")
-frame:SetSize(380, 270)
+frame:SetSize(420, 292)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
 frame:SetClampedToScreen(true)
@@ -83,6 +83,7 @@ local accountTypeRow = CreateInfoRow(infoPanel, L.ACCOUNT_TYPE)
 local subscriptionRow = CreateInfoRow(infoPanel, L.SUBSCRIPTION, accountTypeRow)
 local xpGainRow = CreateInfoRow(infoPanel, L.XP_GAIN, subscriptionRow)
 local chromieTimeRow = CreateInfoRow(infoPanel, L.CHROMIE_TIME, xpGainRow)
+local shadowlandsRow = CreateInfoRow(infoPanel, L.SHADOWLANDS_STATE, chromieTimeRow)
 
 local waypointData = {
 	{ labelKey = "WAYPOINT_CHROMIE", faction = "Alliance", mapID = 84, x = 56.26, y = 17.32 },
@@ -205,6 +206,7 @@ function addon.RefreshInfoPanel()
 	subscriptionRow.value:SetText(GetSubscriptionText())
 	xpGainRow.value:SetText(GetXPGainText())
 	chromieTimeRow.value:SetText(GetChromieTimeText())
+	shadowlandsRow.value:SetText(addon.GetShadowlandsStateText())
 end
 
 local function ShowTab(tab)
@@ -285,6 +287,17 @@ local playerMarksCheckbox = CreateCheckbox(
 )
 playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
 
+local shadowlandsProtectionCheckbox = CreateCheckbox(
+	settingsPanel,
+	L.SL_PROTECTION_LABEL,
+	L.SL_PROTECTION_TOOLTIP,
+	function(checked)
+		Level20DB.shadowlandsProtection = checked
+		addon.RefreshShadowlandsProtection()
+	end
+)
+shadowlandsProtectionCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
+
 local debugModeCheckbox = CreateCheckbox(
 	settingsPanel,
 	L.DEBUG_MODE_LABEL,
@@ -293,9 +306,10 @@ local debugModeCheckbox = CreateCheckbox(
 		Level20DB.debugMode = checked
 		addon.RefreshPlayerMarks()
 		addon.RefreshXPWarning()
+		addon.RefreshShadowlandsProtection()
 	end
 )
-debugModeCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
+debugModeCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
 
 function addon.RestoreWindowPosition()
 	if not Level20DB.windowPoint then
@@ -316,6 +330,7 @@ function addon.RefreshWindow()
 	talentFilterCheckbox:SetChecked(Level20DB.hideHighLevelTalents)
 	spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
+	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
 	debugModeCheckbox:SetChecked(Level20DB.debugMode)
 	addon.RefreshInfoPanel()
 end
