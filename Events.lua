@@ -16,6 +16,8 @@ eventFrame:RegisterEvent("PLAYER_DIFFICULTY_CHANGED")
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_CRITERIA_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_UPDATE")
+eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+eventFrame:RegisterEvent("ENCOUNTER_END")
 eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
@@ -73,6 +75,15 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED" then
 		addon.ScheduleDungeonChallengeFrameRefresh()
+	end
+
+	if event == "PLAYER_REGEN_DISABLED" then
+		addon.StartDungeonChallengeTimer()
+	elseif event == "ENCOUNTER_END" then
+		local _, _, _, _, success = ...
+		if success == 1 then
+			addon.ScheduleDungeonChallengeFrameRefresh()
+		end
 	end
 
 	if event == "PLAYER_ENTERING_WORLD"

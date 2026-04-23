@@ -21,3 +21,4 @@ end
 
 Level20DB.debugMode = Level20DB.debugMode or false
 Level20DB.minimapButtonAngle = Level20DB.minimapButtonAngle or 195
+Level20DB.dungeonChallengeTimer = Level20DB.dungeonChallengeTimer or {}

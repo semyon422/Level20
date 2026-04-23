@@ -8,8 +8,7 @@ local TIME_LIMIT_SECONDS = 30 * 60
 
 local hooksInstalled = false
 local challengeBlockPatched = false
-local fakeRunStartTime
-local currentInstanceKey
+local scenarioTimerPatched = false
 local encounterCriteria = {}
 
 local originals = {}
@@ -46,11 +45,6 @@ local function GetDungeonChallengeStatus()
 	}
 end
 
-local function GetInstanceKey()
-	local status = GetDungeonChallengeStatus()
-	return string.format("%s:%s:%s", tostring(status.instanceID), tostring(status.difficultyID), tostring(status.lfgDungeonID))
-end
-
 local function IsRealChallengeModeActive()
 	if originals.C_ChallengeMode and originals.C_ChallengeMode.IsChallengeModeActive then
 		return originals.C_ChallengeMode.IsChallengeModeActive()
@@ -68,12 +62,73 @@ local function ShouldUseDungeonChallenge()
 	return status.isInInstance and status.instanceType == "party"
 end
 
+local function GetCurrentServerTime()
+	if GetServerTime then
+		return GetServerTime()
+	end
+
+	return time()
+end
+
+local function GetRunRecord()
+	Level20DB.dungeonChallengeTimer = Level20DB.dungeonChallengeTimer or {}
+	return Level20DB.dungeonChallengeTimer
+end
+
+local function ClearRunRecord()
+	Level20DB.dungeonChallengeTimer = {}
+end
+
+local function HasCompletedAllCriteria()
+	if #encounterCriteria == 0 then
+		return false
+	end
+
+	for _, criteria in ipairs(encounterCriteria) do
+		if not criteria.completed then
+			return false
+		end
+	end
+
+	return true
+end
+
+local function StartRun(run)
+	if not run or run.startedAt or run.completedAt then
+		return false
+	end
+
+	run.startedAt = GetCurrentServerTime()
+	return true
+end
+
+local function CompleteRun(run)
+	if not run or not run.startedAt or run.completedAt then
+		return false
+	end
+
+	local now = GetCurrentServerTime()
+	run.completedAt = now
+	run.completedElapsed = math.max(0, now - run.startedAt)
+	return true
+end
+
 local function GetElapsedTime()
-	if not fakeRunStartTime then
+	local run = GetRunRecord()
+	if not run or not run.startedAt then
 		return 0
 	end
 
-	return math.floor(GetTime() - fakeRunStartTime)
+	if run.completedAt then
+		return math.max(0, math.floor(run.completedElapsed or (run.completedAt - run.startedAt)))
+	end
+
+	return math.max(0, math.floor(GetCurrentServerTime() - run.startedAt))
+end
+
+local function IsTimerStarted()
+	local run = GetRunRecord()
+	return run and run.startedAt and true or false
 end
 
 local function RefreshEncounterCriteria()
@@ -112,31 +167,18 @@ local function RefreshEncounterCriteria()
 		end
 
 		if #encounterCriteria > 0 then
+			local run = GetRunRecord()
+			if run and HasCompletedAllCriteria() then
+				CompleteRun(run)
+			end
+
 			return
 		end
 	end
 end
 
-local function GetCriteria()
-	local criteria = {}
-
-	for _, encounter in ipairs(encounterCriteria) do
-		table.insert(criteria, encounter)
-	end
-
-	-- table.insert(criteria, {
-	-- 	description = L.DUNGEON_CHALLENGE_ENEMY_FORCES,
-	-- 	quantity = 0,
-	-- 	totalQuantity = 100,
-	-- 	isWeightedProgress = true,
-	-- 	isFormatted = true,
-	-- })
-
-	return criteria
-end
-
 local function BuildCriteriaInfo(index)
-	local criteria = GetCriteria()[index]
+	local criteria = encounterCriteria[index]
 	if not criteria then
 		return nil
 	end
@@ -211,10 +253,9 @@ patched.C_Scenario = {
 	end,
 
 	GetStepInfo = function()
-		local criteria = GetCriteria()
 		return L.DUNGEON_CHALLENGE_SUBTITLE,
 			"",
-			#criteria,
+			#encounterCriteria,
 			nil,
 			nil,
 			nil,
@@ -280,8 +321,6 @@ end
 
 local function ActivateBlizzardChallengeBlock()
 	if not ShouldUseDungeonChallenge() then
-		fakeRunStartTime = nil
-
 		if ScenarioTimerFrame then
 			ScenarioTimerFrame:StopTimer(FAKE_TIMER_ID)
 		end
@@ -301,26 +340,18 @@ local function ActivateBlizzardChallengeBlock()
 		return false
 	end
 
-	local isNewRun = not fakeRunStartTime
-	if isNewRun then
-		fakeRunStartTime = GetTime()
-	end
-
-	local instanceKey = GetInstanceKey()
-	if isNewRun or currentInstanceKey ~= instanceKey then
-		currentInstanceKey = instanceKey
-	end
-
+	local run = GetRunRecord()
 	local block = ScenarioObjectiveTracker.ChallengeModeBlock
 	if not challengeBlockPatched then
 		local originalUpdateTime = block.UpdateTime
 		block.UpdateTime = function(self, elapsedTime)
 			if ShouldUseDungeonChallenge() and self.timerID == FAKE_TIMER_ID then
+				local effectiveElapsedTime = GetElapsedTime()
 				local statusBar = self.StatusBar
-				local displayedElapsedTime = math.min(elapsedTime, TIME_LIMIT_SECONDS)
+				local displayedElapsedTime = math.min(effectiveElapsedTime, TIME_LIMIT_SECONDS)
 				statusBar:SetValue(TIME_LIMIT_SECONDS - displayedElapsedTime)
 				self.TimeLeft:SetTextColor(HIGHLIGHT_FONT_COLOR:GetRGB())
-				self.TimeLeft:SetText(SecondsToClock(elapsedTime))
+				self.TimeLeft:SetText(SecondsToClock(effectiveElapsedTime))
 				self.StartedDepleted:Hide()
 				self.TimesUpLootStatus:Hide()
 			else
@@ -330,14 +361,45 @@ local function ActivateBlizzardChallengeBlock()
 		challengeBlockPatched = true
 	end
 
+	if not scenarioTimerPatched then
+		local originalStartTimer = ScenarioTimerFrame.StartTimer
+		ScenarioTimerFrame.StartTimer = function(self, activeBlock)
+			if activeBlock and activeBlock.timerID == FAKE_TIMER_ID and not IsTimerStarted() then
+				self:Hide()
+				self.baseTime = nil
+				self.timeSinceBase = nil
+				self.block = nil
+				return
+			end
+
+			originalStartTimer(self, activeBlock)
+		end
+		scenarioTimerPatched = true
+	end
+
 	if not block:IsActive() or block.timerID ~= FAKE_TIMER_ID then
 		block:Activate(FAKE_TIMER_ID, GetElapsedTime(), TIME_LIMIT_SECONDS)
+	elseif run and run.startedAt and ScenarioTimerFrame.block ~= block then
+		ScenarioTimerFrame:StartTimer(block)
+	elseif run and run.completedAt then
+		block:UpdateTime(GetElapsedTime())
 	end
 
 	ScenarioObjectiveTracker:SetShouldShowCriteria(true)
 	ScenarioObjectiveTracker:ForceExpand()
 	ScenarioObjectiveTracker:MarkDirty()
 	return true
+end
+
+local function StartVisibleTimerIfNeeded()
+	if not ScenarioTimerFrame or not ScenarioObjectiveTracker or not ScenarioObjectiveTracker.ChallengeModeBlock then
+		return
+	end
+
+	local block = ScenarioObjectiveTracker.ChallengeModeBlock
+	if block.timerID == FAKE_TIMER_ID then
+		ScenarioTimerFrame:StartTimer(block)
+	end
 end
 
 function addon.RefreshDungeonChallengeFrame(forceShow)
@@ -367,9 +429,6 @@ end
 
 function addon.ScheduleDungeonChallengeFrameRefresh()
 	addon.RefreshDungeonChallengeFrame()
-	-- C_Timer.After(0.5, addon.RefreshDungeonChallengeFrame)
-	-- C_Timer.After(1, addon.RefreshDungeonChallengeFrame)
-	-- C_Timer.After(3, addon.RefreshDungeonChallengeFrame)
 end
 
 function addon.ResetDungeonChallengeTimer()
@@ -378,7 +437,7 @@ function addon.ResetDungeonChallengeTimer()
 	end
 
 	Level20DB.showDungeonChallengeFrame = true
-	fakeRunStartTime = GetTime()
+	ClearRunRecord()
 
 	if ScenarioTimerFrame then
 		ScenarioTimerFrame:StopTimer(FAKE_TIMER_ID)
@@ -397,4 +456,15 @@ end
 
 function addon.GetDungeonChallengeElapsedTime()
 	return GetElapsedTime()
+end
+
+function addon.StartDungeonChallengeTimer()
+	if not ShouldUseDungeonChallenge() then
+		return
+	end
+
+	if StartRun(GetRunRecord()) then
+		addon.RefreshDungeonChallengeFrame(true)
+		StartVisibleTimerIfNeeded()
+	end
 end
