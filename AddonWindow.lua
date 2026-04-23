@@ -2,7 +2,7 @@ local addonName, addon = ...
 local L = addon.L
 
 local frame = CreateFrame("Frame", "Level20Frame", UIParent, "BasicFrameTemplateWithInset")
-frame:SetSize(420, 292)
+frame:SetSize(472, 292)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
 frame:SetClampedToScreen(true)
@@ -42,6 +42,9 @@ settingsTab:SetPoint("LEFT", infoTab, "RIGHT", 6, 0)
 local waypointsTab = CreateTab(frame, L.TAB_WAYPOINTS)
 waypointsTab:SetPoint("LEFT", settingsTab, "RIGHT", 6, 0)
 
+local dungeonTab = CreateTab(frame, L.TAB_DUNGEON)
+dungeonTab:SetPoint("LEFT", waypointsTab, "RIGHT", 6, 0)
+
 local infoPanel = CreateFrame("Frame", nil, frame)
 infoPanel:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -66)
 infoPanel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 20)
@@ -50,9 +53,24 @@ local settingsPanel = CreateFrame("Frame", nil, frame)
 settingsPanel:SetPoint("TOPLEFT", infoPanel)
 settingsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
+local settingsScrollFrame = CreateFrame("ScrollFrame", nil, settingsPanel, "UIPanelScrollFrameTemplate")
+settingsScrollFrame:SetPoint("TOPLEFT", settingsPanel, "TOPLEFT", 4, -4)
+settingsScrollFrame:SetPoint("BOTTOMRIGHT", settingsPanel, "BOTTOMRIGHT", -28, 4)
+
+local settingsContent = CreateFrame("Frame", nil, settingsScrollFrame)
+settingsContent:SetSize(1, 1)
+settingsScrollFrame:SetScrollChild(settingsContent)
+settingsScrollFrame:SetScript("OnSizeChanged", function(self, width)
+	settingsContent:SetWidth(math.max(1, width - 24))
+end)
+
 local waypointsPanel = CreateFrame("Frame", nil, frame)
 waypointsPanel:SetPoint("TOPLEFT", infoPanel)
 waypointsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
+
+local dungeonPanel = CreateFrame("Frame", nil, frame)
+dungeonPanel:SetPoint("TOPLEFT", infoPanel)
+dungeonPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
 local function CreateInfoRow(parent, label, previous)
 	local row = CreateFrame("Frame", nil, parent)
@@ -209,8 +227,45 @@ function addon.RefreshInfoPanel()
 	shadowlandsRow.value:SetText(addon.GetShadowlandsStateText())
 end
 
+local dungeonStatusRow = CreateInfoRow(dungeonPanel, L.DUNGEON_CHALLENGE_STATUS_LABEL)
+local dungeonTimerRow = CreateInfoRow(dungeonPanel, L.DUNGEON_CHALLENGE_TIMER_LABEL, dungeonStatusRow)
+
+local resetDungeonTimerButton = CreateFrame("Button", nil, dungeonPanel, "UIPanelButtonTemplate")
+resetDungeonTimerButton:SetSize(180, 24)
+resetDungeonTimerButton:SetPoint("TOPLEFT", dungeonTimerRow, "BOTTOMLEFT", 0, -12)
+resetDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_RESET_TIMER)
+resetDungeonTimerButton:SetScript("OnClick", function()
+	addon.ResetDungeonChallengeTimer()
+	addon.RefreshDungeonPanel()
+end)
+
+local function FormatDuration(seconds)
+	seconds = math.max(0, math.floor(seconds or 0))
+	return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
+end
+
+function addon.RefreshDungeonPanel()
+	local isActive = addon.IsDungeonChallengeActive and addon.IsDungeonChallengeActive()
+	dungeonStatusRow.value:SetText(isActive and L.STATE_ENABLED or L.STATE_DISABLED)
+	dungeonTimerRow.value:SetText(FormatDuration(addon.GetDungeonChallengeElapsedTime and addon.GetDungeonChallengeElapsedTime() or 0))
+	resetDungeonTimerButton:SetEnabled(isActive and not InCombatLockdown())
+end
+
+local dungeonPanelRefreshElapsed = 0
+dungeonPanel:SetScript("OnUpdate", function(_, elapsed)
+	if activeTab ~= "dungeon" then
+		return
+	end
+
+	dungeonPanelRefreshElapsed = dungeonPanelRefreshElapsed + elapsed
+	if dungeonPanelRefreshElapsed >= 1 then
+		dungeonPanelRefreshElapsed = 0
+		addon.RefreshDungeonPanel()
+	end
+end)
+
 local function ShowTab(tab)
-	if tab == "settings" or tab == "waypoints" then
+	if tab == "settings" or tab == "waypoints" or tab == "dungeon" then
 		activeTab = tab
 	else
 		activeTab = "info"
@@ -219,9 +274,11 @@ local function ShowTab(tab)
 	infoPanel:SetShown(activeTab == "info")
 	settingsPanel:SetShown(activeTab == "settings")
 	waypointsPanel:SetShown(activeTab == "waypoints")
+	dungeonPanel:SetShown(activeTab == "dungeon")
 	infoTab:SetEnabled(activeTab ~= "info")
 	settingsTab:SetEnabled(activeTab ~= "settings")
 	waypointsTab:SetEnabled(activeTab ~= "waypoints")
+	dungeonTab:SetEnabled(activeTab ~= "dungeon")
 
 	if activeTab == "info" then
 		addon.RefreshInfoPanel()
@@ -229,6 +286,8 @@ local function ShowTab(tab)
 		addon.RefreshWindow()
 	elseif activeTab == "waypoints" then
 		RefreshWaypointButtons()
+	elseif activeTab == "dungeon" then
+		addon.RefreshDungeonPanel()
 	end
 end
 
@@ -244,6 +303,10 @@ waypointsTab:SetScript("OnClick", function()
 	ShowTab("waypoints")
 end)
 
+dungeonTab:SetScript("OnClick", function()
+	ShowTab("dungeon")
+end)
+
 local function CreateCheckbox(parent, label, tooltip, onClick)
 	local checkbox = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
 	checkbox.Text:SetText(label)
@@ -257,17 +320,17 @@ local function CreateCheckbox(parent, label, tooltip, onClick)
 end
 
 local talentFilterCheckbox = CreateCheckbox(
-	settingsPanel,
+	settingsContent,
 	L.TALENT_FILTER_LABEL,
 	L.TALENT_FILTER_TOOLTIP,
 	function(checked)
 		addon.SetTalentFilterEnabled(checked)
 	end
 )
-talentFilterCheckbox:SetPoint("TOPLEFT", settingsPanel, "TOPLEFT", 0, 0)
+talentFilterCheckbox:SetPoint("TOPLEFT", settingsContent, "TOPLEFT", 0, 0)
 
 local spellBookFilterCheckbox = CreateCheckbox(
-	settingsPanel,
+	settingsContent,
 	L.SPELLBOOK_FILTER_LABEL,
 	L.SPELLBOOK_FILTER_TOOLTIP,
 	function(checked)
@@ -277,7 +340,7 @@ local spellBookFilterCheckbox = CreateCheckbox(
 spellBookFilterCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -8)
 
 local playerMarksCheckbox = CreateCheckbox(
-	settingsPanel,
+	settingsContent,
 	L.PLAYER_MARKS_LABEL,
 	L.PLAYER_MARKS_TOOLTIP,
 	function(checked)
@@ -288,7 +351,7 @@ local playerMarksCheckbox = CreateCheckbox(
 playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
 
 local shadowlandsProtectionCheckbox = CreateCheckbox(
-	settingsPanel,
+	settingsContent,
 	L.SL_PROTECTION_LABEL,
 	L.SL_PROTECTION_TOOLTIP,
 	function(checked)
@@ -299,7 +362,7 @@ local shadowlandsProtectionCheckbox = CreateCheckbox(
 shadowlandsProtectionCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
 
 local debugModeCheckbox = CreateCheckbox(
-	settingsPanel,
+	settingsContent,
 	L.DEBUG_MODE_LABEL,
 	L.DEBUG_MODE_TOOLTIP,
 	function(checked)
@@ -309,7 +372,20 @@ local debugModeCheckbox = CreateCheckbox(
 		addon.RefreshShadowlandsProtection()
 	end
 )
-debugModeCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
+
+local dungeonChallengeFrameCheckbox = CreateCheckbox(
+	settingsContent,
+	L.DUNGEON_CHALLENGE_FRAME_LABEL,
+	L.DUNGEON_CHALLENGE_FRAME_TOOLTIP,
+	function(checked)
+		addon.SetDungeonChallengeFrameEnabled(checked)
+	end
+)
+dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
+
+debugModeCheckbox:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
+settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
+settingsContent:SetHeight(220)
 
 function addon.RestoreWindowPosition()
 	if not Level20DB.windowPoint then
@@ -332,7 +408,9 @@ function addon.RefreshWindow()
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
 	debugModeCheckbox:SetChecked(Level20DB.debugMode)
+	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)
 	addon.RefreshInfoPanel()
+	addon.RefreshDungeonPanel()
 end
 
 function addon.ShowWindow()

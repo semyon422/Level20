@@ -1,8 +1,8 @@
-## Interface: 120001
+## Interface: 120005
 ## Title: Level20
 ## Notes: Helper addon for level-20 players.
 ## Notes-ruRU: Вспомогательный аддон для игроков 20-го уровня.
-## Author: You
+## Author: semyon422
 ## Version: 0.1.0
 ## SavedVariables: Level20DB
 
@@ -16,6 +16,7 @@ CharacterInfo.lua
 ShadowlandsInfo.lua
 ShadowlandsProtection.lua
 AddonWindow.lua
+DungeonChallengeFrame.lua
 PlayerMarks.lua
 XPWarning.lua
 MinimapButton.lua

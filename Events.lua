@@ -12,6 +12,10 @@ eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 eventFrame:RegisterEvent("ZONE_CHANGED")
 eventFrame:RegisterEvent("ZONE_CHANGED_INDOORS")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+eventFrame:RegisterEvent("PLAYER_DIFFICULTY_CHANGED")
+eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+eventFrame:RegisterEvent("SCENARIO_CRITERIA_UPDATE")
+eventFrame:RegisterEvent("SCENARIO_UPDATE")
 eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
@@ -24,7 +28,9 @@ eventFrame:RegisterEvent("COVENANT_CHOSEN")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_LOGIN" then
 		addon.RestoreWindowPosition()
+		addon.InitializeDungeonChallengeFrame()
 		addon.RefreshXPWarning()
+		addon.ScheduleDungeonChallengeFrameRefresh()
 		addon.RefreshShadowlandsProtection()
 		addon.InstallShadowlandsProtection()
 		addon.InstallTalentFilter()
@@ -40,6 +46,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 			addon.InstallSpellBookFilter()
 		elseif loadedAddonName == "Blizzard_UIPanels_Game" then
 			addon.InstallCharacterInfoFilter()
+		elseif loadedAddonName == "Blizzard_ObjectiveTracker" then
+			addon.ScheduleDungeonChallengeFrameRefresh()
 		end
 
 		addon.InstallShadowlandsProtection()
@@ -52,6 +60,19 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.RefreshSpellBookFrame()
 		addon.RefreshPlayerMarks()
 		addon.RefreshCharacterInfo()
+	end
+
+	if event == "PLAYER_ENTERING_WORLD"
+		or event == "ZONE_CHANGED"
+		or event == "ZONE_CHANGED_INDOORS"
+		or event == "ZONE_CHANGED_NEW_AREA"
+		or event == "PLAYER_DIFFICULTY_CHANGED"
+		or event == "GROUP_ROSTER_UPDATE"
+		or event == "SCENARIO_CRITERIA_UPDATE"
+		or event == "SCENARIO_UPDATE"
+		or event == "PLAYER_LEVEL_UP"
+		or event == "PLAYER_LEVEL_CHANGED" then
+		addon.ScheduleDungeonChallengeFrameRefresh()
 	end
 
 	if event == "PLAYER_ENTERING_WORLD"

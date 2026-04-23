@@ -10,6 +10,7 @@ local enabledByDefault = {
 	hideHighLevelSpells = true,
 	showPlayerMarks = true,
 	shadowlandsProtection = true,
+	showDungeonChallengeFrame = true,
 }
 
 for key, value in pairs(enabledByDefault) do
