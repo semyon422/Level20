@@ -1,6 +1,7 @@
 local addonName, addon = ...
 
 local challenge = addon.DungeonChallenge
+local constants = challenge.constants
 local state = challenge.state
 
 function challenge.GetCurrentServerTime()
@@ -35,7 +36,57 @@ function challenge.GetEncounterCriteriaSnapshot(run)
 end
 
 function challenge.ClearRunRecord()
+	challenge.CancelCompletionBannerTimer()
 	Level20DB.dungeonChallengeTimer = {}
+end
+
+function challenge.HasShownCompletionBanner(run)
+	return run and run.completionBannerShown and true or false
+end
+
+function challenge.MarkCompletionBannerShown(run, shown)
+	if not run then
+		return
+	end
+
+	run.completionBannerShown = shown and true or false
+end
+
+function challenge.CancelCompletionBannerTimer()
+	if state.completionBannerTimer then
+		state.completionBannerTimer:Cancel()
+		state.completionBannerTimer = nil
+	end
+end
+
+function challenge.ScheduleCompletionBanner(run)
+	if not run or not run.completedAt or challenge.HasShownCompletionBanner(run) then
+		return false
+	end
+
+	challenge.CancelCompletionBannerTimer()
+	state.completionBannerTimer = C_Timer.NewTimer(constants.COMPLETION_BANNER_DELAY_SECONDS, function()
+		state.completionBannerTimer = nil
+		challenge.TriggerCompletionBanner(run)
+	end)
+	return true
+end
+
+function challenge.TriggerCompletionBanner(run)
+	if not run or not run.completedAt or challenge.HasShownCompletionBanner(run) then
+		return false
+	end
+
+	if not challenge.ShowCompletionBanner then
+		return false
+	end
+
+	local shown = challenge.ShowCompletionBanner()
+	if shown then
+		challenge.MarkCompletionBannerShown(run, true)
+	end
+
+	return shown and true or false
 end
 
 function challenge.GetEncounterCompletionKey(criteria)
@@ -153,6 +204,7 @@ function challenge.CompleteRun(run)
 	local now = challenge.GetCurrentServerTime()
 	run.completedAt = now
 	run.completedElapsed = math.max(0, now - run.startedAt)
+	challenge.ScheduleCompletionBanner(run)
 	return true
 end
 

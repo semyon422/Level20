@@ -11,6 +11,10 @@ function challenge.refresh(forceShow)
 	challenge.InstallHooks()
 	if challenge.ShouldUse() then
 		challenge.RefreshEncounterCriteria()
+		local run = challenge.GetRunRecord()
+		if run and run.completedAt and not challenge.HasShownCompletionBanner(run) and not challenge.state.completionBannerTimer then
+			challenge.TriggerCompletionBanner(run)
+		end
 	end
 	challenge.ActivateBlizzardBlock()
 end
