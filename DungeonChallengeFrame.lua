@@ -69,6 +69,59 @@ local function GetDungeonGroupSizeText()
 	return tostring(groupSize)
 end
 
+local function UpdateRaidSizeFrameLayout(block)
+	local raidSizeFrame = block and block.RaidSize
+	if not raidSizeFrame then
+		return
+	end
+
+	raidSizeFrame:ClearAllPoints()
+	if block.DeathCount and block.DeathCount:IsShown() then
+		raidSizeFrame:SetPoint("RIGHT", block.DeathCount, "LEFT", -2, 0)
+	else
+		raidSizeFrame:SetPoint("TOPRIGHT", block, "BOTTOMRIGHT", -24, 43)
+	end
+end
+
+local function UpdateRaidSizeFrame(block)
+	if not block or not block.RaidSize then
+		return
+	end
+
+	local groupSizeText = GetDungeonGroupSizeText()
+	if not groupSizeText then
+		block.RaidSize:Hide()
+		return
+	end
+
+	block.RaidSize.Count:SetText(groupSizeText)
+	UpdateRaidSizeFrameLayout(block)
+	block.RaidSize:Show()
+end
+
+local function EnsureRaidSizeFrame(block)
+	if not block or block.RaidSize then
+		return
+	end
+
+	local raidSizeFrame = CreateFrame("Frame", nil, block)
+	raidSizeFrame:SetSize(30, 16)
+	raidSizeFrame:Hide()
+
+	local icon = raidSizeFrame:CreateTexture(nil, "ARTWORK")
+	icon:SetAtlas("socialqueuing-icon-group", false)
+	icon:SetPoint("LEFT")
+	icon:SetSize(14, 14)
+	raidSizeFrame.Icon = icon
+
+	local count = raidSizeFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall2")
+	count:SetPoint("LEFT", icon, "RIGHT", 0, 0)
+	raidSizeFrame.Count = count
+
+	block.RaidSize = raidSizeFrame
+	UpdateRaidSizeFrameLayout(block)
+end
+
 local function ResetObservedDungeonLevelIfNeeded(status)
 	if observedDungeonInstanceID ~= status.instanceID then
 		observedDungeonInstanceID = status.instanceID
@@ -156,17 +209,11 @@ end
 local function GetChallengeLevelDisplayText()
 	local levelText = CHALLENGE_MODE_POWER_LEVEL:format(GetDungeonChallengeLevel())
 	local difficultyText = GetDungeonDifficultyText()
-	local groupSizeText = GetDungeonGroupSizeText()
-	if not difficultyText and not groupSizeText then
+	if not difficultyText then
 		return levelText
 	end
 
-	local detailText = difficultyText or ""
-	if groupSizeText then
-		detailText = detailText ~= "" and string.format("%s %s", detailText, groupSizeText) or groupSizeText
-	end
-
-	return string.format("%s |cff9d9d9d%s|r", levelText, detailText)
+	return string.format("%s |cff9d9d9d%s|r", levelText, difficultyText)
 end
 
 local function IsRealChallengeModeActive()
@@ -542,8 +589,10 @@ local function ActivateBlizzardChallengeBlock()
 
 	local run = GetRunRecord()
 	local block = ScenarioObjectiveTracker.ChallengeModeBlock
+	EnsureRaidSizeFrame(block)
 	if not challengeBlockPatched then
 		local originalUpdateTime = block.UpdateTime
+		local originalUpdateDeathCount = block.UpdateDeathCount
 		block.UpdateTime = function(self, elapsedTime)
 			if ShouldUseDungeonChallenge() and self.timerID == FAKE_TIMER_ID then
 				local effectiveElapsedTime = GetElapsedTime()
@@ -557,6 +606,10 @@ local function ActivateBlizzardChallengeBlock()
 			else
 				originalUpdateTime(self, elapsedTime)
 			end
+		end
+		block.UpdateDeathCount = function(self, ...)
+			originalUpdateDeathCount(self, ...)
+			UpdateRaidSizeFrame(self)
 		end
 		challengeBlockPatched = true
 	end
@@ -588,6 +641,8 @@ local function ActivateBlizzardChallengeBlock()
 	if block.Level then
 		block.Level:SetText(GetChallengeLevelDisplayText())
 	end
+
+	UpdateRaidSizeFrame(block)
 
 	ScenarioObjectiveTracker:SetShouldShowCriteria(true)
 	ScenarioObjectiveTracker:ForceExpand()
