@@ -33,6 +33,16 @@ local function GetDungeonChallengeStatus()
 	}
 end
 
+local function GetDungeonDifficultyText()
+	local status = GetDungeonChallengeStatus()
+	local difficultyName = status and status.difficultyName
+	if not difficultyName or difficultyName == "" then
+		return nil
+	end
+
+	return difficultyName
+end
+
 local function ResetObservedDungeonLevelIfNeeded(status)
 	if observedDungeonInstanceID ~= status.instanceID then
 		observedDungeonInstanceID = status.instanceID
@@ -116,6 +126,17 @@ local function GetDungeonChallengeLevel()
 
 	return addon.LEVEL_CAP
 end
+
+local function GetChallengeLevelDisplayText()
+	local levelText = CHALLENGE_MODE_POWER_LEVEL:format(GetDungeonChallengeLevel())
+	local difficultyText = GetDungeonDifficultyText()
+	if not difficultyText then
+		return levelText
+	end
+
+	return string.format("%s |cff9d9d9d%s|r", levelText, difficultyText)
+end
+
 local function IsRealChallengeModeActive()
 	if originals.C_ChallengeMode and originals.C_ChallengeMode.IsChallengeModeActive then
 		return originals.C_ChallengeMode.IsChallengeModeActive()
@@ -457,7 +478,7 @@ local function ActivateBlizzardChallengeBlock()
 	end
 
 	if block.Level then
-		block.Level:SetText(CHALLENGE_MODE_POWER_LEVEL:format(GetDungeonChallengeLevel()))
+		block.Level:SetText(GetChallengeLevelDisplayText())
 	end
 
 	ScenarioObjectiveTracker:SetShouldShowCriteria(true)
