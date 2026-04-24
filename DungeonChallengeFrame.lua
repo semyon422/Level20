@@ -10,23 +10,11 @@ local hooksInstalled = false
 local challengeBlockPatched = false
 local scenarioTimerPatched = false
 local encounterCriteria = {}
+local observedDungeonInstanceID
+local observedDungeonLevel
 
 local originals = {}
 local patched = {}
-
-local function GetDungeonChallengeLevel()
-	local effectiveLevel = UnitEffectiveLevel and UnitEffectiveLevel("player")
-	if effectiveLevel and effectiveLevel > 0 then
-		return effectiveLevel
-	end
-
-	local level = UnitLevel("player")
-	if level and level > 0 then
-		return level
-	end
-
-	return addon.LEVEL_CAP
-end
 
 local function GetDungeonChallengeStatus()
 	local isInInstance, instanceType = IsInInstance()
@@ -45,6 +33,89 @@ local function GetDungeonChallengeStatus()
 	}
 end
 
+local function ResetObservedDungeonLevelIfNeeded(status)
+	if observedDungeonInstanceID ~= status.instanceID then
+		observedDungeonInstanceID = status.instanceID
+		observedDungeonLevel = nil
+	end
+end
+
+local function UpdateObservedDungeonLevel(level)
+	level = tonumber(level)
+	if not level or level <= 0 then
+		return observedDungeonLevel
+	end
+
+	level = math.floor(level)
+	if not observedDungeonLevel then
+		observedDungeonLevel = level
+		return observedDungeonLevel
+	end
+
+	local difference = level - observedDungeonLevel
+	if difference >= 5 then
+		observedDungeonLevel = level
+	elseif math.abs(difference) < 5 and level % 5 == 0 then
+		observedDungeonLevel = level
+	end
+
+	return observedDungeonLevel
+end
+
+local function ObserveDungeonUnitLevel(unit)
+	if not unit or not UnitExists(unit) or not UnitCanAttack("player", unit) then
+		return nil
+	end
+
+	local level = UnitEffectiveLevel and UnitEffectiveLevel(unit)
+	if not level or level <= 0 then
+		level = UnitLevel(unit)
+	end
+
+	level = tonumber(level)
+
+	if level and level > 0 then
+		return UpdateObservedDungeonLevel(level)
+	end
+
+	return nil
+end
+
+local function GetObservedDungeonLevel()
+	local status = GetDungeonChallengeStatus()
+	ResetObservedDungeonLevelIfNeeded(status)
+
+	for _, unit in ipairs({ "target", "mouseover", "focus" }) do
+		local level = ObserveDungeonUnitLevel(unit)
+		if level then
+			return level
+		end
+	end
+
+	return observedDungeonLevel
+end
+
+local function GetDungeonChallengeLevel()
+	local status = GetDungeonChallengeStatus()
+	ResetObservedDungeonLevelIfNeeded(status)
+
+	local observedLevel = GetObservedDungeonLevel()
+	if observedLevel and observedLevel > 0 then
+		return observedLevel
+	end
+
+	local effectiveLevel = UnitEffectiveLevel and UnitEffectiveLevel("player")
+	if effectiveLevel and effectiveLevel > 0 then
+		return effectiveLevel
+	end
+
+	local level = UnitLevel("player")
+	if level and level > 0 then
+		return level
+	end
+
+	return addon.LEVEL_CAP
+end
 local function IsRealChallengeModeActive()
 	if originals.C_ChallengeMode and originals.C_ChallengeMode.IsChallengeModeActive then
 		return originals.C_ChallengeMode.IsChallengeModeActive()
@@ -383,6 +454,10 @@ local function ActivateBlizzardChallengeBlock()
 		ScenarioTimerFrame:StartTimer(block)
 	elseif run and run.completedAt then
 		block:UpdateTime(GetElapsedTime())
+	end
+
+	if block.Level then
+		block.Level:SetText(CHALLENGE_MODE_POWER_LEVEL:format(GetDungeonChallengeLevel()))
 	end
 
 	ScenarioObjectiveTracker:SetShouldShowCriteria(true)

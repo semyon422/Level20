@@ -18,6 +18,9 @@ eventFrame:RegisterEvent("SCENARIO_CRITERIA_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_UPDATE")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("ENCOUNTER_END")
+eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+eventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
 eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
@@ -72,6 +75,9 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "GROUP_ROSTER_UPDATE"
 		or event == "SCENARIO_CRITERIA_UPDATE"
 		or event == "SCENARIO_UPDATE"
+		or event == "PLAYER_TARGET_CHANGED"
+		or event == "UPDATE_MOUSEOVER_UNIT"
+		or event == "PLAYER_FOCUS_CHANGED"
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED" then
 		addon.ScheduleDungeonChallengeFrameRefresh()
