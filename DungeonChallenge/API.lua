@@ -3,10 +3,6 @@ local addonName, addon = ...
 local challenge = addon.DungeonChallenge
 local constants = challenge.constants
 
-function challenge.initialize()
-	challenge.refresh()
-end
-
 function challenge.refresh(forceShow)
 	if forceShow then
 		Level20DB.showDungeonChallengeFrame = true
@@ -19,17 +15,9 @@ function challenge.refresh(forceShow)
 	challenge.ActivateBlizzardBlock()
 end
 
-function challenge.show()
-	challenge.refresh(true)
-end
-
 function challenge.setEnabled(enabled)
 	Level20DB.showDungeonChallengeFrame = enabled and true or false
 	challenge.refresh(Level20DB.showDungeonChallengeFrame)
-end
-
-function challenge.scheduleRefresh()
-	challenge.refresh()
 end
 
 function challenge.resetTimer()
@@ -49,14 +37,6 @@ function challenge.resetTimer()
 	end
 
 	challenge.refresh(true)
-end
-
-function challenge.isActive()
-	return challenge.ShouldUse()
-end
-
-function challenge.getElapsedTime()
-	return challenge.GetElapsedTime()
 end
 
 function challenge.startTimer()

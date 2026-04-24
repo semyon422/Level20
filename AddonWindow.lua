@@ -245,9 +245,9 @@ local function FormatDuration(seconds)
 end
 
 function addon.RefreshDungeonPanel()
-	local isActive = addon.DungeonChallenge and addon.DungeonChallenge.isActive and addon.DungeonChallenge.isActive()
+	local isActive = addon.DungeonChallenge and addon.DungeonChallenge.ShouldUse and addon.DungeonChallenge.ShouldUse()
 	dungeonStatusRow.value:SetText(isActive and L.STATE_ENABLED or L.STATE_DISABLED)
-	dungeonTimerRow.value:SetText(FormatDuration(addon.DungeonChallenge and addon.DungeonChallenge.getElapsedTime and addon.DungeonChallenge.getElapsedTime() or 0))
+	dungeonTimerRow.value:SetText(FormatDuration(addon.DungeonChallenge and addon.DungeonChallenge.GetElapsedTime and addon.DungeonChallenge.GetElapsedTime() or 0))
 	resetDungeonTimerButton:SetEnabled(isActive and not InCombatLockdown())
 end
 
