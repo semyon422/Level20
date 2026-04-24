@@ -33,9 +33,9 @@ eventFrame:RegisterEvent("COVENANT_CHOSEN")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_LOGIN" then
 		addon.RestoreWindowPosition()
-		addon.InitializeDungeonChallengeFrame()
+		addon.DungeonChallenge.initialize()
 		addon.RefreshXPWarning()
-		addon.ScheduleDungeonChallengeFrameRefresh()
+		addon.DungeonChallenge.scheduleRefresh()
 		addon.RefreshShadowlandsProtection()
 		addon.InstallShadowlandsProtection()
 		addon.InstallTalentFilter()
@@ -52,7 +52,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		elseif loadedAddonName == "Blizzard_UIPanels_Game" then
 			addon.InstallCharacterInfoFilter()
 		elseif loadedAddonName == "Blizzard_ObjectiveTracker" then
-			addon.ScheduleDungeonChallengeFrameRefresh()
+			addon.DungeonChallenge.scheduleRefresh()
 		end
 
 		addon.InstallShadowlandsProtection()
@@ -80,15 +80,15 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "PLAYER_FOCUS_CHANGED"
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED" then
-		addon.ScheduleDungeonChallengeFrameRefresh()
+		addon.DungeonChallenge.scheduleRefresh()
 	end
 
 	if event == "PLAYER_REGEN_DISABLED" then
-		addon.StartDungeonChallengeTimer()
+		addon.DungeonChallenge.startTimer()
 	elseif event == "ENCOUNTER_END" then
 		local _, _, _, _, success = ...
 		if success == 1 then
-			addon.ScheduleDungeonChallengeFrameRefresh()
+			addon.DungeonChallenge.scheduleRefresh()
 		end
 	end
 

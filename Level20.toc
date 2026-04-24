@@ -16,7 +16,13 @@ CharacterInfo.lua
 ShadowlandsInfo.lua
 ShadowlandsProtection.lua
 AddonWindow.lua
-DungeonChallengeFrame.lua
+DungeonChallenge/Namespace.lua
+DungeonChallenge/Status.lua
+DungeonChallenge/Run.lua
+DungeonChallenge/Criteria.lua
+DungeonChallenge/Patches.lua
+DungeonChallenge/Tracker.lua
+DungeonChallenge/API.lua
 PlayerMarks.lua
 XPWarning.lua
 MinimapButton.lua

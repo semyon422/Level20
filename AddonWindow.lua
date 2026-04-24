@@ -235,7 +235,7 @@ resetDungeonTimerButton:SetSize(180, 24)
 resetDungeonTimerButton:SetPoint("TOPLEFT", dungeonTimerRow, "BOTTOMLEFT", 0, -12)
 resetDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_RESET_TIMER)
 resetDungeonTimerButton:SetScript("OnClick", function()
-	addon.ResetDungeonChallengeTimer()
+	addon.DungeonChallenge.resetTimer()
 	addon.RefreshDungeonPanel()
 end)
 
@@ -245,9 +245,9 @@ local function FormatDuration(seconds)
 end
 
 function addon.RefreshDungeonPanel()
-	local isActive = addon.IsDungeonChallengeActive and addon.IsDungeonChallengeActive()
+	local isActive = addon.DungeonChallenge and addon.DungeonChallenge.isActive and addon.DungeonChallenge.isActive()
 	dungeonStatusRow.value:SetText(isActive and L.STATE_ENABLED or L.STATE_DISABLED)
-	dungeonTimerRow.value:SetText(FormatDuration(addon.GetDungeonChallengeElapsedTime and addon.GetDungeonChallengeElapsedTime() or 0))
+	dungeonTimerRow.value:SetText(FormatDuration(addon.DungeonChallenge and addon.DungeonChallenge.getElapsedTime and addon.DungeonChallenge.getElapsedTime() or 0))
 	resetDungeonTimerButton:SetEnabled(isActive and not InCombatLockdown())
 end
 
@@ -378,7 +378,7 @@ local dungeonChallengeFrameCheckbox = CreateCheckbox(
 	L.DUNGEON_CHALLENGE_FRAME_LABEL,
 	L.DUNGEON_CHALLENGE_FRAME_TOOLTIP,
 	function(checked)
-		addon.SetDungeonChallengeFrameEnabled(checked)
+		addon.DungeonChallenge.setEnabled(checked)
 	end
 )
 dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
