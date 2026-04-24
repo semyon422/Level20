@@ -250,8 +250,176 @@ local function GetRunRecord()
 	return Level20DB.dungeonChallengeTimer
 end
 
+local function GetEncounterCompletionTimes(run)
+	if not run then
+		return nil
+	end
+
+	run.encounterCompletionTimes = run.encounterCompletionTimes or {}
+	return run.encounterCompletionTimes
+end
+
+local function GetEncounterCriteriaSnapshot(run)
+	if not run then
+		return nil
+	end
+
+	run.encounterCriteriaSnapshot = run.encounterCriteriaSnapshot or {}
+	return run.encounterCriteriaSnapshot
+end
+
 local function ClearRunRecord()
 	Level20DB.dungeonChallengeTimer = {}
+end
+
+local function GetEncounterCompletionKey(criteria)
+	if not criteria then
+		return nil
+	end
+
+	if criteria.criteriaID then
+		return tostring(criteria.criteriaID)
+	end
+
+	if criteria.assetID and criteria.assetID > 0 then
+		return tostring(criteria.assetID)
+	end
+
+	return criteria.description
+end
+
+local function GetEncounterCompletionTime(run, criteria)
+	if not run or not criteria then
+		return nil
+	end
+
+	local encounterCompletionTimes = GetEncounterCompletionTimes(run)
+	local encounterKey = GetEncounterCompletionKey(criteria)
+	if not encounterCompletionTimes or not encounterKey then
+		return nil
+	end
+
+	return encounterCompletionTimes[encounterKey]
+end
+
+local function FormatEncounterDescription(criteria, run)
+	if not criteria or not criteria.description then
+		return nil
+	end
+
+	local description = criteria.description
+	if not criteria.completed then
+		return description
+	end
+
+	local completionTime = GetEncounterCompletionTime(run, criteria)
+	if completionTime == nil then
+		return description
+	end
+
+	return string.format("%s |cff9d9d9d(%s)|r", description, SecondsToClock(completionTime))
+end
+
+local function RecordEncounterCompletionTime(run, criteria)
+	if not run or not run.startedAt or not criteria or not criteria.completed then
+		return nil
+	end
+
+	local encounterCompletionTimes = GetEncounterCompletionTimes(run)
+	local encounterKey = GetEncounterCompletionKey(criteria)
+	if not encounterCompletionTimes or not encounterKey then
+		return nil
+	end
+
+	if encounterCompletionTimes[encounterKey] == nil then
+		local completedElapsed
+		if run.completedElapsed then
+			completedElapsed = run.completedElapsed
+		else
+			completedElapsed = math.max(0, GetCurrentServerTime() - run.startedAt)
+		end
+
+		encounterCompletionTimes[encounterKey] = math.floor(completedElapsed)
+	end
+
+	return encounterCompletionTimes[encounterKey]
+end
+
+local function CopyCriteria(criteria)
+	if not criteria then
+		return nil
+	end
+
+	local copy = {}
+	for key, value in pairs(criteria) do
+		copy[key] = value
+	end
+
+	return copy
+end
+
+local function SaveEncounterCriteriaSnapshot(run)
+	if not run then
+		return
+	end
+
+	local snapshot = GetEncounterCriteriaSnapshot(run)
+	table.wipe(snapshot)
+
+	for index, criteria in ipairs(encounterCriteria) do
+		snapshot[index] = CopyCriteria(criteria)
+	end
+end
+
+local function RestoreEncounterCriteriaSnapshot(run)
+	if not run then
+		return false
+	end
+
+	local snapshot = GetEncounterCriteriaSnapshot(run)
+	if #snapshot == 0 then
+		return false
+	end
+
+	for _, criteria in ipairs(snapshot) do
+		table.insert(encounterCriteria, CopyCriteria(criteria))
+	end
+
+	return #encounterCriteria > 0
+end
+
+local function HasAnyCompletedCriteria(criteriaList)
+	if not criteriaList then
+		return false
+	end
+
+	for _, criteria in ipairs(criteriaList) do
+		if criteria.completed then
+			return true
+		end
+	end
+
+	return false
+end
+
+local function DoesCriteriaListMatchSnapshot(criteriaList, snapshot)
+	if not criteriaList or not snapshot or #criteriaList ~= #snapshot then
+		return false
+	end
+
+	for index, criteria in ipairs(criteriaList) do
+		local snapshotCriteria = snapshot[index]
+		if not snapshotCriteria then
+			return false
+		end
+
+		if criteria.criteriaID ~= snapshotCriteria.criteriaID
+			or criteria.assetID ~= snapshotCriteria.assetID then
+			return false
+		end
+	end
+
+	return true
 end
 
 local function HasCompletedAllCriteria()
@@ -294,6 +462,7 @@ local function BuildEncounterCriteriaFromJournal(status)
 	end
 
 	local index = 1
+	local run = GetRunRecord()
 	while true do
 		local name, _, encounterID = EJ_GetEncounterInfoByIndex(index)
 		if not name then
@@ -307,7 +476,7 @@ local function BuildEncounterCriteriaFromJournal(status)
 				completed = completedOk and isComplete and true or false
 			end
 
-			table.insert(encounterCriteria, {
+			local criteria = {
 				description = name,
 				quantity = completed and 1 or 0,
 				totalQuantity = 1,
@@ -322,7 +491,13 @@ local function BuildEncounterCriteriaFromJournal(status)
 				flags = 0,
 				assetID = encounterID or 0,
 				criteriaID = encounterID or index,
-			})
+			}
+			if criteria.completed then
+				RecordEncounterCompletionTime(run, criteria)
+			end
+			criteria.description = FormatEncounterDescription(criteria, run)
+
+			table.insert(encounterCriteria, criteria)
 		end
 
 		index = index + 1
@@ -381,12 +556,13 @@ local function RefreshEncounterCriteria()
 	local originalScenarioInfo = originals.C_ScenarioInfo or C_ScenarioInfo
 	local originalGetStepInfo = originalScenario.GetStepInfo
 	local originalGetCriteriaInfo = originalScenarioInfo.GetCriteriaInfo
+	local run = GetRunRecord()
 	local stepOk, _, _, numCriteria = pcall(originalGetStepInfo)
 	if stepOk and numCriteria and numCriteria > 0 then
 		for index = 1, numCriteria do
 			local criteriaOk, criteriaInfo = pcall(originalGetCriteriaInfo, index)
 			if criteriaOk and criteriaInfo and criteriaInfo.description and criteriaInfo.description ~= "" then
-				table.insert(encounterCriteria, {
+				local criteria = {
 					description = criteriaInfo.description,
 					quantity = criteriaInfo.quantity or 0,
 					totalQuantity = criteriaInfo.totalQuantity or 1,
@@ -401,12 +577,27 @@ local function RefreshEncounterCriteria()
 					flags = criteriaInfo.flags or 0,
 					assetID = criteriaInfo.assetID or 0,
 					criteriaID = criteriaInfo.criteriaID or index,
-				})
+				}
+				if criteria.completed then
+					RecordEncounterCompletionTime(run, criteria)
+				end
+				criteria.description = FormatEncounterDescription(criteria, run)
+
+				table.insert(encounterCriteria, criteria)
 			end
 		end
 
 		if #encounterCriteria > 0 then
-			local run = GetRunRecord()
+			if run and run.completedAt and not HasAnyCompletedCriteria(encounterCriteria) then
+				local snapshot = GetEncounterCriteriaSnapshot(run)
+				if DoesCriteriaListMatchSnapshot(encounterCriteria, snapshot) then
+					table.wipe(encounterCriteria)
+					RestoreEncounterCriteriaSnapshot(run)
+					return
+				end
+			end
+
+			SaveEncounterCriteriaSnapshot(run)
 			if run and HasCompletedAllCriteria() then
 				CompleteRun(run)
 			end
@@ -417,10 +608,14 @@ local function RefreshEncounterCriteria()
 
 	if BuildEncounterCriteriaFromJournal(GetDungeonChallengeStatus()) then
 		local run = GetRunRecord()
+		SaveEncounterCriteriaSnapshot(run)
 		if run and HasCompletedAllCriteria() then
 			CompleteRun(run)
 		end
+		return
 	end
+
+	RestoreEncounterCriteriaSnapshot(run)
 end
 
 local function BuildCriteriaInfo(index)
