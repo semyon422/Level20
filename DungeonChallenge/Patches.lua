@@ -28,16 +28,6 @@ state.patched.C_ChallengeMode = {
 	end,
 }
 
-state.patched._G = {
-	GetWorldElapsedTime = function()
-		return L.DUNGEON_CHALLENGE_SUBTITLE, challenge.GetElapsedTime(), Enum.WorldElapsedTimerTypes.ChallengeMode
-	end,
-
-	GetWorldElapsedTimers = function()
-		return constants.FAKE_TIMER_ID
-	end,
-}
-
 state.patched.C_Scenario = {
 	GetInfo = function()
 		local status = challenge.GetStatus()
