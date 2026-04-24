@@ -35,12 +35,38 @@ end
 
 local function GetDungeonDifficultyText()
 	local status = GetDungeonChallengeStatus()
-	local difficultyName = status and status.difficultyName
+	if not status then
+		return nil
+	end
+
+	local difficultyName
+	if DifficultyUtil and DifficultyUtil.GetDifficultyName and status.difficultyID then
+		difficultyName = DifficultyUtil.GetDifficultyName(status.difficultyID)
+	end
+
+	if not difficultyName or difficultyName == "" then
+		difficultyName = status.difficultyName
+	end
+
 	if not difficultyName or difficultyName == "" then
 		return nil
 	end
 
 	return difficultyName
+end
+
+local function GetDungeonGroupSizeText()
+	local status = GetDungeonChallengeStatus()
+	if not status or status.instanceType ~= "raid" then
+		return nil
+	end
+
+	local groupSize = tonumber(status.instanceGroupSize) or tonumber(status.maxPlayers)
+	if not groupSize or groupSize <= 0 then
+		return nil
+	end
+
+	return tostring(groupSize)
 end
 
 local function ResetObservedDungeonLevelIfNeeded(status)
@@ -130,11 +156,17 @@ end
 local function GetChallengeLevelDisplayText()
 	local levelText = CHALLENGE_MODE_POWER_LEVEL:format(GetDungeonChallengeLevel())
 	local difficultyText = GetDungeonDifficultyText()
-	if not difficultyText then
+	local groupSizeText = GetDungeonGroupSizeText()
+	if not difficultyText and not groupSizeText then
 		return levelText
 	end
 
-	return string.format("%s |cff9d9d9d%s|r", levelText, difficultyText)
+	local detailText = difficultyText or ""
+	if groupSizeText then
+		detailText = detailText ~= "" and string.format("%s %s", detailText, groupSizeText) or groupSizeText
+	end
+
+	return string.format("%s |cff9d9d9d%s|r", levelText, detailText)
 end
 
 local function IsRealChallengeModeActive()
@@ -145,13 +177,17 @@ local function IsRealChallengeModeActive()
 	return false
 end
 
+local function IsSupportedDungeonChallengeInstanceType(instanceType)
+	return instanceType == "party" or instanceType == "raid"
+end
+
 local function ShouldUseDungeonChallenge()
 	if not Level20DB.showDungeonChallengeFrame or IsRealChallengeModeActive() then
 		return false
 	end
 
 	local status = GetDungeonChallengeStatus()
-	return status.isInInstance and status.instanceType == "party"
+	return status.isInInstance and IsSupportedDungeonChallengeInstanceType(status.instanceType)
 end
 
 local function GetCurrentServerTime()
@@ -183,6 +219,69 @@ local function HasCompletedAllCriteria()
 	end
 
 	return true
+end
+
+local function BuildEncounterCriteriaFromJournal(status)
+	if not status or status.instanceType ~= "raid" then
+		return false
+	end
+
+	if not EJ_SelectInstance or not EJ_GetEncounterInfoByIndex then
+		return false
+	end
+
+	local journalInstanceID
+	if AdventureGuideUtil and AdventureGuideUtil.GetCurrentJournalInstance then
+		journalInstanceID = AdventureGuideUtil.GetCurrentJournalInstance()
+	elseif C_EncounterJournal and C_EncounterJournal.GetInstanceForGameMap and status.instanceID and status.instanceID > 0 then
+		journalInstanceID = C_EncounterJournal.GetInstanceForGameMap(status.instanceID)
+	end
+
+	if not journalInstanceID or journalInstanceID <= 0 then
+		return false
+	end
+
+	local selectOk = pcall(EJ_SelectInstance, journalInstanceID)
+	if not selectOk then
+		return false
+	end
+
+	local index = 1
+	while true do
+		local name, _, encounterID = EJ_GetEncounterInfoByIndex(index)
+		if not name then
+			break
+		end
+
+		if name and name ~= "" then
+			local completed = false
+			if encounterID and C_EncounterJournal and C_EncounterJournal.IsEncounterComplete then
+				local completedOk, isComplete = pcall(C_EncounterJournal.IsEncounterComplete, encounterID)
+				completed = completedOk and isComplete and true or false
+			end
+
+			table.insert(encounterCriteria, {
+				description = name,
+				quantity = completed and 1 or 0,
+				totalQuantity = 1,
+				completed = completed,
+				duration = 0,
+				elapsed = 0,
+				failed = false,
+				isWeightedProgress = false,
+				isFormatted = false,
+				quantityString = nil,
+				criteriaType = 0,
+				flags = 0,
+				assetID = encounterID or 0,
+				criteriaID = encounterID or index,
+			})
+		end
+
+		index = index + 1
+	end
+
+	return #encounterCriteria > 0
 end
 
 local function StartRun(run)
@@ -227,6 +326,7 @@ local function RefreshEncounterCriteria()
 	table.wipe(encounterCriteria)
 
 	if not C_Scenario or not C_ScenarioInfo then
+		BuildEncounterCriteriaFromJournal(GetDungeonChallengeStatus())
 		return
 	end
 
@@ -267,6 +367,13 @@ local function RefreshEncounterCriteria()
 			return
 		end
 	end
+
+	if BuildEncounterCriteriaFromJournal(GetDungeonChallengeStatus()) then
+		local run = GetRunRecord()
+		if run and HasCompletedAllCriteria() then
+			CompleteRun(run)
+		end
+	end
 end
 
 local function BuildCriteriaInfo(index)
@@ -295,7 +402,8 @@ end
 
 patched.C_ChallengeMode = {
 	GetActiveKeystoneInfo = function()
-		return GetDungeonChallengeLevel(), { FAKE_AFFIX_ID }, true
+		return GetDungeonChallengeLevel(), {}, true
+		-- return GetDungeonChallengeLevel(), { FAKE_AFFIX_ID }, true
 	end,
 
 	GetAffixInfo = function()
