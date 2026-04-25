@@ -3,9 +3,14 @@ local addonName, addon = ...
 local challenge = addon.DungeonChallenge
 local L = addon.L
 
+-- Blizzard ChallengeModeCompleteBanner layout values.
 local PARTY_MEMBER_DISTANCE = -131
 local PARTY_MEMBER_WIDTH = 61
 local PARTY_MEMBER_SPACING = 22
+local BANNER_BASE_HEIGHT = 356
+
+-- Level20 raid banner layout tuning.
+local PARTY_MEMBERS_PER_ROW = 10
 
 local function StopTimer(timerHandle)
 	if timerHandle and timerHandle.Cancel then
@@ -36,28 +41,86 @@ local function ResetBannerVisualState(banner)
 	banner.Glow:SetAlpha(0)
 end
 
-local function ReanchorPartyMembers(partyMembers, relativeTo, distance)
+local function ResetCompletionBannerLayout(banner)
+	if not banner then
+		return
+	end
+
+	banner:SetHeight(BANNER_BASE_HEIGHT)
+	for _, texture in ipairs({ banner.BannerTop, banner.BannerTopGlow, banner.BannerBottom, banner.BannerBottomGlow }) do
+		if texture and texture.Level20OriginalWidth then
+			texture:SetWidth(texture.Level20OriginalWidth)
+		end
+	end
+end
+
+local function BuildPartyMemberRows(count)
+	if count <= 0 then
+		return {}
+	end
+
+	if count <= 5 then
+		return { count }
+	end
+
+	if count <= PARTY_MEMBERS_PER_ROW then
+		return { 5, count - 5 }
+	end
+
+	local rows = {}
+	local remaining = count
+	while remaining > 0 do
+		local rowMemberCount = math.min(PARTY_MEMBERS_PER_ROW, remaining)
+		table.insert(rows, rowMemberCount)
+		remaining = remaining - rowMemberCount
+	end
+
+	return rows
+end
+
+local function ExpandCompletionBannerForPartyMembers(banner, count, rowDistance)
+	local rows = BuildPartyMemberRows(count)
+	local extraHeight = math.max(0, #rows - 1) * math.abs(rowDistance)
+	local maxRowMemberCount = 0
+	for _, rowMemberCount in ipairs(rows) do
+		maxRowMemberCount = math.max(maxRowMemberCount, rowMemberCount)
+	end
+
+	banner:SetHeight(BANNER_BASE_HEIGHT + extraHeight)
+	for _, texture in ipairs({ banner.BannerTop, banner.BannerTopGlow, banner.BannerBottom, banner.BannerBottomGlow }) do
+		if texture then
+			texture.Level20OriginalWidth = texture.Level20OriginalWidth or texture:GetWidth()
+			local extraMemberCount = math.max(0, maxRowMemberCount - 5)
+			local extraWidth = extraMemberCount * (PARTY_MEMBER_WIDTH + PARTY_MEMBER_SPACING)
+			local bannerWidth = texture.Level20OriginalWidth + extraWidth
+			texture:SetWidth(math.max(texture.Level20OriginalWidth, bannerWidth))
+		end
+	end
+end
+
+local function ReanchorPartyMembers(partyMembers, relativeTo, distance, count)
 	if not partyMembers or not relativeTo then
 		return
 	end
 
-	local activeMembers = {}
-	for _, memberFrame in ipairs(partyMembers) do
-		if memberFrame then
-			table.insert(activeMembers, memberFrame)
-		end
-	end
-
-	local count = #activeMembers
+	count = math.min(count or #partyMembers, #partyMembers)
 	if count == 0 then
 		return
 	end
 
-	local totalWidth = (count * PARTY_MEMBER_WIDTH) + ((count - 1) * PARTY_MEMBER_SPACING)
-	local startOffset = -(totalWidth / 2)
-	for index, memberFrame in ipairs(activeMembers) do
-		memberFrame:ClearAllPoints()
-		memberFrame:SetPoint("TOPLEFT", relativeTo, "TOP", startOffset + ((index - 1) * (PARTY_MEMBER_WIDTH + PARTY_MEMBER_SPACING)), distance)
+	local rows = BuildPartyMemberRows(count)
+	local memberIndex = 1
+	for rowIndex, rowMemberCount in ipairs(rows) do
+		local totalWidth = (rowMemberCount * PARTY_MEMBER_WIDTH) + ((rowMemberCount - 1) * PARTY_MEMBER_SPACING)
+		local startOffset = -(totalWidth / 2)
+
+		for column = 0, rowMemberCount - 1 do
+			local memberFrame = partyMembers[memberIndex]
+			memberFrame:SetScale(1)
+			memberFrame:ClearAllPoints()
+			memberFrame:SetPoint("TOPLEFT", relativeTo, "TOP", startOffset + (column * (PARTY_MEMBER_WIDTH + PARTY_MEMBER_SPACING)), distance + ((rowIndex - 1) * distance))
+			memberIndex = memberIndex + 1
+		end
 	end
 end
 
@@ -85,9 +148,19 @@ end
 
 local function BuildBannerUnitTokens()
 	local units = {}
-	for _, unitToken in ipairs({ "player", "party1", "party2", "party3", "party4" }) do
-		if CanUseBannerUnit(unitToken) then
-			table.insert(units, unitToken)
+
+	if IsInRaid and IsInRaid() then
+		for index = 1, GetNumGroupMembers() do
+			local unitToken = "raid" .. index
+			if CanUseBannerUnit(unitToken) then
+				table.insert(units, unitToken)
+			end
+		end
+	else
+		for _, unitToken in ipairs({ "player", "party1", "party2", "party3", "party4" }) do
+			if CanUseBannerUnit(unitToken) then
+				table.insert(units, unitToken)
+			end
 		end
 	end
 
@@ -148,6 +221,7 @@ local function RestoreCompletionBanner(banner)
 	banner.PlayBanner = banner.Level20OriginalPlayBanner
 	banner.StopBanner = banner.Level20OriginalStopBanner
 	banner.unitTokens = banner.Level20OriginalUnitTokens or banner.unitTokens
+	ResetCompletionBannerLayout(banner)
 	banner.Level20ActiveCompletionInfo = nil
 	banner.Level20PatchedBanner = nil
 end
@@ -188,6 +262,8 @@ local function PatchCompletionBannerForPlayback(banner, completionInfo)
 		self.AnimOut:Stop()
 		self.AnimIn:Stop()
 		ResetBannerVisualState(self)
+		local partyMemberDistance = PARTY_MEMBER_DISTANCE + 24
+		ExpandCompletionBannerForPartyMembers(self, #unitTokens, partyMemberDistance)
 
 		self.Title:SetText(challengeCompletionInfo.mapName or L.UNKNOWN)
 
@@ -221,7 +297,7 @@ local function PatchCompletionBannerForPlayback(banner, completionInfo)
 			end
 		end
 
-		ReanchorPartyMembers(self.PartyMembers, self.Title, PARTY_MEMBER_DISTANCE + 24)
+		ReanchorPartyMembers(self.PartyMembers, self.Title, partyMemberDistance, #unitTokens)
 
 		self:Show()
 		self.AnimIn:Play()
