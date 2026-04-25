@@ -395,6 +395,7 @@ local spellBookFilterCheckbox = CreateCheckbox(
 	end
 )
 spellBookFilterCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -8)
+spellBookFilterCheckbox:SetShown(not addon.SPELLBOOK_FILTER_DISABLED)
 
 local playerMarksCheckbox = CreateCheckbox(
 	settingsContent,
@@ -405,7 +406,11 @@ local playerMarksCheckbox = CreateCheckbox(
 		addon.RefreshPlayerMarks()
 	end
 )
-playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
+if addon.SPELLBOOK_FILTER_DISABLED then
+	playerMarksCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -8)
+else
+	playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
+end
 
 local shadowlandsProtectionCheckbox = CreateCheckbox(
 	settingsContent,
@@ -513,7 +518,9 @@ end
 
 function addon.RefreshWindow()
 	talentFilterCheckbox:SetChecked(Level20DB.hideHighLevelTalents)
-	spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
+	if not addon.SPELLBOOK_FILTER_DISABLED then
+		spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
+	end
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
 	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)

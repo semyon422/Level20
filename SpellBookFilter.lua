@@ -1,6 +1,11 @@
 local addonName, addon = ...
 local L = addon.L
 
+-- Disabled permanently: replacing PlayerSpellsFrame.SpellBookFrame.ShouldDisplaySpellBookItem
+-- taints Blizzard's spellbook execution path and can later surface as protected-table
+-- access errors in unrelated UI code, observed on dungeon entry in CastingBarFrame.lua.
+addon.SPELLBOOK_FILTER_DISABLED = true
+
 local spellBookFilterInstalled = false
 
 local function PrepareSpellBookFrame()
@@ -27,6 +32,10 @@ local function IsHighLevelSpellBookItem(slotIndex, spellBank)
 end
 
 local function RefreshSpellBookFrame(spellBookFrame)
+	if addon.SPELLBOOK_FILTER_DISABLED then
+		return
+	end
+
 	if not spellBookFrame then
 		return
 	end
@@ -45,7 +54,7 @@ function addon.RefreshSpellBookFrame()
 end
 
 function addon.InstallSpellBookFilter()
-	if spellBookFilterInstalled then
+	if addon.SPELLBOOK_FILTER_DISABLED or spellBookFilterInstalled then
 		return
 	end
 
