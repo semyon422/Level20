@@ -1,7 +1,7 @@
 local addonName, addon = ...
 local L = addon.L
 
-local frame = CreateFrame("Frame", "Level20Frame", UIParent, "BasicFrameTemplateWithInset")
+local frame = CreateFrame("Frame", "Level20Frame", UIParent, "DefaultPanelTemplate")
 frame:SetSize(540, 292)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
@@ -19,17 +19,16 @@ frame:SetScript("OnDragStop", function(self)
 	Level20DB.windowYOfs = yOfs
 end)
 frame:Hide()
+frame:SetTitle(L.ADDON_TITLE)
 
-frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-frame.title:SetPoint("LEFT", frame.TitleBg, "LEFT", 8, 0)
-frame.title:SetText(L.ADDON_TITLE)
+frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefaultAnchors")
 
 local activeTab
 local tabs = {}
 local tabOrder = { "info", "settings", "waypoints", "dungeon", "debug" }
 
 frame.tabPadding = 0
-frame.minTabWidth = 56
+frame.minTabWidth = 64
 frame.maxTabWidth = 96
 
 local function CreateTab(parent, id, label, tabKey)
@@ -63,15 +62,16 @@ local settingsPanel = CreateFrame("Frame", nil, frame)
 settingsPanel:SetPoint("TOPLEFT", infoPanel)
 settingsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
-local settingsScrollFrame = CreateFrame("ScrollFrame", nil, settingsPanel, "UIPanelScrollFrameTemplate")
+local settingsScrollFrame = CreateFrame("ScrollFrame", nil, settingsPanel, "ScrollFrameTemplate")
 settingsScrollFrame:SetPoint("TOPLEFT", settingsPanel, "TOPLEFT", 4, -4)
 settingsScrollFrame:SetPoint("BOTTOMRIGHT", settingsPanel, "BOTTOMRIGHT", -28, 4)
 
 local settingsContent = CreateFrame("Frame", nil, settingsScrollFrame)
 settingsContent:SetSize(1, 1)
 settingsScrollFrame:SetScrollChild(settingsContent)
+-- settingsScrollFrame.ScrollBar:SetHideIfUnscrollable(true)
 settingsScrollFrame:SetScript("OnSizeChanged", function(self, width)
-	settingsContent:SetWidth(math.max(1, width - 24))
+	settingsContent:SetWidth(math.max(1, width))
 end)
 
 local waypointsPanel = CreateFrame("Frame", nil, frame)
@@ -327,13 +327,27 @@ local function ReportCompletionBannerResult(ok, err)
 end
 
 local function CreateCheckbox(parent, label, tooltip, onClick)
-	local checkbox = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+	local checkbox = CreateFrame("CheckButton", nil, parent, "MinimalCheckboxTemplate")
+	checkbox:SetHitRectInsets(0, -340, 0, 0)
+
+	checkbox.Text = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	checkbox.Text:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
 	checkbox.Text:SetText(label)
-	checkbox.tooltipText = tooltip
+	checkbox.Text:SetJustifyH("LEFT")
+
 	checkbox:SetScript("OnClick", function(self)
 		onClick(self:GetChecked())
 		addon.RefreshWindow()
 	end)
+	checkbox:SetScript("OnEnter", function(self)
+		if tooltip then
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText(label, 1, 1, 1)
+			GameTooltip_AddNormalLine(GameTooltip, tooltip)
+			GameTooltip:Show()
+		end
+	end)
+	checkbox:SetScript("OnLeave", GameTooltip_Hide)
 
 	return checkbox
 end
@@ -343,25 +357,26 @@ showCompletionBannerButton:SetScript("OnClick", function()
 end)
 
 local function CreateSlider(parent, name, label, minValue, maxValue, valueStep)
-	local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
-	slider:SetWidth(220)
-	slider:SetMinMaxValues(minValue, maxValue)
-	slider:SetValueStep(valueStep)
-	if slider.SetObeyStepOnDrag then
-		slider:SetObeyStepOnDrag(true)
+	local slider = CreateFrame("Frame", name, parent, "MinimalSliderWithSteppersTemplate")
+	slider:SetWidth(250)
+
+	local steps = (maxValue - minValue) / valueStep
+	local formatters = {
+		[MinimalSliderWithSteppersMixin.Label.Top] = CreateMinimalSliderFormatter(MinimalSliderWithSteppersMixin.Label.Top, label),
+		[MinimalSliderWithSteppersMixin.Label.Min] = CreateMinimalSliderFormatter(MinimalSliderWithSteppersMixin.Label.Min, tostring(minValue)),
+		[MinimalSliderWithSteppersMixin.Label.Max] = CreateMinimalSliderFormatter(MinimalSliderWithSteppersMixin.Label.Max, tostring(maxValue)),
+	}
+	slider:Init(minValue, minValue, maxValue, steps, formatters)
+
+	function slider:SetOnValueChanged(callback)
+		self.Slider:SetScript("OnValueChanged", function(_, value)
+			self:FormatValue(value)
+			callback(self, value)
+		end)
 	end
 
-	local text = _G[name .. "Text"]
-	local low = _G[name .. "Low"]
-	local high = _G[name .. "High"]
-	if text then
-		text:SetText(label)
-	end
-	if low then
-		low:SetText(tostring(minValue))
-	end
-	if high then
-		high:SetText(tostring(maxValue))
+	function slider:GetValue()
+		return self.Slider:GetValue()
 	end
 
 	return slider
@@ -426,6 +441,7 @@ dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox,
 
 settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
 settingsContent:SetHeight(220)
+settingsScrollFrame.ScrollBar:Update()
 
 local debugXPWarningCheckbox = CreateCheckbox(
 	debugPanel,
@@ -473,7 +489,7 @@ completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, 
 local completionBannerPlayerCountValue = debugPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 completionBannerPlayerCountValue:SetPoint("LEFT", completionBannerPlayerCountSlider, "RIGHT", 12, 0)
 
-completionBannerPlayerCountSlider:SetScript("OnValueChanged", function(self, value)
+completionBannerPlayerCountSlider:SetOnValueChanged(function(self, value)
 	local playerCount = math.floor(value + 0.5)
 	if self:GetValue() ~= playerCount then
 		self:SetValue(playerCount)
