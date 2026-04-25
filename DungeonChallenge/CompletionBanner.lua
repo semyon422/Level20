@@ -331,3 +331,24 @@ function challenge.ShowCompletionBanner(completionInfo)
 	banner:PlayBanner(resolvedCompletionInfo)
 	return true
 end
+
+function challenge.ShowTestCompletionBanner(playerCount)
+	playerCount = math.max(1, math.min(40, tonumber(playerCount) or 1))
+
+	local unitTokens = {}
+	for index = 1, playerCount do
+		unitTokens[index] = "player"
+	end
+
+	return challenge.ShowCompletionBanner({
+		isLevel20Banner = true,
+		mapName = GetInstanceInfo() or addonName,
+		level = challenge.GetChallengeLevel(),
+		runDescription = {
+			lineOne = GetCompletionFinishedText(),
+			lineTwo = L.DUNGEON_CHALLENGE_COMPLETION_TIME_VALUE:format(SecondsToClock(challenge.GetElapsedTime and challenge.GetElapsedTime() or 0)),
+			lineTwoColor = { 0.2, 1, 0.2 },
+		},
+		unitTokens = unitTokens,
+	})
+end

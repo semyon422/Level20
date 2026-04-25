@@ -2,7 +2,7 @@ local addonName, addon = ...
 local L = addon.L
 
 local frame = CreateFrame("Frame", "Level20Frame", UIParent, "BasicFrameTemplateWithInset")
-frame:SetSize(472, 292)
+frame:SetSize(540, 292)
 frame:SetPoint("CENTER")
 frame:SetMovable(true)
 frame:SetClampedToScreen(true)
@@ -45,6 +45,9 @@ waypointsTab:SetPoint("LEFT", settingsTab, "RIGHT", 6, 0)
 local dungeonTab = CreateTab(frame, L.TAB_DUNGEON)
 dungeonTab:SetPoint("LEFT", waypointsTab, "RIGHT", 6, 0)
 
+local debugTab = CreateTab(frame, L.TAB_DEBUG)
+debugTab:SetPoint("LEFT", dungeonTab, "RIGHT", 6, 0)
+
 local infoPanel = CreateFrame("Frame", nil, frame)
 infoPanel:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -66)
 infoPanel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 20)
@@ -71,6 +74,10 @@ waypointsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 local dungeonPanel = CreateFrame("Frame", nil, frame)
 dungeonPanel:SetPoint("TOPLEFT", infoPanel)
 dungeonPanel:SetPoint("BOTTOMRIGHT", infoPanel)
+
+local debugPanel = CreateFrame("Frame", nil, frame)
+debugPanel:SetPoint("TOPLEFT", infoPanel)
+debugPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
 local function CreateInfoRow(parent, label, previous)
 	local row = CreateFrame("Frame", nil, parent)
@@ -239,6 +246,11 @@ resetDungeonTimerButton:SetScript("OnClick", function()
 	addon.RefreshDungeonPanel()
 end)
 
+local showCompletionBannerButton = CreateFrame("Button", nil, dungeonPanel, "UIPanelButtonTemplate")
+showCompletionBannerButton:SetSize(180, 24)
+showCompletionBannerButton:SetPoint("LEFT", resetDungeonTimerButton, "RIGHT", 12, 0)
+showCompletionBannerButton:SetText(L.DUNGEON_CHALLENGE_SHOW_COMPLETION_BANNER)
+
 local function FormatDuration(seconds)
 	seconds = math.max(0, math.floor(seconds or 0))
 	return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
@@ -265,7 +277,7 @@ dungeonPanel:SetScript("OnUpdate", function(_, elapsed)
 end)
 
 local function ShowTab(tab)
-	if tab == "settings" or tab == "waypoints" or tab == "dungeon" then
+	if tab == "settings" or tab == "waypoints" or tab == "dungeon" or tab == "debug" then
 		activeTab = tab
 	else
 		activeTab = "info"
@@ -275,10 +287,12 @@ local function ShowTab(tab)
 	settingsPanel:SetShown(activeTab == "settings")
 	waypointsPanel:SetShown(activeTab == "waypoints")
 	dungeonPanel:SetShown(activeTab == "dungeon")
+	debugPanel:SetShown(activeTab == "debug")
 	infoTab:SetEnabled(activeTab ~= "info")
 	settingsTab:SetEnabled(activeTab ~= "settings")
 	waypointsTab:SetEnabled(activeTab ~= "waypoints")
 	dungeonTab:SetEnabled(activeTab ~= "dungeon")
+	debugTab:SetEnabled(activeTab ~= "debug")
 
 	if activeTab == "info" then
 		addon.RefreshInfoPanel()
@@ -288,6 +302,8 @@ local function ShowTab(tab)
 		RefreshWaypointButtons()
 	elseif activeTab == "dungeon" then
 		addon.RefreshDungeonPanel()
+	elseif activeTab == "debug" then
+		addon.RefreshWindow()
 	end
 end
 
@@ -307,6 +323,18 @@ dungeonTab:SetScript("OnClick", function()
 	ShowTab("dungeon")
 end)
 
+debugTab:SetScript("OnClick", function()
+	ShowTab("debug")
+end)
+
+local function ReportCompletionBannerResult(ok, err)
+	if ok then
+		print(L.DUNGEON_CHALLENGE_COMPLETION_COMMAND)
+	else
+		print(L.DUNGEON_CHALLENGE_COMPLETION_ERROR:format(tostring(err or "unknown error")))
+	end
+end
+
 local function CreateCheckbox(parent, label, tooltip, onClick)
 	local checkbox = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
 	checkbox.Text:SetText(label)
@@ -317,6 +345,35 @@ local function CreateCheckbox(parent, label, tooltip, onClick)
 	end)
 
 	return checkbox
+end
+
+showCompletionBannerButton:SetScript("OnClick", function()
+	ReportCompletionBannerResult(addon.DungeonChallenge.ShowCompletionBanner())
+end)
+
+local function CreateSlider(parent, name, label, minValue, maxValue, valueStep)
+	local slider = CreateFrame("Slider", name, parent, "OptionsSliderTemplate")
+	slider:SetWidth(220)
+	slider:SetMinMaxValues(minValue, maxValue)
+	slider:SetValueStep(valueStep)
+	if slider.SetObeyStepOnDrag then
+		slider:SetObeyStepOnDrag(true)
+	end
+
+	local text = _G[name .. "Text"]
+	local low = _G[name .. "Low"]
+	local high = _G[name .. "High"]
+	if text then
+		text:SetText(label)
+	end
+	if low then
+		low:SetText(tostring(minValue))
+	end
+	if high then
+		high:SetText(tostring(maxValue))
+	end
+
+	return slider
 end
 
 local talentFilterCheckbox = CreateCheckbox(
@@ -361,18 +418,6 @@ local shadowlandsProtectionCheckbox = CreateCheckbox(
 )
 shadowlandsProtectionCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
 
-local debugModeCheckbox = CreateCheckbox(
-	settingsContent,
-	L.DEBUG_MODE_LABEL,
-	L.DEBUG_MODE_TOOLTIP,
-	function(checked)
-		Level20DB.debugMode = checked
-		addon.RefreshPlayerMarks()
-		addon.RefreshXPWarning()
-		addon.RefreshShadowlandsProtection()
-	end
-)
-
 local dungeonChallengeFrameCheckbox = CreateCheckbox(
 	settingsContent,
 	L.DUNGEON_CHALLENGE_FRAME_LABEL,
@@ -383,9 +428,73 @@ local dungeonChallengeFrameCheckbox = CreateCheckbox(
 )
 dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
 
-debugModeCheckbox:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
 settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
 settingsContent:SetHeight(220)
+
+local debugXPWarningCheckbox = CreateCheckbox(
+	debugPanel,
+	L.DEBUG_XP_WARNING_LABEL,
+	L.DEBUG_XP_WARNING_TOOLTIP,
+	function(checked)
+		Level20DB.debugXPWarning = checked
+		addon.RefreshXPWarning()
+	end
+)
+debugXPWarningCheckbox:SetPoint("TOPLEFT", debugPanel, "TOPLEFT", 0, 0)
+
+local debugCovenantWarningCheckbox = CreateCheckbox(
+	debugPanel,
+	L.DEBUG_COVENANT_WARNING_LABEL,
+	L.DEBUG_COVENANT_WARNING_TOOLTIP,
+	function(checked)
+		Level20DB.debugCovenantWarning = checked
+		addon.RefreshShadowlandsProtection()
+	end
+)
+debugCovenantWarningCheckbox:SetPoint("TOPLEFT", debugXPWarningCheckbox, "BOTTOMLEFT", 0, -8)
+
+local debugPlayerMarksCheckbox = CreateCheckbox(
+	debugPanel,
+	L.DEBUG_PLAYER_MARKS_LABEL,
+	L.DEBUG_PLAYER_MARKS_TOOLTIP,
+	function(checked)
+		Level20DB.debugPlayerMarks = checked
+		addon.RefreshPlayerMarks()
+	end
+)
+debugPlayerMarksCheckbox:SetPoint("TOPLEFT", debugCovenantWarningCheckbox, "BOTTOMLEFT", 0, -8)
+
+local completionBannerPlayerCountSlider = CreateSlider(
+	debugPanel,
+	"Level20CompletionBannerPlayerCountSlider",
+	L.DEBUG_COMPLETION_BANNER_PLAYERS_LABEL,
+	1,
+	40,
+	1
+)
+completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, "BOTTOMLEFT", 4, -32)
+
+local completionBannerPlayerCountValue = debugPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+completionBannerPlayerCountValue:SetPoint("LEFT", completionBannerPlayerCountSlider, "RIGHT", 12, 0)
+
+completionBannerPlayerCountSlider:SetScript("OnValueChanged", function(self, value)
+	local playerCount = math.floor(value + 0.5)
+	if self:GetValue() ~= playerCount then
+		self:SetValue(playerCount)
+	end
+
+	Level20DB.debugCompletionBannerPlayerCount = playerCount
+	completionBannerPlayerCountValue:SetText(tostring(playerCount))
+end)
+
+local showTestCompletionBannerButton = CreateFrame("Button", nil, debugPanel, "UIPanelButtonTemplate")
+showTestCompletionBannerButton:SetSize(180, 24)
+showTestCompletionBannerButton:SetPoint("TOPLEFT", completionBannerPlayerCountSlider, "BOTTOMLEFT", -4, -28)
+showTestCompletionBannerButton:SetText(L.DEBUG_SHOW_COMPLETION_BANNER)
+showTestCompletionBannerButton:SetScript("OnClick", function()
+	local playerCount = math.floor(completionBannerPlayerCountSlider:GetValue() + 0.5)
+	ReportCompletionBannerResult(addon.DungeonChallenge.ShowTestCompletionBanner(playerCount))
+end)
 
 function addon.RestoreWindowPosition()
 	if not Level20DB.windowPoint then
@@ -407,8 +516,11 @@ function addon.RefreshWindow()
 	spellBookFilterCheckbox:SetChecked(Level20DB.hideHighLevelSpells)
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
-	debugModeCheckbox:SetChecked(Level20DB.debugMode)
 	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)
+	debugXPWarningCheckbox:SetChecked(Level20DB.debugXPWarning)
+	debugCovenantWarningCheckbox:SetChecked(Level20DB.debugCovenantWarning)
+	debugPlayerMarksCheckbox:SetChecked(Level20DB.debugPlayerMarks)
+	completionBannerPlayerCountSlider:SetValue(Level20DB.debugCompletionBannerPlayerCount or 5)
 	addon.RefreshInfoPanel()
 	addon.RefreshDungeonPanel()
 end

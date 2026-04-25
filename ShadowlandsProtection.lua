@@ -121,7 +121,7 @@ local function ShowCovenantWarning()
 end
 
 function addon.RefreshShadowlandsProtection()
-	if addon.IsShadowlandsProtectionEnabled() and (addon.IsShadowlandsCovenantChoiceActive() or Level20DB.debugMode) then
+	if addon.IsShadowlandsProtectionEnabled() and (addon.IsShadowlandsCovenantChoiceActive() or Level20DB.debugCovenantWarning) then
 		ShowCovenantWarning()
 	else
 		warning:Hide()

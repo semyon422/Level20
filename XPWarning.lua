@@ -28,7 +28,7 @@ warning.text:SetShadowOffset(1, -1)
 local function ShouldShowXPWarning()
 	local levelCap = GetRestrictedAccountData()
 
-	return Level20DB.debugMode
+	return Level20DB.debugXPWarning
 		or (UnitLevel("player") == addon.LEVEL_CAP
 		and levelCap ~= addon.LEVEL_CAP
 		and not IsXPUserDisabled())

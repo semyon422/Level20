@@ -5,20 +5,22 @@ addon.LEVEL_CAP = 20
 
 Level20DB = Level20DB or {}
 
-local enabledByDefault = {
+local defaultSettings = {
 	hideHighLevelTalents = true,
 	hideHighLevelSpells = true,
 	showPlayerMarks = true,
 	shadowlandsProtection = true,
 	showDungeonChallengeFrame = true,
+	debugXPWarning = false,
+	debugCovenantWarning = false,
+	debugPlayerMarks = false,
+	debugCompletionBannerPlayerCount = 5,
+	minimapButtonAngle = 195,
+	dungeonChallengeTimer = {},
 }
 
-for key, value in pairs(enabledByDefault) do
+for key, value in pairs(defaultSettings) do
 	if Level20DB[key] == nil then
 		Level20DB[key] = value
 	end
 end
-
-Level20DB.debugMode = Level20DB.debugMode or false
-Level20DB.minimapButtonAngle = Level20DB.minimapButtonAngle or 195
-Level20DB.dungeonChallengeTimer = Level20DB.dungeonChallengeTimer or {}

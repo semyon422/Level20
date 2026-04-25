@@ -16,7 +16,7 @@ local function ShouldMarkUnit(unit)
 		and unit
 		and UnitExists(unit)
 		and UnitIsPlayer(unit)
-		and (Level20DB.debugMode or UnitLevel(unit) == addon.LEVEL_CAP)
+		and (Level20DB.debugPlayerMarks or UnitLevel(unit) == addon.LEVEL_CAP)
 end
 
 local function GetMark(plate)
