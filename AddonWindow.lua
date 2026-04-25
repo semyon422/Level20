@@ -25,31 +25,38 @@ frame.title:SetPoint("LEFT", frame.TitleBg, "LEFT", 8, 0)
 frame.title:SetText(L.ADDON_TITLE)
 
 local activeTab
+local tabs = {}
+local tabOrder = { "info", "settings", "waypoints", "dungeon", "debug" }
 
-local function CreateTab(parent, label)
-	local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	button:SetSize(92, 24)
+frame.tabPadding = 0
+frame.minTabWidth = 56
+frame.maxTabWidth = 96
+
+local function CreateTab(parent, id, label, tabKey)
+	local button = CreateFrame("Button", parent:GetName() .. "Tab" .. id, parent, "PanelTabButtonTemplate")
+	button:SetID(id)
 	button:SetText(label)
+	button.tabKey = tabKey
+	tabs[tabKey] = button
+	parent.Tabs[id] = button
+
 	return button
 end
 
-local infoTab = CreateTab(frame, L.TAB_INFO)
-infoTab:SetPoint("TOPLEFT", frame, "TOPLEFT", 18, -31)
+frame.Tabs = {}
 
-local settingsTab = CreateTab(frame, L.TAB_SETTINGS)
-settingsTab:SetPoint("LEFT", infoTab, "RIGHT", 6, 0)
+local infoTab = CreateTab(frame, 1, L.TAB_INFO, "info")
+infoTab:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 18, -30)
 
-local waypointsTab = CreateTab(frame, L.TAB_WAYPOINTS)
-waypointsTab:SetPoint("LEFT", settingsTab, "RIGHT", 6, 0)
+CreateTab(frame, 2, L.TAB_SETTINGS, "settings")
+CreateTab(frame, 3, L.TAB_WAYPOINTS, "waypoints")
+CreateTab(frame, 4, L.TAB_DUNGEON, "dungeon")
+CreateTab(frame, 5, L.TAB_DEBUG, "debug")
 
-local dungeonTab = CreateTab(frame, L.TAB_DUNGEON)
-dungeonTab:SetPoint("LEFT", waypointsTab, "RIGHT", 6, 0)
-
-local debugTab = CreateTab(frame, L.TAB_DEBUG)
-debugTab:SetPoint("LEFT", dungeonTab, "RIGHT", 6, 0)
+PanelTemplates_SetNumTabs(frame, #tabOrder)
 
 local infoPanel = CreateFrame("Frame", nil, frame)
-infoPanel:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -66)
+infoPanel:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -40)
 infoPanel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 20)
 
 local settingsPanel = CreateFrame("Frame", nil, frame)
@@ -277,22 +284,19 @@ dungeonPanel:SetScript("OnUpdate", function(_, elapsed)
 end)
 
 local function ShowTab(tab)
-	if tab == "settings" or tab == "waypoints" or tab == "dungeon" or tab == "debug" then
+	if tabs[tab] then
 		activeTab = tab
 	else
 		activeTab = "info"
 	end
+
+	PanelTemplates_SetTab(frame, tabs[activeTab]:GetID())
 
 	infoPanel:SetShown(activeTab == "info")
 	settingsPanel:SetShown(activeTab == "settings")
 	waypointsPanel:SetShown(activeTab == "waypoints")
 	dungeonPanel:SetShown(activeTab == "dungeon")
 	debugPanel:SetShown(activeTab == "debug")
-	infoTab:SetEnabled(activeTab ~= "info")
-	settingsTab:SetEnabled(activeTab ~= "settings")
-	waypointsTab:SetEnabled(activeTab ~= "waypoints")
-	dungeonTab:SetEnabled(activeTab ~= "dungeon")
-	debugTab:SetEnabled(activeTab ~= "debug")
 
 	if activeTab == "info" then
 		addon.RefreshInfoPanel()
@@ -307,25 +311,12 @@ local function ShowTab(tab)
 	end
 end
 
-infoTab:SetScript("OnClick", function()
-	ShowTab("info")
-end)
-
-settingsTab:SetScript("OnClick", function()
-	ShowTab("settings")
-end)
-
-waypointsTab:SetScript("OnClick", function()
-	ShowTab("waypoints")
-end)
-
-dungeonTab:SetScript("OnClick", function()
-	ShowTab("dungeon")
-end)
-
-debugTab:SetScript("OnClick", function()
-	ShowTab("debug")
-end)
+for _, tabKey in ipairs(tabOrder) do
+	tabs[tabKey]:SetScript("OnClick", function(self)
+		ShowTab(self.tabKey)
+		PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+	end)
+end
 
 local function ReportCompletionBannerResult(ok, err)
 	if ok then
