@@ -24,14 +24,14 @@ state.patched.C_ChallengeMode = {
 
 	GetMapUIInfo = function()
 		local status = challenge.GetStatus()
-		return status.name or L.DUNGEON_CHALLENGE_UNKNOWN_DUNGEON, constants.FAKE_SCENARIO_ID, constants.TIME_LIMIT_SECONDS
+		return status.name or L.UNKNOWN, constants.FAKE_SCENARIO_ID, constants.TIME_LIMIT_SECONDS
 	end,
 }
 
 state.patched.C_Scenario = {
 	GetInfo = function()
 		local status = challenge.GetStatus()
-		return status.name or L.DUNGEON_CHALLENGE_UNKNOWN_DUNGEON,
+		return status.name or L.UNKNOWN,
 			1,
 			1,
 			0,

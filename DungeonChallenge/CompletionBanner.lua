@@ -94,6 +94,15 @@ local function BuildBannerUnitTokens()
 	return units
 end
 
+local function GetCompletionFinishedText()
+	local status = challenge.GetStatus and challenge.GetStatus() or nil
+	if status and status.instanceType == "raid" then
+		return L.DUNGEON_CHALLENGE_COMPLETION_RAID_FINISHED
+	end
+
+	return L.DUNGEON_CHALLENGE_COMPLETION_FINISHED
+end
+
 local function BuildRunDescriptionData()
 	local run = challenge.GetRunRecord and challenge.GetRunRecord() or nil
 	if not run or not run.completedAt then
@@ -101,7 +110,7 @@ local function BuildRunDescriptionData()
 	end
 
 	local elapsedTime = challenge.GetElapsedTime and challenge.GetElapsedTime() or 0
-	local lineOne = L.DUNGEON_CHALLENGE_COMPLETION_FINISHED
+	local lineOne = GetCompletionFinishedText()
 	local lineTwo = L.DUNGEON_CHALLENGE_COMPLETION_TIME_VALUE:format(SecondsToClock(elapsedTime))
 	local lineTwoColor = { 0.2, 1, 0.2 }
 
@@ -118,19 +127,7 @@ local function BuildCompletionInfo()
 	local runDescription = BuildRunDescriptionData()
 	local unitTokens = BuildBannerUnitTokens()
 
-	if not runDescription then
-		return nil, L.DUNGEON_CHALLENGE_COMPLETION_PENDING
-	end
-
-	if not mapName then
-		return nil, L.DUNGEON_CHALLENGE_UNKNOWN_DUNGEON
-	end
-
-	if not level then
-		return nil, L.UNKNOWN
-	end
-
-	if #unitTokens == 0 then
+	if not runDescription or not mapName or not level or #unitTokens == 0 then
 		return nil, L.UNKNOWN
 	end
 
@@ -192,7 +189,7 @@ local function PatchCompletionBannerForPlayback(banner, completionInfo)
 		self.AnimIn:Stop()
 		ResetBannerVisualState(self)
 
-		self.Title:SetText(challengeCompletionInfo.mapName or L.DUNGEON_CHALLENGE_UNKNOWN_DUNGEON)
+		self.Title:SetText(challengeCompletionInfo.mapName or L.UNKNOWN)
 
 		local levelText = tostring(challengeCompletionInfo.level or 0)
 		self.Level:SetText(levelText)
