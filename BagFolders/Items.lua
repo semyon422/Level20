@@ -71,22 +71,23 @@ end
 
 function BagFolders.NormalizeVisibleItemAssignments()
 	local db = BagFolders.EnsureDatabase()
+	local charData = BagFolders.GetCharacterData()
 	local usedByFolder = {}
 
 	for _, item in ipairs(BagFolders.GetVisibleItems()) do
-		local folderID = BagFolders.NormalizeFolderID(db.itemFolders[item.guid])
+		local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[item.guid])
 		if not BagFolders.FolderExists(folderID) then
 			folderID = DEFAULT_FOLDER_ID
-			db.itemFolders[item.guid] = nil
+			charData.itemFolders[item.guid] = nil
 		end
 
 		local folderKey = BagFolders.GetFolderKey(folderID)
 		usedByFolder[folderKey] = usedByFolder[folderKey] or {}
 
-		local position = db.itemPositions[item.guid]
+		local position = charData.itemPositions[item.guid]
 		if type(position) ~= "number" or position < 1 or usedByFolder[folderKey][position] then
 			position = GetNextFreePosition(usedByFolder[folderKey])
-			db.itemPositions[item.guid] = position
+			charData.itemPositions[item.guid] = position
 		end
 		usedByFolder[folderKey][position] = item.guid
 	end
@@ -94,15 +95,16 @@ end
 
 function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex)
 	local db = BagFolders.EnsureDatabase()
+	local charData = BagFolders.GetCharacterData()
 	local targetFolderID = BagFolders.NormalizeFolderID(folderID)
 	local targetCellIndex = math.max(1, math.floor(cellIndex or 1))
-	local oldFolderID = BagFolders.NormalizeFolderID(db.itemFolders[itemGUID])
-	local oldPosition = db.itemPositions[itemGUID]
+	local oldFolderID = BagFolders.NormalizeFolderID(charData.itemFolders[itemGUID])
+	local oldPosition = charData.itemPositions[itemGUID]
 	local targetGUID
 	local visibleGUIDs = BagFolders.GetVisibleGUIDs()
 
-	for guid, position in pairs(db.itemPositions) do
-		local guidFolderID = BagFolders.NormalizeFolderID(db.itemFolders[guid])
+	for guid, position in pairs(charData.itemPositions) do
+		local guidFolderID = BagFolders.NormalizeFolderID(charData.itemFolders[guid])
 		if visibleGUIDs[guid] and guid ~= itemGUID and guidFolderID == targetFolderID and position == targetCellIndex then
 			targetGUID = guid
 			break
@@ -110,19 +112,19 @@ function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex)
 	end
 
 	if targetFolderID == DEFAULT_FOLDER_ID then
-		db.itemFolders[itemGUID] = nil
+		charData.itemFolders[itemGUID] = nil
 	else
-		db.itemFolders[itemGUID] = targetFolderID
+		charData.itemFolders[itemGUID] = targetFolderID
 	end
-	db.itemPositions[itemGUID] = targetCellIndex
+	charData.itemPositions[itemGUID] = targetCellIndex
 
 	if targetGUID then
 		if oldFolderID == DEFAULT_FOLDER_ID then
-			db.itemFolders[targetGUID] = nil
+			charData.itemFolders[targetGUID] = nil
 		else
-			db.itemFolders[targetGUID] = oldFolderID
+			charData.itemFolders[targetGUID] = oldFolderID
 		end
-		db.itemPositions[targetGUID] = oldPosition or targetCellIndex
+		charData.itemPositions[targetGUID] = oldPosition or targetCellIndex
 	end
 end
 

@@ -13,11 +13,14 @@ addon.LEVEL_CAP = 20
 
 ---@class Level20BagFoldersDB
 ---@field enabled boolean
+---@field characters table<string, Level20BagFoldersCharacterDB>
+---@field defaultIcon string|integer
+
+---@class Level20BagFoldersCharacterDB
 ---@field folders Level20BagFolder[]
 ---@field itemFolders {[Level20ItemGUID]: Level20BagFolderID}
 ---@field itemPositions {[Level20ItemGUID]: integer}
 ---@field hiddenFolders {[Level20BagFolderID]: boolean}
----@field defaultIcon string|integer
 
 ---@class Level20DungeonChallengeCriteria
 ---@field criteriaID integer?
@@ -79,10 +82,7 @@ local defaultSettings = {
 	dungeonChallengeTimer = {},
 	bagFolders = {
 		enabled = false,
-		folders = {},
-		itemFolders = {},
-		itemPositions = {},
-		hiddenFolders = {},
+		characters = {},
 		defaultIcon = "Interface/Icons/Inv_misc_bag_08",
 	},
 }

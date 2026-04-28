@@ -13,6 +13,7 @@ local MIN_SCALE = BagFolders.MIN_SCALE
 
 local function BuildFolderItems()
 	local db = BagFolders.EnsureDatabase()
+	local charData = BagFolders.GetCharacterData()
 	BagFolders.NormalizeVisibleItemAssignments()
 	local buckets = {}
 
@@ -21,13 +22,13 @@ local function BuildFolderItems()
 	end
 
 	for _, item in ipairs(BagFolders.GetVisibleItems()) do
-		local folderID = BagFolders.NormalizeFolderID(db.itemFolders[item.guid])
+		local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[item.guid])
 		if not BagFolders.FolderExists(folderID) then
 			folderID = DEFAULT_FOLDER_ID
-			db.itemFolders[item.guid] = nil
+			charData.itemFolders[item.guid] = nil
 		end
 		buckets[folderID] = buckets[folderID] or {}
-		item.position = db.itemPositions[item.guid]
+		item.position = charData.itemPositions[item.guid]
 		buckets[folderID][item.position] = item
 	end
 
