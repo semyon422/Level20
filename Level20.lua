@@ -3,8 +3,68 @@ local addonName, addon = ...
 addon.addonName = addonName
 addon.LEVEL_CAP = 20
 
+---@alias Level20BagFolderID string
+---@alias Level20ItemGUID string
+
+---@class Level20BagFolder
+---@field id Level20BagFolderID
+---@field name string
+---@field icon string|integer?
+
+---@class Level20BagFoldersDB
+---@field enabled boolean
+---@field folders Level20BagFolder[]
+---@field itemFolders {[Level20ItemGUID]: Level20BagFolderID}
+---@field itemPositions {[Level20ItemGUID]: integer}
+---@field hiddenFolders {[Level20BagFolderID]: boolean}
+---@field defaultIcon string|integer
+
+---@class Level20DungeonChallengeCriteria
+---@field criteriaID integer?
+---@field description string?
+---@field quantity integer?
+---@field totalQuantity integer?
+---@field completed boolean?
+---@field duration integer?
+---@field elapsed integer?
+---@field failed boolean?
+---@field isWeightedProgress boolean?
+---@field isFormatted boolean?
+---@field quantityString string?
+---@field criteriaType integer?
+---@field flags integer?
+---@field assetID integer?
+
+---@class Level20DungeonChallengeTimer
+---@field startedAt integer?
+---@field completedAt integer?
+---@field completedElapsed integer?
+---@field completionBannerShown boolean?
+---@field encounterCompletionTimes {[string]: integer}?
+---@field encounterCriteriaSnapshot Level20DungeonChallengeCriteria[]?
+
+---@class Level20DB
+---@field hideHighLevelTalents boolean
+---@field hideHighLevelSpells boolean
+---@field showPlayerMarks boolean
+---@field shadowlandsProtection boolean
+---@field showDungeonChallengeFrame boolean
+---@field debugXPWarning boolean
+---@field debugCovenantWarning boolean
+---@field debugPlayerMarks boolean
+---@field debugCompletionBannerPlayerCount integer
+---@field minimapButtonAngle number
+---@field dungeonChallengeTimer Level20DungeonChallengeTimer
+---@field bagFolders Level20BagFoldersDB
+---@field windowPoint string?
+---@field windowRelativePoint string?
+---@field windowXOfs number?
+---@field windowYOfs number?
+
+---@type Level20DB
 Level20DB = Level20DB or {}
 
+---@type Level20DB
 local defaultSettings = {
 	hideHighLevelTalents = true,
 	hideHighLevelSpells = true,
@@ -17,6 +77,14 @@ local defaultSettings = {
 	debugCompletionBannerPlayerCount = 5,
 	minimapButtonAngle = 195,
 	dungeonChallengeTimer = {},
+	bagFolders = {
+		enabled = false,
+		folders = {},
+		itemFolders = {},
+		itemPositions = {},
+		hiddenFolders = {},
+		defaultIcon = "Interface/Icons/Inv_misc_bag_08",
+	},
 }
 
 for key, value in pairs(defaultSettings) do

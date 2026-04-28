@@ -27,5 +27,6 @@ DungeonChallenge/API.lua
 PlayerMarks.lua
 XPWarning.lua
 MinimapButton.lua
+BagFolders.lua
 SlashCommands.lua
 Events.lua

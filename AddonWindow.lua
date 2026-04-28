@@ -86,6 +86,17 @@ local debugPanel = CreateFrame("Frame", nil, frame)
 debugPanel:SetPoint("TOPLEFT", infoPanel)
 debugPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
+local debugScrollFrame = CreateFrame("ScrollFrame", nil, debugPanel, "ScrollFrameTemplate")
+debugScrollFrame:SetPoint("TOPLEFT", debugPanel, "TOPLEFT", 4, -4)
+debugScrollFrame:SetPoint("BOTTOMRIGHT", debugPanel, "BOTTOMRIGHT", -28, 4)
+
+local debugContent = CreateFrame("Frame", nil, debugScrollFrame)
+debugContent:SetSize(1, 1)
+debugScrollFrame:SetScrollChild(debugContent)
+debugScrollFrame:SetScript("OnSizeChanged", function(self, width)
+	debugContent:SetWidth(math.max(1, width))
+end)
+
 local function CreateInfoRow(parent, label, previous)
 	local row = CreateFrame("Frame", nil, parent)
 	row:SetSize(330, 24)
@@ -439,12 +450,22 @@ local dungeonChallengeFrameCheckbox = CreateCheckbox(
 )
 dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
 
+local bagFoldersCheckbox = CreateCheckbox(
+	settingsContent,
+	L.BAG_FOLDERS_SETTING_LABEL,
+	L.BAG_FOLDERS_SETTING_TOOLTIP,
+	function(checked)
+		addon.SetBagFoldersEnabled(checked)
+	end
+)
+bagFoldersCheckbox:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
+
 settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
-settingsContent:SetHeight(220)
+settingsContent:SetHeight(252)
 settingsScrollFrame.ScrollBar:Update()
 
 local debugXPWarningCheckbox = CreateCheckbox(
-	debugPanel,
+	debugContent,
 	L.DEBUG_XP_WARNING_LABEL,
 	L.DEBUG_XP_WARNING_TOOLTIP,
 	function(checked)
@@ -452,10 +473,10 @@ local debugXPWarningCheckbox = CreateCheckbox(
 		addon.RefreshXPWarning()
 	end
 )
-debugXPWarningCheckbox:SetPoint("TOPLEFT", debugPanel, "TOPLEFT", 0, 0)
+debugXPWarningCheckbox:SetPoint("TOPLEFT", debugContent, "TOPLEFT", 0, 0)
 
 local debugCovenantWarningCheckbox = CreateCheckbox(
-	debugPanel,
+	debugContent,
 	L.DEBUG_COVENANT_WARNING_LABEL,
 	L.DEBUG_COVENANT_WARNING_TOOLTIP,
 	function(checked)
@@ -466,7 +487,7 @@ local debugCovenantWarningCheckbox = CreateCheckbox(
 debugCovenantWarningCheckbox:SetPoint("TOPLEFT", debugXPWarningCheckbox, "BOTTOMLEFT", 0, -8)
 
 local debugPlayerMarksCheckbox = CreateCheckbox(
-	debugPanel,
+	debugContent,
 	L.DEBUG_PLAYER_MARKS_LABEL,
 	L.DEBUG_PLAYER_MARKS_TOOLTIP,
 	function(checked)
@@ -477,7 +498,7 @@ local debugPlayerMarksCheckbox = CreateCheckbox(
 debugPlayerMarksCheckbox:SetPoint("TOPLEFT", debugCovenantWarningCheckbox, "BOTTOMLEFT", 0, -8)
 
 local completionBannerPlayerCountSlider = CreateSlider(
-	debugPanel,
+	debugContent,
 	"Level20CompletionBannerPlayerCountSlider",
 	L.DEBUG_COMPLETION_BANNER_PLAYERS_LABEL,
 	1,
@@ -486,7 +507,7 @@ local completionBannerPlayerCountSlider = CreateSlider(
 )
 completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, "BOTTOMLEFT", 4, -32)
 
-local completionBannerPlayerCountValue = debugPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+local completionBannerPlayerCountValue = debugContent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 completionBannerPlayerCountValue:SetPoint("LEFT", completionBannerPlayerCountSlider, "RIGHT", 12, 0)
 
 completionBannerPlayerCountSlider:SetOnValueChanged(function(self, value)
@@ -499,7 +520,7 @@ completionBannerPlayerCountSlider:SetOnValueChanged(function(self, value)
 	completionBannerPlayerCountValue:SetText(tostring(playerCount))
 end)
 
-local showTestCompletionBannerButton = CreateFrame("Button", nil, debugPanel, "UIPanelButtonTemplate")
+local showTestCompletionBannerButton = CreateFrame("Button", nil, debugContent, "UIPanelButtonTemplate")
 showTestCompletionBannerButton:SetSize(180, 24)
 showTestCompletionBannerButton:SetPoint("TOPLEFT", completionBannerPlayerCountSlider, "BOTTOMLEFT", -4, -28)
 showTestCompletionBannerButton:SetText(L.DEBUG_SHOW_COMPLETION_BANNER)
@@ -507,6 +528,28 @@ showTestCompletionBannerButton:SetScript("OnClick", function()
 	local playerCount = math.floor(completionBannerPlayerCountSlider:GetValue() + 0.5)
 	ReportCompletionBannerResult(addon.DungeonChallenge.ShowTestCompletionBanner(playerCount))
 end)
+
+local resetBagFoldersButton = CreateFrame("Button", nil, debugContent, "UIPanelButtonTemplate")
+resetBagFoldersButton:SetSize(180, 24)
+resetBagFoldersButton:SetPoint("TOPLEFT", showTestCompletionBannerButton, "BOTTOMLEFT", 0, -8)
+resetBagFoldersButton:SetText(L.DEBUG_RESET_BAG_FOLDERS)
+resetBagFoldersButton:SetScript("OnClick", function()
+	if addon.ResetBagFolders then
+		addon.ResetBagFolders()
+		print(L.DEBUG_RESET_BAG_FOLDERS_DONE)
+	end
+end)
+resetBagFoldersButton:SetScript("OnEnter", function(self)
+	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+	GameTooltip:SetText(L.DEBUG_RESET_BAG_FOLDERS, 1, 1, 1)
+	GameTooltip:AddLine(L.DEBUG_RESET_BAG_FOLDERS_TOOLTIP, nil, nil, nil, true)
+	GameTooltip:Show()
+end)
+resetBagFoldersButton:SetScript("OnLeave", GameTooltip_Hide)
+
+debugContent:SetPoint("TOPLEFT", debugScrollFrame, "TOPLEFT", 0, 0)
+debugContent:SetHeight(268)
+debugScrollFrame.ScrollBar:Update()
 
 function addon.RestoreWindowPosition()
 	if not Level20DB.windowPoint then
@@ -531,6 +574,7 @@ function addon.RefreshWindow()
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
 	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)
+	bagFoldersCheckbox:SetChecked(Level20DB.bagFolders and Level20DB.bagFolders.enabled)
 	debugXPWarningCheckbox:SetChecked(Level20DB.debugXPWarning)
 	debugCovenantWarningCheckbox:SetChecked(Level20DB.debugCovenantWarning)
 	debugPlayerMarksCheckbox:SetChecked(Level20DB.debugPlayerMarks)
