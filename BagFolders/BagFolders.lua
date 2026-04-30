@@ -20,6 +20,7 @@ BagFolders.MONEY_FRAME_HEIGHT = 20
 BagFolders.TOKEN_FRAME_SPACING = 3
 BagFolders.CURRENCY_BOTTOM_PADDING = 8
 BagFolders.CONTAINER_SPACING = 8
+BagFolders.TOP_SCREEN_PADDING = 8
 BagFolders.MIN_SCALE = 0.75
 
 BagFolders.DEFAULT_FOLDER_ICON = "Interface/Icons/Inv_misc_bag_08"

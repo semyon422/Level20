@@ -10,6 +10,7 @@ local TOKEN_FRAME_SPACING = BagFolders.TOKEN_FRAME_SPACING
 local CURRENCY_BOTTOM_PADDING = BagFolders.CURRENCY_BOTTOM_PADDING
 local CONTAINER_SPACING = BagFolders.CONTAINER_SPACING
 local MIN_SCALE = BagFolders.MIN_SCALE
+local TOP_SCREEN_PADDING = BagFolders.TOP_SCREEN_PADDING
 
 local function BuildFolderItems(visibleItems, assignmentsAreNormalized)
 	BagFolders.EnsureDatabase()
@@ -267,16 +268,21 @@ local function GetAutoScale(autoFrames)
 		local screenWidth = GetScreenWidth()
 		local xOffset = GetInitialContainerFrameOffsetX()
 		local yOffset = 85 / scale
-		local freeHeight = screenHeight - yOffset
+		local freeHeight = screenHeight - yOffset - TOP_SCREEN_PADDING
 		local leftMostPoint = screenWidth - xOffset
 		local column = 1
 		local forceScaleDecrease = false
 		local framesInColumn = 0
 
 		for _, folderFrame in ipairs(autoFrames) do
-			framesInColumn = framesInColumn + 1
 			local frameHeight = folderFrame:GetHeight()
-			if freeHeight < frameHeight then
+			local requiredHeight = frameHeight
+			if framesInColumn > 0 then
+				requiredHeight = requiredHeight + CONTAINER_SPACING
+			end
+
+			framesInColumn = framesInColumn + 1
+			if freeHeight < requiredHeight then
 				if framesInColumn == 1 then
 					forceScaleDecrease = true
 					break
@@ -285,10 +291,11 @@ local function GetAutoScale(autoFrames)
 				column = column + 1
 				framesInColumn = 1
 				leftMostPoint = screenWidth - (column * folderFrame:GetWidth() * scale) - xOffset
-				freeHeight = screenHeight - yOffset
+				freeHeight = screenHeight - yOffset - TOP_SCREEN_PADDING
+				requiredHeight = frameHeight
 			end
 
-			freeHeight = freeHeight - frameHeight
+			freeHeight = freeHeight - requiredHeight
 		end
 
 		if forceScaleDecrease or leftMostPoint < 0 then
@@ -307,27 +314,38 @@ local function LayoutAutoFrames(autoFrames)
 	local screenHeight = GetScreenHeight() / scale
 	local xOffset = GetInitialContainerFrameOffsetX() / scale
 	local yOffset = 85 / scale
-	local freeHeight = screenHeight - yOffset
+	local freeHeight = screenHeight - yOffset - TOP_SCREEN_PADDING
 	local previousFrame
 	local firstFrameInColumn
+	local framesInColumn = 0
 
 	for index, folderFrame in ipairs(autoFrames) do
 		folderFrame:SetScale(scale)
 		folderFrame:ClearAllPoints()
+		local frameHeight = folderFrame:GetHeight()
+		local requiredHeight = frameHeight
+		if framesInColumn > 0 then
+			requiredHeight = requiredHeight + CONTAINER_SPACING
+		end
+
 		if index == 1 then
 			folderFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -xOffset, yOffset)
 			firstFrameInColumn = folderFrame
-		elseif freeHeight < folderFrame:GetHeight() then
-			freeHeight = screenHeight - yOffset
+			framesInColumn = 1
+		elseif freeHeight < requiredHeight then
+			freeHeight = screenHeight - yOffset - TOP_SCREEN_PADDING
 			-- Matches Blizzard UpdateContainerFrameAnchors column spacing.
 			folderFrame:SetPoint("BOTTOMRIGHT", firstFrameInColumn, "BOTTOMLEFT", -11, 0)
 			firstFrameInColumn = folderFrame
+			requiredHeight = frameHeight
+			framesInColumn = 1
 		else
 			folderFrame:SetPoint("BOTTOMRIGHT", previousFrame, "TOPRIGHT", 0, CONTAINER_SPACING)
+			framesInColumn = framesInColumn + 1
 		end
 
 		previousFrame = folderFrame
-		freeHeight = freeHeight - folderFrame:GetHeight()
+		freeHeight = freeHeight - requiredHeight
 	end
 
 	BagFolders.layoutAnchorFrame = firstFrameInColumn
