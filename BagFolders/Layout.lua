@@ -190,6 +190,9 @@ local function LayoutAutoFrames(autoFrames)
 		previousFrame = folderFrame
 		freeHeight = freeHeight - folderFrame:GetHeight()
 	end
+
+	BagFolders.layoutAnchorFrame = firstFrameInColumn
+	BagFolders.layoutScale = scale
 end
 
 local function RenderFolder(folder, itemsByPosition, cellState)
@@ -271,6 +274,9 @@ function addon.RefreshBagFolders(visibleItems, assignmentsAreNormalized)
 
 	BagFolders.HideUnusedFrames(activeFolders)
 	LayoutAutoFrames(autoFrames)
+	if addon.PositionReagentBag then
+		addon.PositionReagentBag()
+	end
 	BagFolders.isRefreshing = false
 
 	if BagFolders.needsRefresh then

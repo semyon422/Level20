@@ -26,6 +26,54 @@ function addon.AreBagFoldersShown()
 	return false
 end
 
+local function FindShownReagentBagFrame(bagID)
+	if ContainerFrameUtil_GetShownFrameForID then
+		local containerFrame = ContainerFrameUtil_GetShownFrameForID(bagID)
+		if containerFrame and containerFrame:IsShown() then
+			return containerFrame
+		end
+	end
+
+	if NUM_CONTAINER_FRAMES then
+		for index = 1, NUM_CONTAINER_FRAMES do
+			local containerFrame = _G["ContainerFrame" .. index]
+			if containerFrame and containerFrame:IsShown() and containerFrame:GetID() == bagID then
+				return containerFrame
+			end
+		end
+	end
+
+	return nil
+end
+
+function addon.PositionReagentBag()
+	if not BagFolders.IsEnabled() or not addon.AreBagFoldersShown() then
+		return
+	end
+
+	local anchorFrame = BagFolders.layoutAnchorFrame
+	if not anchorFrame or not anchorFrame:IsShown() then
+		return
+	end
+
+	local reagentBagSlots = Constants.InventoryConstants.NumReagentBagSlots or 0
+	local previousReagentFrame
+	for bagID = Constants.InventoryConstants.NumBagSlots + 1, Constants.InventoryConstants.NumBagSlots + reagentBagSlots do
+		local containerFrame = FindShownReagentBagFrame(bagID)
+		if containerFrame then
+			containerFrame:SetScale(BagFolders.layoutScale or anchorFrame:GetScale() or 1)
+			containerFrame:ClearAllPoints()
+			if previousReagentFrame then
+				containerFrame:SetPoint("BOTTOMRIGHT", previousReagentFrame, "TOPRIGHT", 0, BagFolders.CONTAINER_SPACING)
+			else
+				containerFrame:SetPoint("BOTTOMRIGHT", anchorFrame, "BOTTOMLEFT", -11, 0)
+			end
+			containerFrame:Raise()
+			previousReagentFrame = containerFrame
+		end
+	end
+end
+
 local function ShowBagFolders()
 	if not BagFolders.IsEnabled() or not BagFolders.CanOpenBags() then
 		return
@@ -59,6 +107,38 @@ local function CallOriginal(name, ...)
 	if original then
 		return original(...)
 	end
+end
+
+local function ForEachReagentBagID(callback)
+	local reagentBagSlots = Constants.InventoryConstants.NumReagentBagSlots or 0
+	for bagID = Constants.InventoryConstants.NumBagSlots + 1, Constants.InventoryConstants.NumBagSlots + reagentBagSlots do
+		callback(bagID)
+	end
+end
+
+local function IsAnyReagentBagOpen()
+	local isOpen = false
+	ForEachReagentBagID(function(bagID)
+		if CallOriginal("IsBagOpen", bagID) then
+			isOpen = true
+		end
+	end)
+	return isOpen
+end
+
+local function OpenReagentBags(force)
+	ForEachReagentBagID(function(bagID)
+		CallOriginal("OpenBag", bagID, force)
+	end)
+	addon.PositionReagentBag()
+end
+
+local function CloseReagentBags()
+	ForEachReagentBagID(function(bagID)
+		if CallOriginal("IsBagOpen", bagID) then
+			CallOriginal("CloseBag", bagID)
+		end
+	end)
 end
 
 local function InstallFunctionHooks()
@@ -129,6 +209,12 @@ local function InstallFunctionHooks()
 			return
 		end
 
+		if BagFolders.IsEnabled() and BagFolders.IsReagentBagID(bagID) then
+			local result = CallOriginal("ToggleBag", bagID)
+			addon.PositionReagentBag()
+			return result
+		end
+
 		return CallOriginal("ToggleBag", bagID)
 	end
 
@@ -136,6 +222,12 @@ local function InstallFunctionHooks()
 		if BagFolders.IsEnabled() and BagFolders.IsNormalBagID(bagID) then
 			ShowBagFolders()
 			return
+		end
+
+		if BagFolders.IsEnabled() and BagFolders.IsReagentBagID(bagID) then
+			local result = CallOriginal("OpenBag", bagID, force)
+			addon.PositionReagentBag()
+			return result
 		end
 
 		return CallOriginal("OpenBag", bagID, force)
@@ -161,10 +253,12 @@ local function InstallFunctionHooks()
 
 	_G.ToggleAllBags = function()
 		if BagFolders.IsEnabled() then
-			if addon.AreBagFoldersShown() then
+			if addon.AreBagFoldersShown() or IsAnyReagentBagOpen() then
 				HideBagFolders()
+				CloseReagentBags()
 			else
 				ShowBagFolders()
+				OpenReagentBags()
 			end
 			return
 		end
@@ -175,6 +269,7 @@ local function InstallFunctionHooks()
 	_G.OpenAllBags = function(frameThatOpenedBags, forceUpdate)
 		if BagFolders.IsEnabled() then
 			ShowBagFolders()
+			OpenReagentBags(forceUpdate)
 			return
 		end
 
@@ -190,6 +285,14 @@ local function InstallFunctionHooks()
 	end
 
 	BagFolders.hooksInstalled = true
+
+	if type(_G.UpdateContainerFrameAnchors) == "function" and not BagFolders.reagentAnchorHookInstalled then
+		hooksecurefunc("UpdateContainerFrameAnchors", function()
+			addon.PositionReagentBag()
+		end)
+		BagFolders.reagentAnchorHookInstalled = true
+	end
+
 	return true
 end
 

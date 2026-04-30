@@ -60,6 +60,15 @@ function BagFolders.IsNormalBagID(bagID)
 		and bagID <= Constants.InventoryConstants.NumBagSlots
 end
 
+function BagFolders.IsReagentBagID(bagID)
+	local reagentBagSlots = Constants.InventoryConstants.NumReagentBagSlots or 0
+	local firstReagentBagID = Constants.InventoryConstants.NumBagSlots + 1
+	local lastReagentBagID = Constants.InventoryConstants.NumBagSlots + reagentBagSlots
+	return type(bagID) == "number"
+		and bagID >= firstReagentBagID
+		and bagID <= lastReagentBagID
+end
+
 function BagFolders.ForEachNormalBag(callback)
 	for bagID = Enum.BagIndex.Backpack, Constants.InventoryConstants.NumBagSlots do
 		callback(bagID)

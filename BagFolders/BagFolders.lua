@@ -31,6 +31,9 @@ BagFolders.iconSelectorPopup = BagFolders.iconSelectorPopup
 BagFolders.isRefreshing = false
 BagFolders.refreshQueued = false
 BagFolders.needsRefresh = false
+BagFolders.reagentAnchorHookInstalled = BagFolders.reagentAnchorHookInstalled or false
+BagFolders.layoutAnchorFrame = BagFolders.layoutAnchorFrame
+BagFolders.layoutScale = BagFolders.layoutScale
 BagFolders.pendingDraggedItemGUID = nil
 
 BagFolders.events = {
