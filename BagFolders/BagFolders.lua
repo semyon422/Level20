@@ -40,6 +40,8 @@ BagFolders.layoutAnchorFrame = BagFolders.layoutAnchorFrame
 BagFolders.layoutScale = BagFolders.layoutScale
 BagFolders.sessionClosedFolders = BagFolders.sessionClosedFolders or {}
 BagFolders.pendingDraggedItemGUID = nil
+BagFolders.pendingExternalItemGUIDs = BagFolders.pendingExternalItemGUIDs or {}
+BagFolders.lastVisibleGUIDs = BagFolders.lastVisibleGUIDs
 
 BagFolders.events = {
 	"BAG_UPDATE",

@@ -169,6 +169,32 @@ local function GetMouseFolderCell()
 	return nil
 end
 
+local function GetBankItemButtonFromFocus(frame)
+	while frame do
+		if frame.GetBankTabID and frame.GetContainerSlotID and frame.OnReceiveDrag then
+			return frame
+		end
+		frame = frame.GetParent and frame:GetParent()
+	end
+
+	return nil
+end
+
+local function GetMouseBankItemButton()
+	if GetMouseFoci then
+		for _, focus in ipairs(GetMouseFoci()) do
+			local button = GetBankItemButtonFromFocus(focus)
+			if button then
+				return button
+			end
+		end
+	elseif GetMouseFocus then
+		return GetBankItemButtonFromFocus(GetMouseFocus())
+	end
+
+	return nil
+end
+
 local dragDropFrame = CreateFrame("Frame")
 dragDropFrame:RegisterEvent("GLOBAL_MOUSE_UP")
 dragDropFrame:SetScript("OnEvent", function(_, _, mouseButton)
@@ -181,6 +207,10 @@ dragDropFrame:SetScript("OnEvent", function(_, _, mouseButton)
 	if cell then
 		BagFolders.PlaceItemGUIDToCell(BagFolders.pendingDraggedItemGUID, cell.folderID, cell.cellIndex)
 	else
+		local bankButton = GetMouseBankItemButton()
+		if bankButton then
+			bankButton:OnReceiveDrag()
+		end
 		BagFolders.pendingDraggedItemGUID = nil
 	end
 end)
