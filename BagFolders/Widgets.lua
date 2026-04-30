@@ -20,6 +20,37 @@ function BagFolders.ClearEquippedReservationDrag()
 	end
 	BagFolders.pendingEquippedReservationButton = nil
 	BagFolders.pendingEquippedReservationGUID = nil
+	BagFolders.ignoreNextEquippedReservationMouseUp = nil
+end
+
+function BagFolders.BeginEquippedReservationPickup(button, ignoreNextMouseUp)
+	if not button.itemGUID or not button.equipmentSlotID then
+		return false
+	end
+	if InCombatLockdown and InCombatLockdown() then
+		return false
+	end
+
+	BagFolders.ClearEquippedReservationDrag()
+	button.equippedReservationTooltipShown = nil
+	GameTooltip_Hide()
+	PickupInventoryItem(button.equipmentSlotID)
+
+	if not CursorHasItem() then
+		return false
+	end
+
+	BagFolders.pendingDraggedItemGUID = button.itemGUID
+	BagFolders.pendingEquippedReservationGUID = button.itemGUID
+	BagFolders.pendingEquippedReservationButton = button
+	BagFolders.ignoreNextEquippedReservationMouseUp = ignoreNextMouseUp and true or nil
+	if BagFolders.ignoreNextEquippedReservationMouseUp then
+		C_Timer.After(0, function()
+			BagFolders.ignoreNextEquippedReservationMouseUp = nil
+		end)
+	end
+	button:SetAlpha(0.45)
+	return true
 end
 
 local function RegisterSearchBoxWithBlizzard()
@@ -107,6 +138,26 @@ function BagFolders.GetOrCreateItemButton(parent, index)
 	return button
 end
 
+local function EmptyButtonOnReceiveDrag(self)
+	if not BagFolders.PlaceItemGUIDToCell(BagFolders.pendingDraggedItemGUID, self.folderID, self.cellIndex) then
+		BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)
+	end
+end
+
+local function EmptyButtonOnMouseUp(self, mouseButton)
+	if mouseButton == "LeftButton" and CursorHasItem() then
+		if not BagFolders.PlaceItemGUIDToCell(BagFolders.pendingDraggedItemGUID, self.folderID, self.cellIndex) then
+			BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)
+		end
+	end
+end
+
+local function EmptyButtonOnClick(self)
+	if CursorHasItem() then
+		BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)
+	end
+end
+
 function BagFolders.GetOrCreateEmptyButton(parent, index)
 	local button = BagFolders.emptyButtons[index]
 	if button then
@@ -144,23 +195,9 @@ function BagFolders.GetOrCreateEmptyButton(parent, index)
 
 	button:SetScript("OnEnter", nil)
 	button:SetScript("OnLeave", nil)
-	button:SetScript("OnReceiveDrag", function(self)
-		if not BagFolders.PlaceItemGUIDToCell(BagFolders.pendingDraggedItemGUID, self.folderID, self.cellIndex) then
-			BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)
-		end
-	end)
-	button:SetScript("OnMouseUp", function(self, mouseButton)
-		if mouseButton == "LeftButton" and CursorHasItem() then
-			if not BagFolders.PlaceItemGUIDToCell(BagFolders.pendingDraggedItemGUID, self.folderID, self.cellIndex) then
-				BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)
-			end
-		end
-	end)
-	button:SetScript("OnClick", function(self)
-		if CursorHasItem() then
-			BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)
-		end
-	end)
+	button:SetScript("OnReceiveDrag", EmptyButtonOnReceiveDrag)
+	button:SetScript("OnMouseUp", EmptyButtonOnMouseUp)
+	button:SetScript("OnClick", EmptyButtonOnClick)
 
 	BagFolders.emptyButtons[index] = button
 	return button
@@ -170,13 +207,20 @@ function BagFolders.UpdateEquippedReservationCell(button)
 	button:SetItemButtonTexture(button.equippedTexture)
 	SetItemButtonDesaturated(button, true)
 	button:SetScript("OnDragStart", function(self)
-		BagFolders.ClearEquippedReservationDrag()
-		self.equippedReservationTooltipShown = nil
-		GameTooltip_Hide()
-		BagFolders.pendingDraggedItemGUID = self.itemGUID
-		BagFolders.pendingEquippedReservationGUID = self.itemGUID
-		BagFolders.pendingEquippedReservationButton = self
-		self:SetAlpha(0.45)
+		BagFolders.BeginEquippedReservationPickup(self)
+	end)
+	button:SetScript("OnClick", function(self, mouseButton)
+		if mouseButton ~= "LeftButton" then
+			return
+		end
+
+		if BagFolders.pendingEquippedReservationGUID and CursorHasItem() then
+			BagFolders.PlaceItemGUIDToCell(BagFolders.pendingEquippedReservationGUID, self.folderID, self.cellIndex)
+		elseif CursorHasItem() then
+			BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)
+		else
+			BagFolders.BeginEquippedReservationPickup(self, true)
+		end
 	end)
 	button:SetScript("OnEnter", function(self)
 		self.equippedReservationTooltipShown = true
@@ -223,6 +267,9 @@ function BagFolders.ResetEmptyCell(button)
 	button:SetScript("OnEnter", nil)
 	button:SetScript("OnLeave", nil)
 	button:SetScript("OnUpdate", nil)
+	button:SetScript("OnReceiveDrag", EmptyButtonOnReceiveDrag)
+	button:SetScript("OnMouseUp", EmptyButtonOnMouseUp)
+	button:SetScript("OnClick", EmptyButtonOnClick)
 	button:SetAlpha(1)
 	button.itemGUID = nil
 	button.equippedReservationTooltipShown = nil
@@ -292,6 +339,11 @@ local dragDropFrame = CreateFrame("Frame")
 dragDropFrame:RegisterEvent("GLOBAL_MOUSE_UP")
 dragDropFrame:SetScript("OnEvent", function(_, _, mouseButton)
 	local isEquippedReservationDrag = BagFolders.pendingEquippedReservationGUID and BagFolders.pendingEquippedReservationGUID == BagFolders.pendingDraggedItemGUID
+
+	if mouseButton == "LeftButton" and isEquippedReservationDrag and BagFolders.ignoreNextEquippedReservationMouseUp then
+		BagFolders.ignoreNextEquippedReservationMouseUp = nil
+		return
+	end
 
 	if mouseButton ~= "LeftButton" or not BagFolders.pendingDraggedItemGUID or (not CursorHasItem() and not isEquippedReservationDrag) then
 		BagFolders.pendingDraggedItemGUID = nil

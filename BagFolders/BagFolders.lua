@@ -44,6 +44,7 @@ BagFolders.sessionClosedFolders = BagFolders.sessionClosedFolders or {}
 BagFolders.pendingDraggedItemGUID = nil
 BagFolders.pendingEquippedReservationGUID = nil
 BagFolders.pendingEquippedReservationButton = nil
+BagFolders.ignoreNextEquippedReservationMouseUp = nil
 BagFolders.pendingExternalItemGUIDs = BagFolders.pendingExternalItemGUIDs or {}
 BagFolders.lastVisibleGUIDs = BagFolders.lastVisibleGUIDs
 
