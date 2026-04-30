@@ -16,6 +16,19 @@ function BagFolders.GetItemGUID(bagID, slotID)
 	return C_Item.GetItemGUID(itemLocation)
 end
 
+function BagFolders.GetEquippedItemGUID(equipmentSlotID)
+	if not equipmentSlotID then
+		return nil
+	end
+
+	local itemLocation = ItemLocation:CreateFromEquipmentSlot(equipmentSlotID)
+	if not itemLocation or not itemLocation:IsValid() then
+		return nil
+	end
+
+	return C_Item.GetItemGUID(itemLocation)
+end
+
 function BagFolders.GetCursorItemGUID()
 	local cursorItemLocation = C_Cursor.GetCursorItem()
 	if not cursorItemLocation then
@@ -101,6 +114,37 @@ function BagFolders.GetVisibleGUIDs(visibleItems)
 	return visibleGUIDs
 end
 
+function BagFolders.GetKnownItemGUIDs(visibleItems)
+	local knownGUIDs = BagFolders.GetVisibleGUIDs(visibleItems)
+
+	for equipmentSlotID = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
+		local itemGUID = BagFolders.GetEquippedItemGUID(equipmentSlotID)
+		if itemGUID then
+			knownGUIDs[itemGUID] = true
+		end
+	end
+
+	return knownGUIDs
+end
+
+function BagFolders.GetEquippedItems()
+	local equippedItems = {}
+
+	for equipmentSlotID = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
+		local itemGUID = BagFolders.GetEquippedItemGUID(equipmentSlotID)
+		if itemGUID then
+			table.insert(equippedItems, {
+				guid = itemGUID,
+				equipmentSlotID = equipmentSlotID,
+				isEquipped = true,
+				texture = GetInventoryItemTexture("player", equipmentSlotID),
+			})
+		end
+	end
+
+	return equippedItems
+end
+
 local function GetNextFreePosition(usedPositions)
 	local position = 1
 	while usedPositions[position] do
@@ -180,6 +224,26 @@ function BagFolders.PrepareVisibleItemAssignments(visibleItems, assignmentsAreNo
 		end
 	end
 
+	for _, item in ipairs(BagFolders.GetEquippedItems()) do
+		local itemGUID = item.guid
+		local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[itemGUID])
+		if not validFolderIDs[folderID] then
+			folderID = DEFAULT_FOLDER_ID
+			charData.itemFolders[itemGUID] = nil
+		end
+
+		local position = charData.itemPositions[itemGUID]
+		local usedPositions = GetUsedPositionsForFolder(usedByFolder, folderID)
+		if type(position) == "number" and position >= 1 and not usedPositions[position] then
+			usedPositions[position] = itemGUID
+		else
+			table.insert(itemsNeedingPosition, {
+				guid = itemGUID,
+				folderID = folderID,
+			})
+		end
+	end
+
 	for _, item in ipairs(itemsNeedingPosition) do
 		AssignNextFreePosition(charData, usedByFolder, item.guid, item.folderID)
 	end
@@ -190,7 +254,7 @@ function BagFolders.PrepareVisibleItemAssignments(visibleItems, assignmentsAreNo
 		end
 	end
 
-	BagFolders.lastVisibleGUIDs = visibleGUIDs
+	BagFolders.lastVisibleGUIDs = BagFolders.GetKnownItemGUIDs(visibleItems)
 	for itemGUID in pairs(BagFolders.pendingExternalItemGUIDs) do
 		if visibleGUIDs[itemGUID] then
 			BagFolders.pendingExternalItemGUIDs[itemGUID] = nil
@@ -206,6 +270,20 @@ function BagFolders.MoveNewBankItemsToDefaultFolder(visibleItems)
 	BagFolders.PrepareVisibleItemAssignments(visibleItems, true)
 end
 
+local function GetAssignableItems(visibleItems)
+	local assignableItems = {}
+
+	for _, item in ipairs(visibleItems or BagFolders.GetVisibleItems()) do
+		table.insert(assignableItems, item)
+	end
+
+	for _, item in ipairs(BagFolders.GetEquippedItems()) do
+		table.insert(assignableItems, item)
+	end
+
+	return assignableItems
+end
+
 function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems)
 	BagFolders.EnsureDatabase()
 	local charData = BagFolders.GetCharacterData()
@@ -213,9 +291,10 @@ function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems
 	local targetCellIndex = math.max(1, math.floor(cellIndex or 1))
 	local oldFolderID = BagFolders.NormalizeFolderID(charData.itemFolders[itemGUID])
 	local oldPosition = charData.itemPositions[itemGUID]
+	local assignableItems = GetAssignableItems(visibleItems)
 	local targetGUID
 
-	for _, item in ipairs(visibleItems or BagFolders.GetVisibleItems()) do
+	for _, item in ipairs(assignableItems) do
 		local guid = item.guid
 		local position = charData.itemPositions[guid]
 		local guidFolderID = BagFolders.NormalizeFolderID(charData.itemFolders[guid])
@@ -234,7 +313,7 @@ function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems
 			charData.itemPositions[targetGUID] = oldPosition
 		else
 			local usedPositions = {}
-			for _, item in ipairs(visibleItems or BagFolders.GetVisibleItems()) do
+			for _, item in ipairs(assignableItems) do
 				local guid = item.guid
 				if guid ~= itemGUID and guid ~= targetGUID and BagFolders.NormalizeFolderID(charData.itemFolders[guid]) == oldFolderID then
 					local position = charData.itemPositions[guid]
@@ -258,6 +337,7 @@ function BagFolders.PlaceItemGUIDToCell(itemGUID, folderID, cellIndex)
 	BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems)
 	ClearCursor()
 	BagFolders.pendingDraggedItemGUID = nil
+	BagFolders.ClearEquippedReservationDrag()
 	addon.RefreshBagFolders(visibleItems, true)
 	return true
 end
@@ -281,6 +361,7 @@ function BagFolders.PlaceExternalCursorItemToCell(folderID, cellIndex)
 	-- Mirrors Blizzard bank/container transfer behavior: drop the cursor item into a real empty bag slot.
 	C_Container.PickupContainerItem(targetBagID, targetSlotID)
 	BagFolders.pendingDraggedItemGUID = nil
+	BagFolders.ClearEquippedReservationDrag()
 	addon.RequestBagFoldersRefresh()
 	return true
 end
@@ -356,17 +437,31 @@ function BagFolders.SortDefaultFolder()
 
 	local charData = BagFolders.GetCharacterData()
 	local defaultItems = {}
+	local reservedPositions = {}
 	for _, item in ipairs(visibleItems) do
 		if BagFolders.NormalizeFolderID(charData.itemFolders[item.guid]) == DEFAULT_FOLDER_ID then
 			table.insert(defaultItems, item)
 		end
 	end
+	for _, item in ipairs(BagFolders.GetEquippedItems()) do
+		if BagFolders.NormalizeFolderID(charData.itemFolders[item.guid]) == DEFAULT_FOLDER_ID then
+			local position = charData.itemPositions[item.guid]
+			if type(position) == "number" and position >= 1 then
+				reservedPositions[position] = true
+			end
+		end
+	end
 
 	table.sort(defaultItems, DefaultFolderItemSort)
 
-	for position, item in ipairs(defaultItems) do
+	local position = 1
+	for _, item in ipairs(defaultItems) do
+		while reservedPositions[position] do
+			position = position + 1
+		end
 		charData.itemFolders[item.guid] = nil
 		charData.itemPositions[item.guid] = position
+		position = position + 1
 	end
 
 	addon.RefreshBagFolders(visibleItems, true)

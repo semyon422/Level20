@@ -42,6 +42,8 @@ BagFolders.layoutAnchorFrame = BagFolders.layoutAnchorFrame
 BagFolders.layoutScale = BagFolders.layoutScale
 BagFolders.sessionClosedFolders = BagFolders.sessionClosedFolders or {}
 BagFolders.pendingDraggedItemGUID = nil
+BagFolders.pendingEquippedReservationGUID = nil
+BagFolders.pendingEquippedReservationButton = nil
 BagFolders.pendingExternalItemGUIDs = BagFolders.pendingExternalItemGUIDs or {}
 BagFolders.lastVisibleGUIDs = BagFolders.lastVisibleGUIDs
 
@@ -53,5 +55,6 @@ BagFolders.events = {
 	"BAG_NEW_ITEMS_UPDATED",
 	"CURRENCY_DISPLAY_UPDATE",
 	"INVENTORY_SEARCH_UPDATE",
+	"PLAYER_EQUIPMENT_CHANGED",
 	"PLAYER_LOGIN",
 }

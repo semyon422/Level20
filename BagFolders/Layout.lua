@@ -35,6 +35,19 @@ local function BuildFolderItems(visibleItems, assignmentsAreNormalized)
 		buckets[folderID][item.position] = item
 	end
 
+	for _, item in ipairs(BagFolders.GetEquippedItems()) do
+		local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[item.guid])
+		local position = charData.itemPositions[item.guid]
+		if BagFolders.FolderExists(folderID) and type(position) == "number" and position >= 1 then
+			local folderItems = buckets[folderID] or {}
+			buckets[folderID] = folderItems
+			if not folderItems[position] then
+				item.position = position
+				folderItems[position] = item
+			end
+		end
+	end
+
 	return buckets
 end
 
@@ -373,7 +386,23 @@ local function RenderFolder(folder, itemsByPosition, cellState)
 
 	for cellIndex = 1, cellCount do
 		local item = itemsByPosition[cellIndex]
-		if item then
+		if item and item.isEquipped then
+			cellState.usedEmptyButtons = cellState.usedEmptyButtons + 1
+			local button = BagFolders.GetOrCreateEmptyButton(folderFrame, cellState.usedEmptyButtons)
+			button.folderID = folder.id
+			button.cellIndex = cellIndex
+			button.itemGUID = item.guid
+			button.isEquippedReservation = true
+			button.equippedTexture = item.texture
+			button.equipmentSlotID = item.equipmentSlotID
+			BagFolders.PositionCell(button, cellIndex)
+			button:Show()
+			BagFolders.UpdateEquippedReservationCell(button)
+			if button:IsMouseOver() then
+				button.equippedReservationTooltipShown = true
+				BagFolders.UpdateEquippedReservationTooltip(button)
+			end
+		elseif item then
 			cellState.usedItemButtons = cellState.usedItemButtons + 1
 			local button = BagFolders.GetOrCreateItemButton(folderFrame, cellState.usedItemButtons)
 			button.folderID = folder.id
@@ -388,6 +417,10 @@ local function RenderFolder(folder, itemsByPosition, cellState)
 			local button = BagFolders.GetOrCreateEmptyButton(folderFrame, cellState.usedEmptyButtons)
 			button.folderID = folder.id
 			button.cellIndex = cellIndex
+			button.itemGUID = nil
+			button.isEquippedReservation = nil
+			button.equippedTexture = nil
+			button.equipmentSlotID = nil
 			BagFolders.PositionCell(button, cellIndex)
 			button:Show()
 		end

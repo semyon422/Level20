@@ -13,6 +13,15 @@ local FRAME_PADDING_BOTTOM = BagFolders.FRAME_PADDING_BOTTOM
 
 local BAG_FOLDER_SEARCH_BOX_NAME = "Level20BagFolderSearchBox"
 
+function BagFolders.ClearEquippedReservationDrag()
+	if BagFolders.pendingEquippedReservationButton then
+		BagFolders.pendingEquippedReservationButton.equippedReservationTooltipShown = nil
+		BagFolders.pendingEquippedReservationButton:SetAlpha(1)
+	end
+	BagFolders.pendingEquippedReservationButton = nil
+	BagFolders.pendingEquippedReservationGUID = nil
+end
+
 local function RegisterSearchBoxWithBlizzard()
 	if not ITEM_SEARCHBAR_LIST then
 		return
@@ -75,6 +84,7 @@ function BagFolders.GetOrCreateItemButton(parent, index)
 	button = CreateFrame("ItemButton", nil, parent, "ContainerFrameItemButtonTemplate")
 	button:SetScript("OnDragStart", function(self, mouseButton)
 		BagFolders.pendingDraggedItemGUID = self.itemGUID
+		BagFolders.ClearEquippedReservationDrag()
 		ContainerFrameItemButtonMixin.OnDragStart(self, mouseButton)
 	end)
 	button:SetScript("OnReceiveDrag", function(self)
@@ -101,6 +111,7 @@ function BagFolders.GetOrCreateEmptyButton(parent, index)
 	local button = BagFolders.emptyButtons[index]
 	if button then
 		button:SetParent(parent)
+		BagFolders.ResetEmptyCell(button)
 		return button
 	end
 
@@ -121,6 +132,8 @@ function BagFolders.GetOrCreateEmptyButton(parent, index)
 	button.BattlepayItemTexture:Hide()
 	button.BagIndicator:Hide()
 	button.JunkIcon:Hide()
+	button:SetItemButtonTexture(nil)
+	SetItemButtonDesaturated(button, false)
 
 	-- Mirrors ContainerFrameItemButtonMixin:Initialize for combined bag slots.
 	if not button.ItemSlotBackground then
@@ -151,6 +164,76 @@ function BagFolders.GetOrCreateEmptyButton(parent, index)
 
 	BagFolders.emptyButtons[index] = button
 	return button
+end
+
+function BagFolders.UpdateEquippedReservationCell(button)
+	button:SetItemButtonTexture(button.equippedTexture)
+	SetItemButtonDesaturated(button, true)
+	button:SetScript("OnDragStart", function(self)
+		BagFolders.ClearEquippedReservationDrag()
+		self.equippedReservationTooltipShown = nil
+		GameTooltip_Hide()
+		BagFolders.pendingDraggedItemGUID = self.itemGUID
+		BagFolders.pendingEquippedReservationGUID = self.itemGUID
+		BagFolders.pendingEquippedReservationButton = self
+		self:SetAlpha(0.45)
+	end)
+	button:SetScript("OnEnter", function(self)
+		self.equippedReservationTooltipShown = true
+		BagFolders.UpdateEquippedReservationTooltip(self)
+	end)
+	button:SetScript("OnLeave", function(self)
+		self.equippedReservationTooltipShown = nil
+		GameTooltip_Hide()
+	end)
+	button:SetScript("OnUpdate", function(self)
+		if self.equippedReservationTooltipShown and self:IsMouseOver() then
+			BagFolders.UpdateEquippedReservationTooltip(self)
+		end
+	end)
+
+	if not button.EquippedReservationOverlay then
+		button.EquippedReservationOverlay = button:CreateTexture(nil, "OVERLAY", nil, 7)
+		button.EquippedReservationOverlay:SetAtlas("bags-glow-blue")
+		button.EquippedReservationOverlay:SetPoint("TOPLEFT", button, "TOPLEFT", -4, 4)
+		button.EquippedReservationOverlay:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 4, -4)
+		button.EquippedReservationOverlay:SetAlpha(0.55)
+	end
+
+	button.EquippedReservationOverlay:Show()
+end
+
+function BagFolders.UpdateEquippedReservationTooltip(button)
+	if not button.equipmentSlotID then
+		return
+	end
+
+	if not GameTooltip:IsOwned(button) then
+		GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+	end
+	GameTooltip:SetInventoryItem("player", button.equipmentSlotID)
+	GameTooltip:Show()
+end
+
+function BagFolders.ResetEmptyCell(button)
+	if BagFolders.pendingEquippedReservationButton == button then
+		BagFolders.ClearEquippedReservationDrag()
+	end
+	button:SetScript("OnDragStart", nil)
+	button:SetScript("OnEnter", nil)
+	button:SetScript("OnLeave", nil)
+	button:SetScript("OnUpdate", nil)
+	button:SetAlpha(1)
+	button.itemGUID = nil
+	button.equippedReservationTooltipShown = nil
+	button.equipmentSlotID = nil
+	button.equippedTexture = nil
+	button.isEquippedReservation = nil
+	if button.EquippedReservationOverlay then
+		button.EquippedReservationOverlay:Hide()
+	end
+	button:SetItemButtonTexture(nil)
+	SetItemButtonDesaturated(button, false)
 end
 
 local function GetFolderCellFromFocus(frame)
@@ -208,8 +291,11 @@ end
 local dragDropFrame = CreateFrame("Frame")
 dragDropFrame:RegisterEvent("GLOBAL_MOUSE_UP")
 dragDropFrame:SetScript("OnEvent", function(_, _, mouseButton)
-	if mouseButton ~= "LeftButton" or not BagFolders.pendingDraggedItemGUID or not CursorHasItem() then
+	local isEquippedReservationDrag = BagFolders.pendingEquippedReservationGUID and BagFolders.pendingEquippedReservationGUID == BagFolders.pendingDraggedItemGUID
+
+	if mouseButton ~= "LeftButton" or not BagFolders.pendingDraggedItemGUID or (not CursorHasItem() and not isEquippedReservationDrag) then
 		BagFolders.pendingDraggedItemGUID = nil
+		BagFolders.ClearEquippedReservationDrag()
 		return
 	end
 
@@ -217,11 +303,14 @@ dragDropFrame:SetScript("OnEvent", function(_, _, mouseButton)
 	if cell then
 		BagFolders.PlaceItemGUIDToCell(BagFolders.pendingDraggedItemGUID, cell.folderID, cell.cellIndex)
 	else
-		local bankButton = GetMouseBankItemButton()
-		if bankButton then
-			bankButton:OnReceiveDrag()
+		if not isEquippedReservationDrag then
+			local bankButton = GetMouseBankItemButton()
+			if bankButton then
+				bankButton:OnReceiveDrag()
+			end
 		end
 		BagFolders.pendingDraggedItemGUID = nil
+		BagFolders.ClearEquippedReservationDrag()
 	end
 end)
 
@@ -524,6 +613,7 @@ local function CreateFolderFrame(folderID)
 	folderFrame:EnableMouse(true)
 	folderFrame:SetScript("OnHide", function(self)
 		self.items = nil
+		BagFolders.ClearEquippedReservationDrag()
 		if EventRegistry then
 			EventRegistry:UnregisterCallback("TokenFrame.OnTokenWatchChanged", self)
 		end
@@ -607,6 +697,7 @@ function BagFolders.HideUnusedFrames(activeFolders)
 end
 
 function BagFolders.HideAllItemCells()
+	BagFolders.ClearEquippedReservationDrag()
 	for _, button in ipairs(BagFolders.itemButtons) do
 		button:Hide()
 	end
