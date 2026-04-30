@@ -11,6 +11,22 @@ local ITEM_OFFSET_Y = BagFolders.ITEM_OFFSET_Y
 local FRAME_WIDTH = BagFolders.FRAME_WIDTH
 local FRAME_PADDING_BOTTOM = BagFolders.FRAME_PADDING_BOTTOM
 
+local BAG_FOLDER_SEARCH_BOX_NAME = "Level20BagFolderSearchBox"
+
+local function RegisterSearchBoxWithBlizzard()
+	if not ITEM_SEARCHBAR_LIST then
+		return
+	end
+
+	for _, barName in ipairs(ITEM_SEARCHBAR_LIST) do
+		if barName == BAG_FOLDER_SEARCH_BOX_NAME then
+			return
+		end
+	end
+
+	table.insert(ITEM_SEARCHBAR_LIST, BAG_FOLDER_SEARCH_BOX_NAME)
+end
+
 function BagFolders.ApplyNativePortraitSizing(folderFrame)
 	folderFrame.layoutType = "HeldBagLayout"
 	folderFrame:SetBorder("HeldBagLayout")
@@ -68,19 +84,13 @@ function BagFolders.GetOrCreateItemButton(parent, index)
 	end)
 	button:SetScript("OnMouseUp", function(self, mouseButton)
 		if mouseButton == "LeftButton" and CursorHasItem() and (BagFolders.PlaceItemGUIDToCell(BagFolders.pendingDraggedItemGUID, self.folderID, self.cellIndex) or BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)) then
-			self.skipNextFolderClick = true
+			self:EnableMouse(false)
+			C_Timer.After(0, function()
+				if self then
+					self:EnableMouse(true)
+				end
+			end)
 		end
-	end)
-	button:SetScript("OnClick", function(self, mouseButton)
-		if self.skipNextFolderClick then
-			self.skipNextFolderClick = nil
-			return
-		end
-		if mouseButton == "LeftButton" and CursorHasItem() and BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex) then
-			return
-		end
-
-		ContainerFrameItemButtonMixin.OnClick(self, mouseButton)
 	end)
 
 	BagFolders.itemButtons[index] = button
@@ -235,6 +245,83 @@ end
 
 function BagFolders.CalculateFrameHeight(rowCount, extraBottomHeight)
 	return ITEM_OFFSET_Y + BagFolders.CalculateItemsHeight(rowCount) + (extraBottomHeight or FRAME_PADDING_BOTTOM)
+end
+
+local function EnsureDefaultFolderSearchBox(folderFrame)
+	if folderFrame.SearchBox then
+		return folderFrame.SearchBox
+	end
+
+	RegisterSearchBoxWithBlizzard()
+
+	-- Mirrors BagItemSearchBox in Blizzard_UIPanels_Game/Mainline/ContainerFrame.xml.
+	local searchBox = CreateFrame("EditBox", BAG_FOLDER_SEARCH_BOX_NAME, folderFrame, "BagSearchBoxTemplate")
+	searchBox:SetSize(96, 18)
+	searchBox:SetMaxLetters(15)
+	folderFrame.SearchBox = searchBox
+	return searchBox
+end
+
+local function EnsureDefaultFolderSortButton(folderFrame)
+	if folderFrame.SortButton then
+		return folderFrame.SortButton
+	end
+
+	-- Mirrors BagItemAutoSortButton in Blizzard_UIPanels_Game/Mainline/ContainerFrame.xml.
+	local sortButton = CreateFrame("Button", nil, folderFrame)
+	sortButton:SetSize(28, 26)
+	local normalTexture = sortButton:CreateTexture(nil, "ARTWORK")
+	normalTexture:SetAtlas("bags-button-autosort-up")
+	normalTexture:SetAllPoints(sortButton)
+	sortButton:SetNormalTexture(normalTexture)
+	local pushedTexture = sortButton:CreateTexture(nil, "ARTWORK")
+	pushedTexture:SetAtlas("bags-button-autosort-down")
+	pushedTexture:SetAllPoints(sortButton)
+	sortButton:SetPushedTexture(pushedTexture)
+	sortButton:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+	sortButton:GetHighlightTexture():SetSize(24, 23)
+	sortButton:GetHighlightTexture():ClearAllPoints()
+	sortButton:GetHighlightTexture():SetPoint("CENTER", 0, 0)
+	sortButton:SetScript("OnClick", function()
+		PlaySound(SOUNDKIT.UI_BAG_SORTING_01)
+		BagFolders.SortDefaultFolder()
+	end)
+	sortButton:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self)
+		GameTooltip_SetTitle(GameTooltip, BAG_CLEANUP_BAGS, HIGHLIGHT_FONT_COLOR)
+		GameTooltip_AddNormalLine(GameTooltip, BAG_CLEANUP_BAGS_DESCRIPTION)
+		GameTooltip:Show()
+	end)
+	sortButton:SetScript("OnLeave", GameTooltip_Hide)
+
+	folderFrame.SortButton = sortButton
+	return sortButton
+end
+
+function BagFolders.UpdateDefaultFolderControls(folderFrame, isDefaultFolder)
+	if not isDefaultFolder then
+		if folderFrame.SearchBox then
+			folderFrame.SearchBox:Hide()
+		end
+		if folderFrame.SortButton then
+			folderFrame.SortButton:Hide()
+		end
+		return
+	end
+
+	local searchBox = EnsureDefaultFolderSearchBox(folderFrame)
+	searchBox:ClearAllPoints()
+	-- Matches ContainerFrameMixin:SetSearchBoxPoint for the backpack.
+	searchBox:SetPoint("TOPLEFT", folderFrame, "TOPLEFT", 42, -37)
+	searchBox:SetWidth(96)
+	searchBox.anchorBag = folderFrame
+	searchBox:Show()
+
+	local sortButton = EnsureDefaultFolderSortButton(folderFrame)
+	sortButton:ClearAllPoints()
+	-- Matches ContainerFrameMixin:UpdateSearchBox sort button anchor.
+	sortButton:SetPoint("TOPRIGHT", folderFrame, "TOPRIGHT", -9, -34)
+	sortButton:Show()
 end
 
 function BagFolders.ShowTextPopup(dialogName, text, defaultText, accept)

@@ -289,3 +289,85 @@ function BagFolders.DropCursorItemToCell(folderID, cellIndex)
 	local itemGUID = BagFolders.GetCursorItemGUID()
 	return BagFolders.PlaceItemGUIDToCell(itemGUID, folderID, cellIndex) or BagFolders.PlaceExternalCursorItemToCell(folderID, cellIndex)
 end
+
+local function GetItemSortData(item)
+	local info = C_Container.GetContainerItemInfo(item.bagID, item.slotID)
+	local itemLink = info and info.hyperlink
+	local itemID = info and info.itemID
+	local itemName = ""
+	local itemQuality = info and info.quality or 0
+	local classID = 999
+	local subclassID = 999
+
+	if itemLink then
+		local getItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+		if getItemInfo then
+			local name, _link, quality, _itemLevel, _minLevel, _itemType, _itemSubType, _stackCount, _equipLoc, _icon, _sellPrice, linkClassID, linkSubclassID = getItemInfo(itemLink)
+			itemName = name or itemName
+			itemQuality = quality or itemQuality
+			classID = linkClassID or classID
+			subclassID = linkSubclassID or subclassID
+		end
+
+		if C_Item and C_Item.GetItemInfoInstant then
+			local instantItemID, _itemType, _itemSubType, _equipLoc, _icon, instantClassID, instantSubclassID = C_Item.GetItemInfoInstant(itemLink)
+			itemID = itemID or instantItemID
+			classID = instantClassID or classID
+			subclassID = instantSubclassID or subclassID
+		end
+	end
+
+	return {
+		classID = classID,
+		subclassID = subclassID,
+		name = strlower(itemName or ""),
+		quality = itemQuality,
+		itemID = itemID or 0,
+		guid = item.guid,
+	}
+end
+
+local function DefaultFolderItemSort(left, right)
+	left.sortData = left.sortData or GetItemSortData(left)
+	right.sortData = right.sortData or GetItemSortData(right)
+
+	if left.sortData.classID ~= right.sortData.classID then
+		return left.sortData.classID < right.sortData.classID
+	end
+	if left.sortData.subclassID ~= right.sortData.subclassID then
+		return left.sortData.subclassID < right.sortData.subclassID
+	end
+	if left.sortData.name ~= right.sortData.name then
+		return left.sortData.name < right.sortData.name
+	end
+	if left.sortData.quality ~= right.sortData.quality then
+		return left.sortData.quality > right.sortData.quality
+	end
+	if left.sortData.itemID ~= right.sortData.itemID then
+		return left.sortData.itemID < right.sortData.itemID
+	end
+
+	return left.sortData.guid < right.sortData.guid
+end
+
+function BagFolders.SortDefaultFolder()
+	local visibleItems = BagFolders.GetVisibleItems()
+	BagFolders.PrepareVisibleItemAssignments(visibleItems)
+
+	local charData = BagFolders.GetCharacterData()
+	local defaultItems = {}
+	for _, item in ipairs(visibleItems) do
+		if BagFolders.NormalizeFolderID(charData.itemFolders[item.guid]) == DEFAULT_FOLDER_ID then
+			table.insert(defaultItems, item)
+		end
+	end
+
+	table.sort(defaultItems, DefaultFolderItemSort)
+
+	for position, item in ipairs(defaultItems) do
+		charData.itemFolders[item.guid] = nil
+		charData.itemPositions[item.guid] = position
+	end
+
+	addon.RefreshBagFolders(visibleItems, true)
+end

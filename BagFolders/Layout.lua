@@ -5,6 +5,7 @@ local DEFAULT_FOLDER_ID = BagFolders.DEFAULT_FOLDER_ID
 local COLUMNS = BagFolders.COLUMNS
 local FRAME_WIDTH = BagFolders.FRAME_WIDTH
 local FRAME_PADDING_BOTTOM = BagFolders.FRAME_PADDING_BOTTOM
+local DEFAULT_FOLDER_CONTROLS_HEIGHT = BagFolders.DEFAULT_FOLDER_CONTROLS_HEIGHT
 local MONEY_FRAME_HEIGHT = BagFolders.MONEY_FRAME_HEIGHT
 local TOKEN_FRAME_SPACING = BagFolders.TOKEN_FRAME_SPACING
 local CURRENCY_BOTTOM_PADDING = BagFolders.CURRENCY_BOTTOM_PADDING
@@ -363,11 +364,12 @@ local function RenderFolder(folder, itemsByPosition, cellState)
 	folderFrame:SetTitle(folder.name)
 	folderFrame:SetPortraitToAsset(BagFolders.GetFolderIcon(folder.id))
 	BagFolders.ApplyNativePortraitSizing(folderFrame)
-	folderFrame:SetSize(FRAME_WIDTH, BagFolders.CalculateFrameHeight(rows, extraBottomHeight))
+	folderFrame:SetSize(FRAME_WIDTH, BagFolders.CalculateFrameHeight(rows, extraBottomHeight + (isDefaultFolder and DEFAULT_FOLDER_CONTROLS_HEIGHT or 0)))
 	folderFrame.items = itemsByPosition
 	folderFrame:Show()
 	folderFrame:Raise()
 	UpdateItemGridAnchor(folderFrame, rows, isDefaultFolder)
+	BagFolders.UpdateDefaultFolderControls(folderFrame, isDefaultFolder)
 
 	for cellIndex = 1, cellCount do
 		local item = itemsByPosition[cellIndex]
