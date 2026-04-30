@@ -109,64 +109,84 @@ local function GetNextFreePosition(usedPositions)
 	return position
 end
 
-function BagFolders.NormalizeVisibleItemAssignments(visibleItems)
-	BagFolders.EnsureDatabase()
+local function GetFolderIDSet()
+	local folderIDs = {
+		[DEFAULT_FOLDER_ID] = true,
+	}
 	local charData = BagFolders.GetCharacterData()
-	local usedByFolder = {}
+	for _, folder in ipairs(charData.folders) do
+		folderIDs[BagFolders.NormalizeFolderID(folder.id)] = true
+	end
+	return folderIDs
+end
 
-	for _, item in ipairs(visibleItems or BagFolders.GetVisibleItems()) do
-		local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[item.guid])
-		if not BagFolders.FolderExists(folderID) then
-			folderID = DEFAULT_FOLDER_ID
-			charData.itemFolders[item.guid] = nil
-		end
-
-		local folderKey = BagFolders.GetFolderKey(folderID)
-		usedByFolder[folderKey] = usedByFolder[folderKey] or {}
-
-		local position = charData.itemPositions[item.guid]
-		if type(position) ~= "number" or position < 1 or usedByFolder[folderKey][position] then
-			position = GetNextFreePosition(usedByFolder[folderKey])
-			charData.itemPositions[item.guid] = position
-		end
-		usedByFolder[folderKey][position] = item.guid
+local function SetItemFolder(charData, itemGUID, folderID)
+	if folderID == DEFAULT_FOLDER_ID then
+		charData.itemFolders[itemGUID] = nil
+	else
+		charData.itemFolders[itemGUID] = folderID
 	end
 end
 
-function BagFolders.MoveNewBankItemsToDefaultFolder(visibleItems)
+local function GetUsedPositionsForFolder(usedByFolder, folderID)
+	local folderKey = BagFolders.GetFolderKey(folderID)
+	usedByFolder[folderKey] = usedByFolder[folderKey] or {}
+	return usedByFolder[folderKey]
+end
+
+local function AssignNextFreePosition(charData, usedByFolder, itemGUID, folderID)
+	local usedPositions = GetUsedPositionsForFolder(usedByFolder, folderID)
+	local position = GetNextFreePosition(usedPositions)
+	SetItemFolder(charData, itemGUID, folderID)
+	charData.itemPositions[itemGUID] = position
+	usedPositions[position] = itemGUID
+	return position
+end
+
+function BagFolders.PrepareVisibleItemAssignments(visibleItems, assignmentsAreNormalized)
 	visibleItems = visibleItems or BagFolders.GetVisibleItems()
 
+	BagFolders.EnsureDatabase()
+	local charData = BagFolders.GetCharacterData()
 	local lastVisibleGUIDs = BagFolders.lastVisibleGUIDs
 	local visibleGUIDs = BagFolders.GetVisibleGUIDs(visibleItems)
-	if lastVisibleGUIDs and BankFrame and BankFrame:IsShown() then
-		BagFolders.EnsureDatabase()
-		local charData = BagFolders.GetCharacterData()
-		local newBankItemGUIDs = {}
-		local usedDefaultPositions = {}
+	local validFolderIDs = GetFolderIDSet()
+	local usedByFolder = {}
+	local itemsNeedingPosition = {}
+	local newItemGUIDs = {}
 
-		for _, item in ipairs(visibleItems) do
-			if not lastVisibleGUIDs[item.guid] and not BagFolders.pendingExternalItemGUIDs[item.guid] then
-				newBankItemGUIDs[item.guid] = true
+	for _, item in ipairs(visibleItems) do
+		local itemGUID = item.guid
+		local isNewItem = lastVisibleGUIDs and not lastVisibleGUIDs[itemGUID] and not BagFolders.pendingExternalItemGUIDs[itemGUID]
+		if isNewItem then
+			newItemGUIDs[itemGUID] = true
+		else
+			local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[itemGUID])
+			if not validFolderIDs[folderID] then
+				folderID = DEFAULT_FOLDER_ID
+				charData.itemFolders[itemGUID] = nil
+			end
+
+			local position = charData.itemPositions[itemGUID]
+			local usedPositions = GetUsedPositionsForFolder(usedByFolder, folderID)
+			if type(position) == "number" and position >= 1 and not usedPositions[position] then
+				usedPositions[position] = itemGUID
+			else
+				table.insert(itemsNeedingPosition, {
+					guid = itemGUID,
+					folderID = folderID,
+				})
 			end
 		end
+	end
 
-		for _, item in ipairs(visibleItems) do
-			if not newBankItemGUIDs[item.guid] then
-				local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[item.guid])
-				local position = charData.itemPositions[item.guid]
-				if folderID == DEFAULT_FOLDER_ID and type(position) == "number" and position >= 1 then
-					usedDefaultPositions[position] = true
-				end
-			end
-		end
+	for _, item in ipairs(itemsNeedingPosition) do
+		AssignNextFreePosition(charData, usedByFolder, item.guid, item.folderID)
+	end
 
-		for _, item in ipairs(visibleItems) do
-			if newBankItemGUIDs[item.guid] then
-				local position = GetNextFreePosition(usedDefaultPositions)
-				charData.itemFolders[item.guid] = nil
-				charData.itemPositions[item.guid] = position
-				usedDefaultPositions[position] = true
-			end
+	for _, item in ipairs(visibleItems) do
+		if newItemGUIDs[item.guid] then
+			AssignNextFreePosition(charData, usedByFolder, item.guid, DEFAULT_FOLDER_ID)
 		end
 	end
 
@@ -176,6 +196,14 @@ function BagFolders.MoveNewBankItemsToDefaultFolder(visibleItems)
 			BagFolders.pendingExternalItemGUIDs[itemGUID] = nil
 		end
 	end
+end
+
+function BagFolders.NormalizeVisibleItemAssignments(visibleItems)
+	BagFolders.PrepareVisibleItemAssignments(visibleItems, false)
+end
+
+function BagFolders.MoveNewBankItemsToDefaultFolder(visibleItems)
+	BagFolders.PrepareVisibleItemAssignments(visibleItems, true)
 end
 
 function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems)
@@ -197,19 +225,11 @@ function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems
 		end
 	end
 
-	if targetFolderID == DEFAULT_FOLDER_ID then
-		charData.itemFolders[itemGUID] = nil
-	else
-		charData.itemFolders[itemGUID] = targetFolderID
-	end
+	SetItemFolder(charData, itemGUID, targetFolderID)
 	charData.itemPositions[itemGUID] = targetCellIndex
 
 	if targetGUID then
-		if oldFolderID == DEFAULT_FOLDER_ID then
-			charData.itemFolders[targetGUID] = nil
-		else
-			charData.itemFolders[targetGUID] = oldFolderID
-		end
+		SetItemFolder(charData, targetGUID, oldFolderID)
 		if oldPosition then
 			charData.itemPositions[targetGUID] = oldPosition
 		else
@@ -234,7 +254,7 @@ function BagFolders.PlaceItemGUIDToCell(itemGUID, folderID, cellIndex)
 	end
 
 	local visibleItems = BagFolders.GetVisibleItems()
-	BagFolders.NormalizeVisibleItemAssignments(visibleItems)
+	BagFolders.PrepareVisibleItemAssignments(visibleItems)
 	BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems)
 	ClearCursor()
 	BagFolders.pendingDraggedItemGUID = nil
@@ -254,7 +274,7 @@ function BagFolders.PlaceExternalCursorItemToCell(folderID, cellIndex)
 	end
 
 	local visibleItems = BagFolders.GetVisibleItems()
-	BagFolders.NormalizeVisibleItemAssignments(visibleItems)
+	BagFolders.PrepareVisibleItemAssignments(visibleItems)
 	BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems)
 	BagFolders.pendingExternalItemGUIDs[itemGUID] = true
 

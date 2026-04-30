@@ -412,7 +412,24 @@ function BagFolders.OpenFolderMenu(owner, folderID)
 	end
 end
 
+local function EnsureFolderEventFrame()
+	if BagFolders.eventFrame then
+		return
+	end
+
+	BagFolders.eventFrame = CreateFrame("Frame")
+	for _, event in ipairs(BagFolders.events) do
+		BagFolders.eventFrame:RegisterEvent(event)
+	end
+	BagFolders.eventFrame:SetScript("OnEvent", function()
+		if not BagFolders.isRefreshing and addon.AreBagFoldersShown and addon.AreBagFoldersShown() then
+			addon.RequestBagFoldersRefresh()
+		end
+	end)
+end
+
 local function CreateFolderFrame(folderID)
+	EnsureFolderEventFrame()
 	local folderFrame = CreateFrame("Frame", "Level20BagFolder" .. BagFolders.GetFolderKey(folderID), UIParent, "PortraitFrameFlatTemplate")
 	folderFrame:SetSize(FRAME_WIDTH, BagFolders.CalculateFrameHeight(1))
 	folderFrame:SetMovable(false)
@@ -482,15 +499,6 @@ local function CreateFolderFrame(folderID)
 	folderFrame.menuButton:SetScript("OnMouseUp", function(self, mouseButton)
 		if mouseButton == "RightButton" then
 			BagFolders.OpenFolderMenu(self, self:GetParent().folderID)
-		end
-	end)
-
-	for _, event in ipairs(BagFolders.events) do
-		folderFrame:RegisterEvent(event)
-	end
-	folderFrame:SetScript("OnEvent", function()
-		if not BagFolders.isRefreshing and addon.AreBagFoldersShown and addon.AreBagFoldersShown() then
-			addon.RequestBagFoldersRefresh()
 		end
 	end)
 

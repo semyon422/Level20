@@ -31,6 +31,7 @@ BagFolders.emptyButtons = BagFolders.emptyButtons or {}
 BagFolders.originalFunctions = BagFolders.originalFunctions or {}
 BagFolders.hooksInstalled = BagFolders.hooksInstalled or false
 BagFolders.hookRetryFrame = BagFolders.hookRetryFrame
+BagFolders.eventFrame = BagFolders.eventFrame
 BagFolders.iconSelectorPopup = BagFolders.iconSelectorPopup
 BagFolders.isRefreshing = false
 BagFolders.refreshQueued = false

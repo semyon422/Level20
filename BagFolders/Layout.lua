@@ -16,10 +16,7 @@ local function BuildFolderItems(visibleItems, assignmentsAreNormalized)
 	BagFolders.EnsureDatabase()
 	local charData = BagFolders.GetCharacterData()
 	visibleItems = visibleItems or BagFolders.GetVisibleItems()
-	BagFolders.MoveNewBankItemsToDefaultFolder(visibleItems)
-	if not assignmentsAreNormalized then
-		BagFolders.NormalizeVisibleItemAssignments(visibleItems)
-	end
+	BagFolders.PrepareVisibleItemAssignments(visibleItems, assignmentsAreNormalized)
 	local buckets = {}
 
 	for _, folder in ipairs(BagFolders.GetOrderedFolders()) do
