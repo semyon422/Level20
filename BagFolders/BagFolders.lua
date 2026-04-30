@@ -8,6 +8,8 @@ BagFolders.L = addon.L
 
 BagFolders.DEFAULT_FOLDER_ID = "default"
 BagFolders.COLUMNS = 4
+
+-- Values mirror Blizzard_UIPanels_Game/Mainline/ContainerFrame.lua and ContainerFrame.xml.
 BagFolders.CELL_SIZE = 37
 BagFolders.CELL_SPACING = 5
 BagFolders.ITEM_OFFSET_X = 7
@@ -19,6 +21,7 @@ BagFolders.TOKEN_FRAME_SPACING = 3
 BagFolders.CURRENCY_BOTTOM_PADDING = 8
 BagFolders.CONTAINER_SPACING = 8
 BagFolders.MIN_SCALE = 0.75
+
 BagFolders.DEFAULT_FOLDER_ICON = "Interface/Icons/Inv_misc_bag_08"
 
 BagFolders.folderFrames = BagFolders.folderFrames or {}
@@ -34,6 +37,7 @@ BagFolders.needsRefresh = false
 BagFolders.reagentAnchorHookInstalled = BagFolders.reagentAnchorHookInstalled or false
 BagFolders.layoutAnchorFrame = BagFolders.layoutAnchorFrame
 BagFolders.layoutScale = BagFolders.layoutScale
+BagFolders.sessionClosedFolders = BagFolders.sessionClosedFolders or {}
 BagFolders.pendingDraggedItemGUID = nil
 
 BagFolders.events = {

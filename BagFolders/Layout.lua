@@ -73,6 +73,7 @@ local function EnsureCurrencyFrame(folderFrame)
 		return folderFrame.CurrencyFrame
 	end
 
+	-- Mirrors BackpackTokenFrameTemplate in Blizzard_TokenUI.xml.
 	local currencyFrame = CreateFrame("Frame", nil, folderFrame)
 	currencyFrame:SetHeight(17)
 	currencyFrame.buttons = {}
@@ -104,6 +105,7 @@ local function EnsureCurrencyFrame(folderFrame)
 end
 
 local function CreateCurrencyButton(parent)
+	-- Mirrors BackpackTokenTemplate in Blizzard_TokenUI.xml.
 	local button = CreateFrame("Button", nil, parent)
 	button:SetSize(50, 12)
 
@@ -166,6 +168,7 @@ local function UpdateCurrencyFrame(folderFrame)
 	currencyFrame:SetPoint("BOTTOMLEFT", folderFrame, "BOTTOMLEFT", 8, CURRENCY_BOTTOM_PADDING)
 	currencyFrame:SetPoint("BOTTOMRIGHT", folderFrame, "BOTTOMRIGHT", -8, CURRENCY_BOTTOM_PADDING)
 
+	-- Mirrors BackpackTokenFrameMixin:GetMaxTokensWatched.
 	local maxTokens = math.max(math.floor((FRAME_WIDTH - 16) / 50), 1)
 	local tokenCount = 0
 	for index = 1, maxTokens do
@@ -233,19 +236,23 @@ local function EnsureItemGridAnchor(folderFrame)
 	return folderFrame.itemGridAnchor
 end
 
-local function UpdateItemGridAnchor(folderFrame, isDefaultFolder)
+local function UpdateItemGridAnchor(folderFrame, rows, isDefaultFolder)
 	local anchor = EnsureItemGridAnchor(folderFrame)
 	anchor:ClearAllPoints()
+	folderFrame.itemGridRows = rows
 
+	-- Matches Blizzard ContainerFrameBackpackMixin:GetInitialItemAnchor.
 	if isDefaultFolder and folderFrame.MoneyFrame then
 		anchor:SetPoint("BOTTOMRIGHT", folderFrame.MoneyFrame, "TOPRIGHT", 0, 4)
 	else
-		anchor:SetPoint("BOTTOMRIGHT", folderFrame, "BOTTOMRIGHT", -7, FRAME_PADDING_BOTTOM)
+		-- Matches Blizzard ContainerFrameMixin:GetInitialItemAnchor.
+		anchor:SetPoint("BOTTOMRIGHT", folderFrame, "BOTTOMRIGHT", -7, 9)
 	end
 end
 
 local function GetInitialContainerFrameOffsetX()
 	if EditModeUtil and EditModeUtil.GetRightActionBarWidth then
+		-- Matches Blizzard ContainerFrame.lua GetInitialContainerFrameOffsetX.
 		return EditModeUtil:GetRightActionBarWidth() + 10
 	end
 
@@ -253,6 +260,7 @@ local function GetInitialContainerFrameOffsetX()
 end
 
 local function GetAutoScale(autoFrames)
+	-- Mirrors Blizzard ContainerFrame.lua GetContainerScale for bag column fitting.
 	local scale = 1
 	while scale > MIN_SCALE do
 		local screenHeight = GetScreenHeight() / scale
@@ -294,6 +302,7 @@ local function GetAutoScale(autoFrames)
 end
 
 local function LayoutAutoFrames(autoFrames)
+	-- Mirrors Blizzard ContainerFrame.lua UpdateContainerFrameAnchors.
 	local scale = GetAutoScale(autoFrames)
 	local screenHeight = GetScreenHeight() / scale
 	local xOffset = GetInitialContainerFrameOffsetX() / scale
@@ -310,6 +319,7 @@ local function LayoutAutoFrames(autoFrames)
 			firstFrameInColumn = folderFrame
 		elseif freeHeight < folderFrame:GetHeight() then
 			freeHeight = screenHeight - yOffset
+			-- Matches Blizzard UpdateContainerFrameAnchors column spacing.
 			folderFrame:SetPoint("BOTTOMRIGHT", firstFrameInColumn, "BOTTOMLEFT", -11, 0)
 			firstFrameInColumn = folderFrame
 		else
@@ -341,7 +351,7 @@ local function RenderFolder(folder, itemsByPosition, cellState)
 	folderFrame.items = itemsByPosition
 	folderFrame:Show()
 	folderFrame:Raise()
-	UpdateItemGridAnchor(folderFrame, isDefaultFolder)
+	UpdateItemGridAnchor(folderFrame, rows, isDefaultFolder)
 
 	for cellIndex = 1, cellCount do
 		local item = itemsByPosition[cellIndex]
@@ -389,8 +399,8 @@ function addon.RefreshBagFolders(visibleItems, assignmentsAreNormalized)
 	}
 
 	for _, folder in ipairs(BagFolders.GetOrderedFolders()) do
-		if BagFolders.IsFolderHidden(folder.id) then
-			local folderKey = BagFolders.GetFolderKey(folder.id)
+		local folderKey = BagFolders.GetFolderKey(folder.id)
+		if BagFolders.IsFolderHidden(folder.id) or BagFolders.sessionClosedFolders[folderKey] then
 			if BagFolders.folderFrames[folderKey] then
 				BagFolders.folderFrames[folderKey]:Hide()
 			end

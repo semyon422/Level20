@@ -94,26 +94,33 @@ function BagFolders.GetOrCreateEmptyButton(parent, index)
 		return button
 	end
 
-	button = CreateFrame("Button", nil, parent)
-	button:SetSize(CELL_SIZE, CELL_SIZE)
+	button = CreateFrame("ItemButton", nil, parent, "ContainerFrameItemButtonTemplate")
 	button:RegisterForClicks("LeftButtonUp")
 	button:RegisterForDrag("LeftButton")
-	button.ItemSlotBackground = button:CreateTexture(nil, "BACKGROUND", "ItemSlotBackgroundCombinedBagsTemplate", -6)
-	button.ItemSlotBackground:SetAllPoints()
-	button.background = button:CreateTexture(nil, "BACKGROUND")
-	button.background:SetAllPoints()
-	button.background:SetAtlas("bags-item-slot64")
-	button.Border = button:CreateTexture(nil, "OVERLAY")
-	button.Border:SetTexture("Interface/Buttons/UI-Quickslot2")
-	button.Border:SetSize(64, 64)
-	button.Border:SetPoint("CENTER", button, "CENTER", 0, -1)
-	button.Border:SetAlpha(0.55)
-	button:SetHighlightTexture("Interface/Buttons/ButtonHilight-Square", "ADD")
-	local highlight = button:GetHighlightTexture()
-	if highlight then
-		highlight:SetSize(CELL_SIZE, CELL_SIZE)
-		highlight:SetPoint("CENTER")
+	button:SetHasItem(nil)
+	button:SetItemButtonTexture(nil)
+	SetItemButtonQuality(button, nil)
+	SetItemButtonCount(button, nil)
+	SetItemButtonDesaturated(button, false)
+	button:SetReadable(false)
+	button:SetMatchesSearch(true)
+	button:UpdateCooldown(nil)
+	button.IconQuestTexture:Hide()
+	button.UpgradeIcon:Hide()
+	button.NewItemTexture:Hide()
+	button.BattlepayItemTexture:Hide()
+	button.BagIndicator:Hide()
+	button.JunkIcon:Hide()
+
+	-- Mirrors ContainerFrameItemButtonMixin:Initialize for combined bag slots.
+	if not button.ItemSlotBackground then
+		button.ItemSlotBackground = button:CreateTexture(nil, "BACKGROUND", "ItemSlotBackgroundCombinedBagsTemplate", -6)
+		button.ItemSlotBackground:SetAllPoints(button)
 	end
+	button.ItemSlotBackground:Show()
+
+	button:SetScript("OnEnter", nil)
+	button:SetScript("OnLeave", nil)
 	button:SetScript("OnReceiveDrag", function(self)
 		if not BagFolders.PlaceItemGUIDToCell(BagFolders.pendingDraggedItemGUID, self.folderID, self.cellIndex) then
 			BagFolders.DropCursorItemToCell(self.folderID, self.cellIndex)
@@ -184,8 +191,9 @@ function BagFolders.PositionCell(button, cellIndex)
 	button:ClearAllPoints()
 
 	local parent = button:GetParent()
-	if parent and parent.itemGridAnchor then
-		button:SetPoint("BOTTOMRIGHT", parent.itemGridAnchor, "BOTTOMRIGHT", -(COLUMNS - column - 1) * (CELL_SIZE + CELL_SPACING), row * (CELL_SIZE + CELL_SPACING))
+	if parent and parent.itemGridAnchor and parent.itemGridRows then
+		local visualRowFromBottom = parent.itemGridRows - row - 1
+		button:SetPoint("BOTTOMRIGHT", parent.itemGridAnchor, "BOTTOMRIGHT", -(COLUMNS - column - 1) * (CELL_SIZE + CELL_SPACING), visualRowFromBottom * (CELL_SIZE + CELL_SPACING))
 	else
 		button:SetPoint("TOPLEFT", parent, "TOPLEFT", ITEM_OFFSET_X + column * (CELL_SIZE + CELL_SPACING), -(ITEM_OFFSET_Y + row * (CELL_SIZE + CELL_SPACING)))
 	end
@@ -411,6 +419,17 @@ local function CreateFolderFrame(folderID)
 	folderFrame.GetBagID = folderFrame.GetID
 
 	folderFrame.CloseButton = folderFrame.CloseButton or CreateFrame("Button", nil, folderFrame, "UIPanelCloseButtonDefaultAnchors")
+	folderFrame.CloseButton:SetScript("OnClick", function(self)
+		local parent = self:GetParent()
+		local folderKey = parent and parent.folderID and BagFolders.GetFolderKey(parent.folderID)
+		if folderKey then
+			BagFolders.sessionClosedFolders[folderKey] = true
+		end
+		if parent then
+			parent:Hide()
+		end
+		addon.RequestBagFoldersRefresh()
+	end)
 
 	folderFrame.PortraitButton = CreateFrame("DropdownButton", nil, folderFrame, "ContainerFramePortraitButtonTemplate")
 	folderFrame.PortraitButton:SetPoint("CENTER", folderFrame:GetPortrait(), "CENTER", 3, -3)

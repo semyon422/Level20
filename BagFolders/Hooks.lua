@@ -79,8 +79,10 @@ local function ShowBagFolders()
 		return
 	end
 
+	wipe(BagFolders.sessionClosedFolders)
 	HideBlizzardNormalBags()
 	addon.RefreshBagFolders()
+	addon.RequestBagFoldersRefresh()
 end
 
 local function HideBagFolders()
