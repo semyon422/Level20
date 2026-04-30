@@ -11,17 +11,20 @@ local CURRENCY_BOTTOM_PADDING = BagFolders.CURRENCY_BOTTOM_PADDING
 local CONTAINER_SPACING = BagFolders.CONTAINER_SPACING
 local MIN_SCALE = BagFolders.MIN_SCALE
 
-local function BuildFolderItems()
-	local db = BagFolders.EnsureDatabase()
+local function BuildFolderItems(visibleItems, assignmentsAreNormalized)
+	BagFolders.EnsureDatabase()
 	local charData = BagFolders.GetCharacterData()
-	BagFolders.NormalizeVisibleItemAssignments()
+	visibleItems = visibleItems or BagFolders.GetVisibleItems()
+	if not assignmentsAreNormalized then
+		BagFolders.NormalizeVisibleItemAssignments(visibleItems)
+	end
 	local buckets = {}
 
 	for _, folder in ipairs(BagFolders.GetOrderedFolders()) do
 		buckets[folder.id] = {}
 	end
 
-	for _, item in ipairs(BagFolders.GetVisibleItems()) do
+	for _, item in ipairs(visibleItems) do
 		local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[item.guid])
 		if not BagFolders.FolderExists(folderID) then
 			folderID = DEFAULT_FOLDER_ID
@@ -232,18 +235,21 @@ local function RenderFolder(folder, itemsByPosition, cellState)
 	return folderFrame
 end
 
-function addon.RefreshBagFolders()
+function addon.RefreshBagFolders(visibleItems, assignmentsAreNormalized)
 	if BagFolders.isRefreshing then
+		BagFolders.needsRefresh = true
 		return
 	end
 
 	BagFolders.isRefreshing = true
+	BagFolders.refreshQueued = false
+	BagFolders.needsRefresh = false
 	BagFolders.EnsureDatabase()
 	BagFolders.HideAllItemCells()
 
 	local activeFolders = {}
 	local autoFrames = {}
-	local buckets = BuildFolderItems()
+	local buckets = BuildFolderItems(visibleItems, assignmentsAreNormalized)
 	local cellState = {
 		usedItemButtons = 0,
 		usedEmptyButtons = 0,
@@ -266,4 +272,23 @@ function addon.RefreshBagFolders()
 	BagFolders.HideUnusedFrames(activeFolders)
 	LayoutAutoFrames(autoFrames)
 	BagFolders.isRefreshing = false
+
+	if BagFolders.needsRefresh then
+		addon.RequestBagFoldersRefresh()
+	end
+end
+
+function addon.RequestBagFoldersRefresh()
+	if BagFolders.refreshQueued then
+		return
+	end
+
+	BagFolders.refreshQueued = true
+	C_Timer.After(0, function()
+		if BagFolders.refreshQueued and BagFolders.IsEnabled() and addon.AreBagFoldersShown and addon.AreBagFoldersShown() then
+			addon.RefreshBagFolders()
+		else
+			BagFolders.refreshQueued = false
+		end
+	end)
 end

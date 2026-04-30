@@ -435,7 +435,7 @@ local function CreateFolderFrame(folderID)
 	end
 	folderFrame:SetScript("OnEvent", function()
 		if not BagFolders.isRefreshing and addon.AreBagFoldersShown and addon.AreBagFoldersShown() then
-			addon.RefreshBagFolders()
+			addon.RequestBagFoldersRefresh()
 		end
 	end)
 

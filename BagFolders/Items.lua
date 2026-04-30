@@ -53,9 +53,9 @@ function BagFolders.GetVisibleItems()
 	return items
 end
 
-function BagFolders.GetVisibleGUIDs()
+function BagFolders.GetVisibleGUIDs(visibleItems)
 	local visibleGUIDs = {}
-	for _, item in ipairs(BagFolders.GetVisibleItems()) do
+	for _, item in ipairs(visibleItems or BagFolders.GetVisibleItems()) do
 		visibleGUIDs[item.guid] = true
 	end
 	return visibleGUIDs
@@ -69,12 +69,12 @@ local function GetNextFreePosition(usedPositions)
 	return position
 end
 
-function BagFolders.NormalizeVisibleItemAssignments()
-	local db = BagFolders.EnsureDatabase()
+function BagFolders.NormalizeVisibleItemAssignments(visibleItems)
+	BagFolders.EnsureDatabase()
 	local charData = BagFolders.GetCharacterData()
 	local usedByFolder = {}
 
-	for _, item in ipairs(BagFolders.GetVisibleItems()) do
+	for _, item in ipairs(visibleItems or BagFolders.GetVisibleItems()) do
 		local folderID = BagFolders.NormalizeFolderID(charData.itemFolders[item.guid])
 		if not BagFolders.FolderExists(folderID) then
 			folderID = DEFAULT_FOLDER_ID
@@ -93,19 +93,20 @@ function BagFolders.NormalizeVisibleItemAssignments()
 	end
 end
 
-function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex)
-	local db = BagFolders.EnsureDatabase()
+function BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems)
+	BagFolders.EnsureDatabase()
 	local charData = BagFolders.GetCharacterData()
 	local targetFolderID = BagFolders.NormalizeFolderID(folderID)
 	local targetCellIndex = math.max(1, math.floor(cellIndex or 1))
 	local oldFolderID = BagFolders.NormalizeFolderID(charData.itemFolders[itemGUID])
 	local oldPosition = charData.itemPositions[itemGUID]
 	local targetGUID
-	local visibleGUIDs = BagFolders.GetVisibleGUIDs()
 
-	for guid, position in pairs(charData.itemPositions) do
+	for _, item in ipairs(visibleItems or BagFolders.GetVisibleItems()) do
+		local guid = item.guid
+		local position = charData.itemPositions[guid]
 		local guidFolderID = BagFolders.NormalizeFolderID(charData.itemFolders[guid])
-		if visibleGUIDs[guid] and guid ~= itemGUID and guidFolderID == targetFolderID and position == targetCellIndex then
+		if guid ~= itemGUID and guidFolderID == targetFolderID and position == targetCellIndex then
 			targetGUID = guid
 			break
 		end
@@ -133,11 +134,12 @@ function BagFolders.PlaceItemGUIDToCell(itemGUID, folderID, cellIndex)
 		return false
 	end
 
-	BagFolders.NormalizeVisibleItemAssignments()
-	BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex)
+	local visibleItems = BagFolders.GetVisibleItems()
+	BagFolders.NormalizeVisibleItemAssignments(visibleItems)
+	BagFolders.AssignItemToCell(itemGUID, folderID, cellIndex, visibleItems)
 	ClearCursor()
 	BagFolders.pendingDraggedItemGUID = nil
-	addon.RefreshBagFolders()
+	addon.RefreshBagFolders(visibleItems, true)
 	return true
 end
 

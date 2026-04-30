@@ -29,6 +29,8 @@ BagFolders.hooksInstalled = BagFolders.hooksInstalled or false
 BagFolders.hookRetryFrame = BagFolders.hookRetryFrame
 BagFolders.iconSelectorPopup = BagFolders.iconSelectorPopup
 BagFolders.isRefreshing = false
+BagFolders.refreshQueued = false
+BagFolders.needsRefresh = false
 BagFolders.pendingDraggedItemGUID = nil
 
 BagFolders.events = {
