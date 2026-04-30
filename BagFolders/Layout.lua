@@ -50,18 +50,6 @@ local function GetRowsForFolder(itemsByPosition)
 	return math.max(1, highestOccupiedRow + 1)
 end
 
-local function GetBackpackTokenFrame()
-	if BackpackTokenFrame then
-		return BackpackTokenFrame
-	end
-
-	if ContainerFrameSettingsManager and ContainerFrameSettingsManager.GetTokenTracker then
-		return ContainerFrameSettingsManager:GetTokenTracker()
-	end
-
-	return nil
-end
-
 local function EnsureMoneyFrame(folderFrame)
 	if folderFrame.MoneyFrame then
 		return folderFrame.MoneyFrame
@@ -72,29 +60,150 @@ local function EnsureMoneyFrame(folderFrame)
 	return folderFrame.MoneyFrame
 end
 
-local function UpdateDefaultCurrencyFrames(folderFrame)
-	local moneyFrame = EnsureMoneyFrame(folderFrame)
-	local tokenFrame = GetBackpackTokenFrame()
-	local tokenHeight = 0
+local function FormatCurrencyCount(count)
+	local currencyText = BreakUpLargeNumbers(count)
+	if strlenutf8(currencyText) > 5 then
+		currencyText = AbbreviateNumbers(count)
+	end
+	return currencyText
+end
 
-	if tokenFrame and tokenFrame.ShouldShow and tokenFrame:ShouldShow() then
-		folderFrame.TokenFrame = tokenFrame
-		tokenFrame:SetParent(folderFrame)
-		if tokenFrame.SetIsCombinedInventory then
-			tokenFrame:SetIsCombinedInventory(false)
+local function EnsureCurrencyFrame(folderFrame)
+	if folderFrame.CurrencyFrame then
+		return folderFrame.CurrencyFrame
+	end
+
+	local currencyFrame = CreateFrame("Frame", nil, folderFrame)
+	currencyFrame:SetHeight(17)
+	currencyFrame.buttons = {}
+
+	local left = currencyFrame:CreateTexture(nil, "BACKGROUND")
+	left:SetSize(8, 17)
+	left:SetPoint("LEFT")
+	left:SetAtlas("common-currencybox-left")
+	currencyFrame.Left = left
+
+	local right = currencyFrame:CreateTexture(nil, "BACKGROUND")
+	right:SetSize(8, 17)
+	right:SetPoint("RIGHT")
+	right:SetAtlas("common-currencybox-right")
+	currencyFrame.Right = right
+
+	local middle = currencyFrame:CreateTexture(nil, "BACKGROUND")
+	middle:SetPoint("TOPLEFT", left, "TOPRIGHT")
+	middle:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT")
+	middle:SetAtlas("_common-currencybox-center")
+	currencyFrame.Middle = middle
+
+	currencyFrame:SetScript("OnEvent", function()
+		addon.RequestBagFoldersRefresh()
+	end)
+
+	folderFrame.CurrencyFrame = currencyFrame
+	return currencyFrame
+end
+
+local function CreateCurrencyButton(parent)
+	local button = CreateFrame("Button", nil, parent)
+	button:SetSize(50, 12)
+
+	button.Icon = button:CreateTexture(nil, "ARTWORK")
+	button.Icon:SetSize(12, 12)
+	button.Icon:SetPoint("RIGHT", button, "RIGHT", 4, 1)
+
+	button.Count = button:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	button.Count:SetHeight(10)
+	button.Count:SetPoint("TOPLEFT")
+	button.Count:SetPoint("RIGHT", button.Icon, "LEFT")
+	button.Count:SetJustifyH("RIGHT")
+
+	button:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:SetBackpackToken(self:GetID())
+		GameTooltip_AddBlankLineToTooltip(GameTooltip)
+		if TOKEN_REMOVE_FROM_BACKPACK_INSTRUCTION then
+			GameTooltip_AddInstructionLine(GameTooltip, TOKEN_REMOVE_FROM_BACKPACK_INSTRUCTION)
 		end
-		tokenFrame:ClearAllPoints()
-		tokenFrame:SetPoint("BOTTOMLEFT", folderFrame, "BOTTOMLEFT", 8, CURRENCY_BOTTOM_PADDING)
-		tokenFrame:SetPoint("BOTTOMRIGHT", folderFrame, "BOTTOMRIGHT", -8, CURRENCY_BOTTOM_PADDING)
-		tokenFrame:Show()
-		tokenHeight = tokenFrame:GetHeight() + TOKEN_FRAME_SPACING
-	else
-		if folderFrame.TokenFrame then
-			folderFrame.TokenFrame:Hide()
-			folderFrame.TokenFrame:SetParent(UIParent)
-			folderFrame.TokenFrame = nil
+		GameTooltip:Show()
+	end)
+	button:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+	button:SetScript("OnClick", function(self)
+		if IsModifiedClick("CHATLINK") then
+			local linkedToChat = HandleModifiedItemClick(C_CurrencyInfo.GetCurrencyLink(self.currencyID))
+			if linkedToChat then
+				return
+			end
+		end
+
+		if IsModifiedClick("TOKENWATCHTOGGLE") then
+			C_CurrencyInfo.SetCurrencyBackpackByID(self.currencyID, false)
+			addon.RequestBagFoldersRefresh()
+			if TokenFrame and TokenFrame:IsShown() then
+				TokenFrame:Update()
+			end
+		elseif CharacterFrame and CharacterFrame.ToggleTokenFrame then
+			CharacterFrame:ToggleTokenFrame()
+		elseif ToggleCharacter then
+			ToggleCharacter("TokenFrame")
+		end
+	end)
+
+	return button
+end
+
+local function UpdateCurrencyFrame(folderFrame)
+	if not C_CurrencyInfo or not C_CurrencyInfo.GetBackpackCurrencyInfo then
+		if folderFrame.CurrencyFrame then
+			folderFrame.CurrencyFrame:Hide()
+		end
+		return 0
+	end
+
+	local currencyFrame = EnsureCurrencyFrame(folderFrame)
+	currencyFrame:ClearAllPoints()
+	currencyFrame:SetPoint("BOTTOMLEFT", folderFrame, "BOTTOMLEFT", 8, CURRENCY_BOTTOM_PADDING)
+	currencyFrame:SetPoint("BOTTOMRIGHT", folderFrame, "BOTTOMRIGHT", -8, CURRENCY_BOTTOM_PADDING)
+
+	local maxTokens = math.max(math.floor((FRAME_WIDTH - 16) / 50), 1)
+	local tokenCount = 0
+	for index = 1, maxTokens do
+		local currencyInfo = C_CurrencyInfo.GetBackpackCurrencyInfo(index)
+		local button = currencyFrame.buttons[index]
+		if currencyInfo then
+			if not button then
+				button = CreateCurrencyButton(currencyFrame)
+				currencyFrame.buttons[index] = button
+			end
+
+			button:SetID(index)
+			button.currencyID = currencyInfo.currencyTypesID
+			button.Icon:SetTexture(currencyInfo.iconFileID)
+			button.Count:SetText(FormatCurrencyCount(currencyInfo.quantity))
+			button:ClearAllPoints()
+			button:SetPoint("RIGHT", currencyFrame, "RIGHT", -17 - tokenCount * 50, -1)
+			button:Show()
+			tokenCount = tokenCount + 1
+		elseif button then
+			button:Hide()
 		end
 	end
+
+	if tokenCount == 0 then
+		currencyFrame:Hide()
+		currencyFrame:UnregisterEvent("CURRENCY_DISPLAY_UPDATE")
+		return 0
+	end
+
+	currencyFrame:Show()
+	currencyFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+	return currencyFrame:GetHeight() + TOKEN_FRAME_SPACING
+end
+
+local function UpdateDefaultCurrencyFrames(folderFrame)
+	local moneyFrame = EnsureMoneyFrame(folderFrame)
+	local tokenHeight = UpdateCurrencyFrame(folderFrame)
 
 	moneyFrame:ClearAllPoints()
 	moneyFrame:SetPoint("BOTTOMLEFT", folderFrame, "BOTTOMLEFT", 8, CURRENCY_BOTTOM_PADDING + tokenHeight)
@@ -108,10 +217,30 @@ local function HideCurrencyFrames(folderFrame)
 	if folderFrame.MoneyFrame then
 		folderFrame.MoneyFrame:Hide()
 	end
-	if folderFrame.TokenFrame then
-		folderFrame.TokenFrame:Hide()
-		folderFrame.TokenFrame:SetParent(UIParent)
-		folderFrame.TokenFrame = nil
+	if folderFrame.CurrencyFrame then
+		folderFrame.CurrencyFrame:Hide()
+		folderFrame.CurrencyFrame:UnregisterEvent("CURRENCY_DISPLAY_UPDATE")
+	end
+end
+
+local function EnsureItemGridAnchor(folderFrame)
+	if folderFrame.itemGridAnchor then
+		return folderFrame.itemGridAnchor
+	end
+
+	folderFrame.itemGridAnchor = CreateFrame("Frame", nil, folderFrame)
+	folderFrame.itemGridAnchor:SetSize(1, 1)
+	return folderFrame.itemGridAnchor
+end
+
+local function UpdateItemGridAnchor(folderFrame, isDefaultFolder)
+	local anchor = EnsureItemGridAnchor(folderFrame)
+	anchor:ClearAllPoints()
+
+	if isDefaultFolder and folderFrame.MoneyFrame then
+		anchor:SetPoint("BOTTOMRIGHT", folderFrame.MoneyFrame, "TOPRIGHT", 0, 4)
+	else
+		anchor:SetPoint("BOTTOMRIGHT", folderFrame, "BOTTOMRIGHT", -7, FRAME_PADDING_BOTTOM)
 	end
 end
 
@@ -212,6 +341,7 @@ local function RenderFolder(folder, itemsByPosition, cellState)
 	folderFrame.items = itemsByPosition
 	folderFrame:Show()
 	folderFrame:Raise()
+	UpdateItemGridAnchor(folderFrame, isDefaultFolder)
 
 	for cellIndex = 1, cellCount do
 		local item = itemsByPosition[cellIndex]

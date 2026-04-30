@@ -182,7 +182,13 @@ function BagFolders.PositionCell(button, cellIndex)
 	local column = (cellIndex - 1) % COLUMNS
 	local row = math.floor((cellIndex - 1) / COLUMNS)
 	button:ClearAllPoints()
-	button:SetPoint("TOPLEFT", button:GetParent(), "TOPLEFT", ITEM_OFFSET_X + column * (CELL_SIZE + CELL_SPACING), -(ITEM_OFFSET_Y + row * (CELL_SIZE + CELL_SPACING)))
+
+	local parent = button:GetParent()
+	if parent and parent.itemGridAnchor then
+		button:SetPoint("BOTTOMRIGHT", parent.itemGridAnchor, "BOTTOMRIGHT", -(COLUMNS - column - 1) * (CELL_SIZE + CELL_SPACING), row * (CELL_SIZE + CELL_SPACING))
+	else
+		button:SetPoint("TOPLEFT", parent, "TOPLEFT", ITEM_OFFSET_X + column * (CELL_SIZE + CELL_SPACING), -(ITEM_OFFSET_Y + row * (CELL_SIZE + CELL_SPACING)))
+	end
 end
 
 function BagFolders.CalculateItemsHeight(rowCount)
@@ -379,9 +385,9 @@ local function CreateFolderFrame(folderID)
 		if EventRegistry then
 			EventRegistry:UnregisterCallback("TokenFrame.OnTokenWatchChanged", self)
 		end
-		if self.TokenFrame then
-			self.TokenFrame:Hide()
-			self.TokenFrame:SetParent(UIParent)
+		if self.CurrencyFrame then
+			self.CurrencyFrame:Hide()
+			self.CurrencyFrame:UnregisterEvent("CURRENCY_DISPLAY_UPDATE")
 		end
 	end)
 	folderFrame:SetScript("OnShow", function(self)
