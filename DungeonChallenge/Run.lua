@@ -40,6 +40,25 @@ function challenge.ClearRunRecord()
 	Level20DB.dungeonChallengeTimer = {}
 end
 
+function challenge.ResetTimerState()
+	if InCombatLockdown and InCombatLockdown() then
+		return false
+	end
+
+	Level20DB.showDungeonChallengeFrame = true
+	challenge.ClearRunRecord()
+
+	if ScenarioTimerFrame then
+		ScenarioTimerFrame:StopTimer(constants.FAKE_TIMER_ID)
+	end
+
+	if ScenarioObjectiveTracker and ScenarioObjectiveTracker.ChallengeModeBlock then
+		ScenarioObjectiveTracker.ChallengeModeBlock.timerID = nil
+	end
+
+	return true
+end
+
 function challenge.HasShownCompletionBanner(run)
 	return run and run.completionBannerShown and true or false
 end
@@ -224,4 +243,9 @@ end
 function challenge.IsTimerStarted()
 	local run = challenge.GetRunRecord()
 	return run and run.startedAt and true or false
+end
+
+function challenge.IsTimerStopped(run)
+	run = run or challenge.GetRunRecord()
+	return run and run.startedAt and run.completedAt and true or false
 end

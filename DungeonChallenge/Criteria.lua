@@ -35,6 +35,123 @@ function challenge.HasAnyCompletedCriteria(criteriaList)
 	return false
 end
 
+function challenge.IsFreshDungeon(criteriaList)
+	criteriaList = criteriaList or state.encounterCriteria
+	return #criteriaList > 0 and not challenge.HasAnyCompletedCriteria(criteriaList)
+end
+
+function challenge.GetLiveCriteriaFreshness()
+	if not C_Scenario or not C_ScenarioInfo then
+		return nil
+	end
+
+	local originalScenario = state.originals.C_Scenario or C_Scenario
+	local originalScenarioInfo = state.originals.C_ScenarioInfo or C_ScenarioInfo
+	local originalGetStepInfo = originalScenario.GetStepInfo
+	local originalGetCriteriaInfo = originalScenarioInfo.GetCriteriaInfo
+	local stepOk, _, _, numCriteria = pcall(originalGetStepInfo)
+	if not stepOk or not numCriteria or numCriteria <= 0 then
+		return nil
+	end
+
+	local hasCriteria = false
+	for index = 1, numCriteria do
+		local criteriaOk, criteriaInfo = pcall(originalGetCriteriaInfo, index)
+		if criteriaOk and criteriaInfo and criteriaInfo.description and criteriaInfo.description ~= "" then
+			hasCriteria = true
+			if criteriaInfo.completed then
+				return false
+			end
+		end
+	end
+
+	if hasCriteria then
+		return true
+	end
+
+	return nil
+end
+
+function challenge.GetLiveScenarioState()
+	if not C_Scenario then
+		return nil
+	end
+
+	local originalScenario = state.originals.C_Scenario or C_Scenario
+	local originalGetInfo = originalScenario.GetInfo
+	if not originalGetInfo then
+		return nil
+	end
+
+	local infoOk, scenarioName, currentStage, numStages, flags, _, _, _, xp, money, scenarioType, areaName, textureKit, scenarioID =
+		pcall(originalGetInfo)
+	if not infoOk then
+		return nil
+	end
+
+	local shouldShowCriteria
+	if originalScenario.ShouldShowCriteria then
+		local showOk, showValue = pcall(originalScenario.ShouldShowCriteria)
+		if showOk then
+			shouldShowCriteria = showValue and true or false
+		end
+	end
+
+	local isComplete
+	if currentStage and numStages then
+		isComplete = currentStage > numStages
+	end
+
+	return {
+		name = scenarioName,
+		currentStage = currentStage,
+		numStages = numStages,
+		flags = flags,
+		xp = xp,
+		money = money,
+		scenarioType = scenarioType,
+		areaName = areaName,
+		textureKit = textureKit,
+		scenarioID = scenarioID,
+		isComplete = isComplete,
+		shouldShowCriteria = shouldShowCriteria,
+	}
+end
+
+function challenge.GetDungeonEncounterFreshness(status)
+	status = status or challenge.GetStatus()
+	if not status or status.instanceType ~= "party" then
+		return nil
+	end
+
+	local lfgDungeonID = tonumber(status.lfgDungeonID)
+	if not lfgDungeonID or lfgDungeonID <= 0 or not GetLFGDungeonNumEncounters then
+		return nil
+	end
+
+	local numEncounters, numCompleted = GetLFGDungeonNumEncounters(lfgDungeonID)
+	numEncounters = tonumber(numEncounters)
+	numCompleted = tonumber(numCompleted)
+	if not numEncounters or numEncounters <= 0 or not numCompleted then
+		return nil
+	end
+
+	return numCompleted == 0, numEncounters, numCompleted
+end
+
+function challenge.IsFreshDungeonForAutoReset(status, liveScenarioState)
+	if liveScenarioState and (liveScenarioState.isComplete or liveScenarioState.shouldShowCriteria == false) then
+		return false
+	end
+
+	local encounterFreshness = challenge.GetDungeonEncounterFreshness(status)
+	if encounterFreshness ~= nil then
+		return encounterFreshness
+	end
+
+	return challenge.GetLiveCriteriaFreshness()
+end
+
 function challenge.DoesCriteriaListMatchSnapshot(criteriaList, snapshot)
 	if not criteriaList or not snapshot or #criteriaList ~= #snapshot then
 		return false

@@ -1,7 +1,6 @@
 local addonName, addon = ...
 
 local challenge = addon.DungeonChallenge
-local constants = challenge.constants
 
 function challenge.refresh(forceShow)
 	if forceShow then
@@ -11,6 +10,7 @@ function challenge.refresh(forceShow)
 	challenge.InstallHooks()
 	if challenge.ShouldUse() then
 		challenge.RefreshEncounterCriteria()
+		challenge.AutoResetTimerIfNeeded()
 		local run = challenge.GetRunRecord()
 		if run and run.completedAt and not challenge.HasShownCompletionBanner(run) and not challenge.state.completionBannerTimer then
 			challenge.TriggerCompletionBanner(run)
@@ -19,28 +19,30 @@ function challenge.refresh(forceShow)
 	challenge.ActivateBlizzardBlock()
 end
 
+function challenge.AutoResetTimerIfNeeded()
+	local run = challenge.GetRunRecord()
+	local status = challenge.GetStatus()
+	local isStopped = challenge.IsTimerStopped(run)
+	local elapsedTime = challenge.GetElapsedTime()
+	local liveScenarioState = challenge.GetLiveScenarioState()
+	local isFreshDungeon = challenge.IsFreshDungeonForAutoReset(status, liveScenarioState)
+
+	if isStopped and elapsedTime > 0 and isFreshDungeon then
+		return challenge.ResetTimerState()
+	end
+
+	return false
+end
+
 function challenge.setEnabled(enabled)
 	Level20DB.showDungeonChallengeFrame = enabled and true or false
 	challenge.refresh(Level20DB.showDungeonChallengeFrame)
 end
 
 function challenge.resetTimer()
-	if InCombatLockdown and InCombatLockdown() then
-		return
+	if challenge.ResetTimerState() then
+		challenge.refresh(true)
 	end
-
-	Level20DB.showDungeonChallengeFrame = true
-	challenge.ClearRunRecord()
-
-	if ScenarioTimerFrame then
-		ScenarioTimerFrame:StopTimer(constants.FAKE_TIMER_ID)
-	end
-
-	if ScenarioObjectiveTracker and ScenarioObjectiveTracker.ChallengeModeBlock then
-		ScenarioObjectiveTracker.ChallengeModeBlock.timerID = nil
-	end
-
-	challenge.refresh(true)
 end
 
 function challenge.startTimer()
