@@ -128,6 +128,11 @@ local xpGainRow = CreateInfoRow(infoPanel, L.XP_GAIN, subscriptionRow)
 local chromieTimeRow = CreateInfoRow(infoPanel, L.CHROMIE_TIME, xpGainRow)
 local shadowlandsRow = CreateInfoRow(infoPanel, L.SHADOWLANDS_STATE, chromieTimeRow)
 
+local versionStatusLabel = infoPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+versionStatusLabel:SetPoint("TOPRIGHT", infoPanel, "TOPRIGHT", 0, 0)
+versionStatusLabel:SetJustifyH("RIGHT")
+versionStatusLabel:SetText(L.UNKNOWN)
+
 local waypointData = {
 	{ labelKey = "WAYPOINT_CHROMIE", faction = "Alliance", mapID = 84, x = 56.26, y = 17.32 },
 	{ labelKey = "WAYPOINT_CHROMIE", faction = "Horde", mapID = 85, x = 40.82, y = 80.16 },
@@ -250,6 +255,13 @@ function addon.RefreshInfoPanel()
 	xpGainRow.value:SetText(GetXPGainText())
 	chromieTimeRow.value:SetText(GetChromieTimeText())
 	shadowlandsRow.value:SetText(addon.GetShadowlandsStateText())
+	versionStatusLabel:SetText(addon.GetVersionStatusText and addon.GetVersionStatusText() or L.UNKNOWN)
+
+	local red, green, blue = 1, 1, 1
+	if addon.GetVersionStatusColor then
+		red, green, blue = addon.GetVersionStatusColor()
+	end
+	versionStatusLabel:SetTextColor(red, green, blue)
 end
 
 local dungeonStatusRow = CreateInfoRow(dungeonPanel, L.DUNGEON_CHALLENGE_STATUS_LABEL)

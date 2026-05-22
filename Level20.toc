@@ -3,7 +3,7 @@
 ## Notes: Helper addon for level-20 players.
 ## Notes-ruRU: Вспомогательный аддон для игроков 20-го уровня.
 ## Author: semyon422
-## Version: 0.1.0
+## Version: 1
 ## SavedVariables: Level20DB
 
 Level20.lua
@@ -15,6 +15,7 @@ SpellBookFilter.lua
 CharacterInfo.lua
 ShadowlandsInfo.lua
 ShadowlandsProtection.lua
+VersionCheck.lua
 AddonWindow.lua
 DungeonChallenge/Namespace.lua
 DungeonChallenge/Status.lua

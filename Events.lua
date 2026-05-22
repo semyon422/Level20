@@ -24,6 +24,7 @@ eventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
 eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
+eventFrame:RegisterEvent("CHAT_MSG_ADDON")
 eventFrame:RegisterEvent("QUEST_ACCEPTED")
 eventFrame:RegisterEvent("QUEST_REMOVED")
 eventFrame:RegisterEvent("QUEST_TURNED_IN")
@@ -36,6 +37,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.DungeonChallenge.refresh()
 		addon.RefreshXPWarning()
 		addon.DungeonChallenge.refresh()
+		addon.InitializeVersionCheck()
+		addon.BroadcastVersionCheck(true)
 		addon.RefreshShadowlandsProtection()
 		addon.InstallShadowlandsProtection()
 		addon.InstallTalentFilter()
@@ -56,6 +59,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		end
 
 		addon.InstallShadowlandsProtection()
+	elseif event == "CHAT_MSG_ADDON" then
+		addon.OnVersionCheckMessage(...)
 	elseif event == "TRAIT_CONFIG_UPDATED"
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED"
@@ -80,7 +85,11 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "PLAYER_FOCUS_CHANGED"
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED" then
-		addon.DungeonChallenge.refresh()
+			addon.DungeonChallenge.refresh()
+	end
+
+	if event == "GROUP_ROSTER_UPDATE" then
+		addon.BroadcastVersionCheck()
 	end
 
 	if event == "PLAYER_REGEN_DISABLED" then

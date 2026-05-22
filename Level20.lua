@@ -63,6 +63,8 @@ addon.LEVEL_CAP = 20
 ---@field windowRelativePoint string?
 ---@field windowXOfs number?
 ---@field windowYOfs number?
+---@field lastSeenRemoteVersion integer?
+---@field lastSeenRemoteVersionSource string?
 
 ---@type Level20DB
 Level20DB = Level20DB or {}
@@ -85,6 +87,8 @@ local defaultSettings = {
 		characters = {},
 		defaultIcon = "Interface/Icons/Inv_misc_bag_08",
 	},
+	lastSeenRemoteVersion = nil,
+	lastSeenRemoteVersionSource = nil,
 }
 
 for key, value in pairs(defaultSettings) do
