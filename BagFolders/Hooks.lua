@@ -1,19 +1,126 @@
 local addonName, addon = ...
 local BagFolders = addon.BagFolders
 
-local function HideBlizzardNormalBags()
-	if ContainerFrameCombinedBags then
-		ContainerFrameCombinedBags:Hide()
+local OFFSCREEN_X = -20000
+local OFFSCREEN_Y = -20000
+
+local function IsShownNormalBagFrame(frame)
+	return frame and frame:IsShown() and BagFolders.IsNormalBagID(frame:GetID())
+end
+
+local function IterateShownNormalBagFrames(callback)
+	if ContainerFrameCombinedBags and ContainerFrameCombinedBags:IsShown() then
+		callback(ContainerFrameCombinedBags)
 	end
 
 	if NUM_CONTAINER_FRAMES then
 		for index = 1, NUM_CONTAINER_FRAMES do
 			local containerFrame = _G["ContainerFrame" .. index]
-			if containerFrame and containerFrame:IsShown() and BagFolders.IsNormalBagID(containerFrame:GetID()) then
-				containerFrame:Hide()
+			if IsShownNormalBagFrame(containerFrame) then
+				callback(containerFrame)
 			end
 		end
 	end
+end
+
+local function SetFrameItemsMouseEnabled(frame, enabled)
+	if not frame or not frame.EnumerateValidItems then
+		return
+	end
+
+	for _, itemButton in frame:EnumerateValidItems() do
+		if itemButton then
+			itemButton:EnableMouse(enabled)
+		end
+	end
+end
+
+local function SetFrameSuppressed(frame, suppressed)
+	if not frame then
+		return
+	end
+
+	if suppressed then
+		if frame.Level20BagFoldersSuppressed then
+			frame:SetAlpha(0)
+			frame:ClearAllPoints()
+			frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", OFFSCREEN_X, OFFSCREEN_Y)
+			SetFrameItemsMouseEnabled(frame, false)
+			return
+		end
+
+		frame.Level20BagFoldersSuppressed = true
+		frame.Level20BagFoldersOriginalAlpha = frame:GetAlpha()
+		frame.Level20BagFoldersOriginalMouseEnabled = frame:IsMouseEnabled()
+		frame:SetAlpha(0)
+		frame:EnableMouse(false)
+		SetFrameItemsMouseEnabled(frame, false)
+		frame:ClearAllPoints()
+		frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", OFFSCREEN_X, OFFSCREEN_Y)
+		return
+	end
+
+	if not frame.Level20BagFoldersSuppressed then
+		return
+	end
+
+	frame.Level20BagFoldersSuppressed = nil
+	frame:SetAlpha(frame.Level20BagFoldersOriginalAlpha or 1)
+	frame:EnableMouse(frame.Level20BagFoldersOriginalMouseEnabled ~= false)
+	frame.Level20BagFoldersOriginalAlpha = nil
+	frame.Level20BagFoldersOriginalMouseEnabled = nil
+	SetFrameItemsMouseEnabled(frame, true)
+end
+
+local function SuppressBlizzardNormalBags()
+	if ContainerFrameCombinedBags then
+		SetFrameSuppressed(ContainerFrameCombinedBags, true)
+	end
+
+	if NUM_CONTAINER_FRAMES then
+		for index = 1, NUM_CONTAINER_FRAMES do
+			local containerFrame = _G["ContainerFrame" .. index]
+			if IsShownNormalBagFrame(containerFrame) then
+				SetFrameSuppressed(containerFrame, true)
+			end
+		end
+	end
+end
+
+local function RestoreBlizzardNormalBags()
+	if ContainerFrameCombinedBags then
+		SetFrameSuppressed(ContainerFrameCombinedBags, false)
+	end
+
+	if NUM_CONTAINER_FRAMES then
+		for index = 1, NUM_CONTAINER_FRAMES do
+			local containerFrame = _G["ContainerFrame" .. index]
+			if containerFrame then
+				SetFrameSuppressed(containerFrame, false)
+			end
+		end
+	end
+
+	if type(_G.UpdateContainerFrameAnchors) == "function" then
+		UpdateContainerFrameAnchors()
+	end
+end
+
+local function AreBlizzardNormalBagsSuppressed()
+	if ContainerFrameCombinedBags and ContainerFrameCombinedBags.Level20BagFoldersSuppressed then
+		return true
+	end
+
+	if NUM_CONTAINER_FRAMES then
+		for index = 1, NUM_CONTAINER_FRAMES do
+			local containerFrame = _G["ContainerFrame" .. index]
+			if containerFrame and containerFrame.Level20BagFoldersSuppressed then
+				return true
+			end
+		end
+	end
+
+	return false
 end
 
 function addon.AreBagFoldersShown()
@@ -74,15 +181,38 @@ function addon.PositionReagentBag()
 	end
 end
 
+local function AreAnyNormalBagsOpen()
+	local isOpen = false
+	IterateShownNormalBagFrames(function(frame)
+		if frame == ContainerFrameCombinedBags then
+			if frame:IsBagOpen(Enum.BagIndex.Backpack) then
+				isOpen = true
+			end
+		else
+			isOpen = true
+		end
+	end)
+	return isOpen
+end
+
 local function ShowBagFolders()
 	if not BagFolders.IsEnabled() or not BagFolders.CanOpenBags() then
 		return
 	end
 
-	wipe(BagFolders.sessionClosedFolders)
-	HideBlizzardNormalBags()
-	addon.RefreshBagFolders()
-	addon.RequestBagFoldersRefresh()
+	local firstShowThisSession = not BagFolders.bagSessionActive
+	if not BagFolders.bagSessionActive then
+		wipe(BagFolders.sessionClosedFolders)
+		BagFolders.bagSessionActive = true
+	end
+
+	SuppressBlizzardNormalBags()
+
+	if firstShowThisSession or not addon.AreBagFoldersShown() then
+		addon.RefreshBagFolders()
+	else
+		addon.RequestBagFoldersRefresh()
+	end
 end
 
 local function HideBagFolders()
@@ -94,53 +224,30 @@ local function HideBagFolders()
 		end
 	end
 
+	BagFolders.bagSessionActive = nil
+	RestoreBlizzardNormalBags()
 	return hiddenAny
 end
 
 function addon.SetBagFoldersEnabled(enabled)
 	BagFolders.EnsureDatabase().enabled = not not enabled
-	if not enabled then
+	if enabled then
+		if AreAnyNormalBagsOpen() then
+			ShowBagFolders()
+		end
+	else
 		HideBagFolders()
 	end
 end
 
-local function CallOriginal(name, ...)
-	local original = BagFolders.originalFunctions[name]
-	if original then
-		return original(...)
+local function RefreshBagFolderState()
+	if BagFolders.IsEnabled() and BagFolders.CanOpenBags() and AreAnyNormalBagsOpen() then
+		ShowBagFolders()
+	elseif addon.AreBagFoldersShown() or AreBlizzardNormalBagsSuppressed() or BagFolders.bagSessionActive then
+		HideBagFolders()
 	end
-end
 
-local function ForEachReagentBagID(callback)
-	local reagentBagSlots = Constants.InventoryConstants.NumReagentBagSlots or 0
-	for bagID = Constants.InventoryConstants.NumBagSlots + 1, Constants.InventoryConstants.NumBagSlots + reagentBagSlots do
-		callback(bagID)
-	end
-end
-
-local function IsAnyReagentBagOpen()
-	local isOpen = false
-	ForEachReagentBagID(function(bagID)
-		if CallOriginal("IsBagOpen", bagID) then
-			isOpen = true
-		end
-	end)
-	return isOpen
-end
-
-local function OpenReagentBags(force)
-	ForEachReagentBagID(function(bagID)
-		CallOriginal("OpenBag", bagID, force)
-	end)
 	addon.PositionReagentBag()
-end
-
-local function CloseReagentBags()
-	ForEachReagentBagID(function(bagID)
-		if CallOriginal("IsBagOpen", bagID) then
-			CallOriginal("CloseBag", bagID)
-		end
-	end)
 end
 
 local function InstallFunctionHooks()
@@ -158,7 +265,6 @@ local function InstallFunctionHooks()
 		"CloseAllBags",
 		"ToggleAllBags",
 		"OpenAllBags",
-		"IsBagOpen",
 	}
 
 	for _, name in ipairs(names) do
@@ -168,125 +274,8 @@ local function InstallFunctionHooks()
 	end
 
 	for _, name in ipairs(names) do
-		BagFolders.originalFunctions[name] = _G[name]
+		hooksecurefunc(name, RefreshBagFolderState)
 	end
-
-	_G.ToggleBackpack = function()
-		if BagFolders.IsEnabled() then
-			if addon.AreBagFoldersShown() then
-				HideBagFolders()
-			else
-				ShowBagFolders()
-			end
-			return
-		end
-
-		return CallOriginal("ToggleBackpack")
-	end
-
-	_G.OpenBackpack = function()
-		if BagFolders.IsEnabled() then
-			ShowBagFolders()
-			return
-		end
-
-		return CallOriginal("OpenBackpack")
-	end
-
-	_G.CloseBackpack = function()
-		if BagFolders.IsEnabled() then
-			return HideBagFolders()
-		end
-
-		return CallOriginal("CloseBackpack")
-	end
-
-	_G.ToggleBag = function(bagID)
-		if BagFolders.IsEnabled() and BagFolders.IsNormalBagID(bagID) then
-			if addon.AreBagFoldersShown() then
-				HideBagFolders()
-			else
-				ShowBagFolders()
-			end
-			return
-		end
-
-		if BagFolders.IsEnabled() and BagFolders.IsReagentBagID(bagID) then
-			local result = CallOriginal("ToggleBag", bagID)
-			addon.PositionReagentBag()
-			return result
-		end
-
-		return CallOriginal("ToggleBag", bagID)
-	end
-
-	_G.OpenBag = function(bagID, force)
-		if BagFolders.IsEnabled() and BagFolders.IsNormalBagID(bagID) then
-			ShowBagFolders()
-			return
-		end
-
-		if BagFolders.IsEnabled() and BagFolders.IsReagentBagID(bagID) then
-			local result = CallOriginal("OpenBag", bagID, force)
-			addon.PositionReagentBag()
-			return result
-		end
-
-		return CallOriginal("OpenBag", bagID, force)
-	end
-
-	_G.CloseBag = function(bagID)
-		if BagFolders.IsEnabled() and BagFolders.IsNormalBagID(bagID) then
-			return HideBagFolders()
-		end
-
-		return CallOriginal("CloseBag", bagID)
-	end
-
-	_G.CloseAllBags = function(...)
-		local closed = false
-		if BagFolders.IsEnabled() then
-			closed = HideBagFolders() or closed
-		end
-
-		local originalClosed = CallOriginal("CloseAllBags", ...)
-		return closed or originalClosed
-	end
-
-	_G.ToggleAllBags = function()
-		if BagFolders.IsEnabled() then
-			if addon.AreBagFoldersShown() or IsAnyReagentBagOpen() then
-				HideBagFolders()
-				CloseReagentBags()
-			else
-				ShowBagFolders()
-				OpenReagentBags()
-			end
-			return
-		end
-
-		return CallOriginal("ToggleAllBags")
-	end
-
-	_G.OpenAllBags = function(frameThatOpenedBags, forceUpdate)
-		if BagFolders.IsEnabled() then
-			ShowBagFolders()
-			OpenReagentBags(forceUpdate)
-			return
-		end
-
-		return CallOriginal("OpenAllBags", frameThatOpenedBags, forceUpdate)
-	end
-
-	_G.IsBagOpen = function(bagID)
-		if BagFolders.IsEnabled() and BagFolders.IsNormalBagID(bagID) and addon.AreBagFoldersShown() then
-			return true
-		end
-
-		return CallOriginal("IsBagOpen", bagID)
-	end
-
-	BagFolders.hooksInstalled = true
 
 	if type(_G.UpdateContainerFrameAnchors) == "function" and not BagFolders.reagentAnchorHookInstalled then
 		hooksecurefunc("UpdateContainerFrameAnchors", function()
@@ -295,6 +284,7 @@ local function InstallFunctionHooks()
 		BagFolders.reagentAnchorHookInstalled = true
 	end
 
+	BagFolders.hooksInstalled = true
 	return true
 end
 
@@ -303,6 +293,7 @@ function addon.InstallBagFolders()
 	if InstallFunctionHooks() and BagFolders.hookRetryFrame then
 		BagFolders.hookRetryFrame:UnregisterAllEvents()
 	end
+	RefreshBagFolderState()
 end
 
 addon.InstallBagFolders()
