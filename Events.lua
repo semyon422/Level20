@@ -2,6 +2,57 @@ local addonName, addon = ...
 local L = addon.L
 
 local eventFrame = CreateFrame("Frame")
+local trackedGroupDeathState = {}
+
+local function IsTrackedGroupUnit(unit)
+	return unit ~= nil
+		and (
+			unit == "player"
+			or unit:match("^party%d+$")
+			or unit:match("^raid%d+$")
+		)
+end
+
+local function RefreshTrackedGroupDeathState()
+	table.wipe(trackedGroupDeathState)
+	trackedGroupDeathState.player = UnitExists("player") and UnitIsDeadOrGhost("player") and true or false
+
+	if IsInRaid() then
+		for index = 1, GetNumGroupMembers() do
+			local unit = "raid" .. index
+			if UnitExists(unit) and UnitIsPlayer(unit) then
+				trackedGroupDeathState[unit] = UnitIsDeadOrGhost(unit) and true or false
+			end
+		end
+	elseif IsInGroup() then
+		for index = 1, GetNumSubgroupMembers() do
+			local unit = "party" .. index
+			if UnitExists(unit) and UnitIsPlayer(unit) then
+				trackedGroupDeathState[unit] = UnitIsDeadOrGhost(unit) and true or false
+			end
+		end
+	end
+end
+
+local function CheckGroupDeathState(unit, eventName)
+	if not addon.DungeonChallenge.ShouldUse() then
+		return
+	end
+
+	if not IsTrackedGroupUnit(unit) or not UnitExists(unit) or not UnitIsPlayer(unit) then
+		return
+	end
+
+	local wasDead = trackedGroupDeathState[unit] and true or false
+	local isDead = UnitIsDeadOrGhost(unit) and true or false
+	trackedGroupDeathState[unit] = isDead
+
+	if isDead and not wasDead then
+		addon.DungeonChallenge.RecordDeath()
+		addon.DungeonChallenge.RefreshDeathCountDisplay()
+	end
+end
+
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ADDON_LOADED")
@@ -17,11 +68,11 @@ eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_CRITERIA_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_UPDATE")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-eventFrame:RegisterEvent("PLAYER_DEAD")
 eventFrame:RegisterEvent("ENCOUNTER_END")
 eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 eventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
+eventFrame:RegisterEvent("UNIT_FLAGS")
 eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
@@ -89,16 +140,20 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 			addon.DungeonChallenge.refresh()
 	end
 
+	if event == "PLAYER_ENTERING_WORLD"
+		or event == "GROUP_ROSTER_UPDATE" then
+		RefreshTrackedGroupDeathState()
+	end
+
 	if event == "GROUP_ROSTER_UPDATE" then
 		addon.BroadcastVersionCheck()
 	end
 
 	if event == "PLAYER_REGEN_DISABLED" then
 		addon.DungeonChallenge.startTimer()
-	elseif event == "PLAYER_DEAD" then
-		if addon.DungeonChallenge.RecordDeath() then
-			addon.DungeonChallenge.RefreshDeathCountDisplay()
-		end
+	elseif event == "UNIT_FLAGS" then
+		local unit = ...
+		CheckGroupDeathState(unit, event)
 	elseif event == "ENCOUNTER_END" then
 		local _, _, _, _, success = ...
 		if success == 1 then

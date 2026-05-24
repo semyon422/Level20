@@ -44,12 +44,8 @@ function challenge.UpdateDeathCountFrame(block)
 	block.deathCount = count
 	block.timeLost = 0
 
-	if count > 0 then
-		deathCount:Show()
-		deathCount.Count:SetText(count)
-	else
-		deathCount:Hide()
-	end
+	deathCount:Show()
+	deathCount.Count:SetText(count)
 
 	challenge.UpdateRaidSizeFrameLayout(block)
 end
