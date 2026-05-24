@@ -35,6 +35,15 @@ function challenge.GetEncounterCriteriaSnapshot(run)
 	return run.encounterCriteriaSnapshot
 end
 
+function challenge.GetDeathCount(run)
+	run = run or challenge.GetRunRecord()
+	if not run then
+		return 0
+	end
+
+	return math.max(0, tonumber(run.deathCount) or 0)
+end
+
 function challenge.ClearRunRecord()
 	challenge.CancelCompletionBannerTimer()
 	Level20DB.dungeonChallengeTimer = {}
@@ -212,6 +221,17 @@ function challenge.StartRun(run)
 	end
 
 	run.startedAt = challenge.GetCurrentServerTime()
+	run.deathCount = math.max(0, tonumber(run.deathCount) or 0)
+	return true
+end
+
+function challenge.RecordDeath(run)
+	run = run or challenge.GetRunRecord()
+	if not run or not run.startedAt or run.completedAt then
+		return false
+	end
+
+	run.deathCount = challenge.GetDeathCount(run) + 1
 	return true
 end
 

@@ -17,6 +17,7 @@ eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_CRITERIA_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_UPDATE")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+eventFrame:RegisterEvent("PLAYER_DEAD")
 eventFrame:RegisterEvent("ENCOUNTER_END")
 eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
@@ -94,6 +95,10 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
 	if event == "PLAYER_REGEN_DISABLED" then
 		addon.DungeonChallenge.startTimer()
+	elseif event == "PLAYER_DEAD" then
+		if addon.DungeonChallenge.RecordDeath() then
+			addon.DungeonChallenge.RefreshDeathCountDisplay()
+		end
 	elseif event == "ENCOUNTER_END" then
 		local _, _, _, _, success = ...
 		if success == 1 then

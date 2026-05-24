@@ -34,6 +34,40 @@ function challenge.UpdateRaidSizeFrame(block)
 	block.RaidSize:Show()
 end
 
+function challenge.UpdateDeathCountFrame(block)
+	local deathCount = block and block.DeathCount
+	if not deathCount then
+		return
+	end
+
+	local count = challenge.GetDeathCount()
+	block.deathCount = count
+	block.timeLost = 0
+
+	if count > 0 then
+		deathCount:Show()
+		deathCount.Count:SetText(count)
+	else
+		deathCount:Hide()
+	end
+
+	challenge.UpdateRaidSizeFrameLayout(block)
+end
+
+function challenge.RefreshDeathCountDisplay()
+	if not ScenarioObjectiveTracker or not ScenarioObjectiveTracker.ChallengeModeBlock then
+		return false
+	end
+
+	local block = ScenarioObjectiveTracker.ChallengeModeBlock
+	if block.timerID ~= constants.FAKE_TIMER_ID then
+		return false
+	end
+
+	challenge.UpdateDeathCountFrame(block)
+	return true
+end
+
 function challenge.EnsureRaidSizeFrame(block)
 	if not block or block.RaidSize then
 		return
@@ -99,8 +133,12 @@ function challenge.ActivateBlizzardBlock()
 			end
 		end
 		block.UpdateDeathCount = function(self, ...)
-			originalUpdateDeathCount(self, ...)
-			challenge.UpdateRaidSizeFrame(self)
+			if challenge.ShouldUse() and self.timerID == constants.FAKE_TIMER_ID then
+				challenge.UpdateDeathCountFrame(self)
+			else
+				originalUpdateDeathCount(self, ...)
+				challenge.UpdateRaidSizeFrame(self)
+			end
 		end
 		state.challengeBlockPatched = true
 	end
@@ -133,7 +171,12 @@ function challenge.ActivateBlizzardBlock()
 		block.Level:SetText(challenge.GetChallengeLevelDisplayText())
 	end
 
+	challenge.UpdateDeathCountFrame(block)
 	challenge.UpdateRaidSizeFrame(block)
+
+	if InCombatLockdown and InCombatLockdown() then
+		return true
+	end
 
 	ScenarioObjectiveTracker:SetShouldShowCriteria(true)
 	ScenarioObjectiveTracker:ForceExpand()
