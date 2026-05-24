@@ -1,6 +1,7 @@
 local addonName, addon = ...
 
 local challenge = addon.DungeonChallenge
+local constants = challenge.constants
 
 function challenge.refresh(forceShow)
 	if forceShow then
@@ -21,13 +22,15 @@ end
 
 function challenge.AutoResetTimerIfNeeded()
 	local run = challenge.GetRunRecord()
-	local status = challenge.GetStatus()
 	local isStopped = challenge.IsTimerStopped(run)
 	local elapsedTime = challenge.GetElapsedTime()
 	local liveScenarioState = challenge.GetLiveScenarioState()
-	local isFreshDungeon = challenge.IsFreshDungeonForAutoReset(status, liveScenarioState)
+	local isFreshDungeon = challenge.IsFreshDungeonForAutoReset(liveScenarioState)
+	local hasAutoResetDelay = run
+		and run.completedAt
+		and (challenge.GetCurrentServerTime() - run.completedAt) >= constants.AUTORESET_DELAY_SECONDS
 
-	if isStopped and elapsedTime > 0 and isFreshDungeon then
+	if isStopped and elapsedTime > 0 and isFreshDungeon and hasAutoResetDelay then
 		return challenge.ResetTimerState()
 	end
 

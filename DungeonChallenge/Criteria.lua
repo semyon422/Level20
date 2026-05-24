@@ -118,35 +118,9 @@ function challenge.GetLiveScenarioState()
 	}
 end
 
-function challenge.GetDungeonEncounterFreshness(status)
-	status = status or challenge.GetStatus()
-	if not status or status.instanceType ~= "party" then
-		return nil
-	end
-
-	local lfgDungeonID = tonumber(status.lfgDungeonID)
-	if not lfgDungeonID or lfgDungeonID <= 0 or not GetLFGDungeonNumEncounters then
-		return nil
-	end
-
-	local numEncounters, numCompleted = GetLFGDungeonNumEncounters(lfgDungeonID)
-	numEncounters = tonumber(numEncounters)
-	numCompleted = tonumber(numCompleted)
-	if not numEncounters or numEncounters <= 0 or not numCompleted then
-		return nil
-	end
-
-	return numCompleted == 0, numEncounters, numCompleted
-end
-
-function challenge.IsFreshDungeonForAutoReset(status, liveScenarioState)
+function challenge.IsFreshDungeonForAutoReset(liveScenarioState)
 	if liveScenarioState and (liveScenarioState.isComplete or liveScenarioState.shouldShowCriteria == false) then
 		return false
-	end
-
-	local encounterFreshness = challenge.GetDungeonEncounterFreshness(status)
-	if encounterFreshness ~= nil then
-		return encounterFreshness
 	end
 
 	return challenge.GetLiveCriteriaFreshness()

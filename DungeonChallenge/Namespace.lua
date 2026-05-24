@@ -12,6 +12,7 @@ challenge.constants = {
 	FAKE_SCENARIO_ID = 200020,
 	TIME_LIMIT_SECONDS = 30 * 60,
 	COMPLETION_BANNER_DELAY_SECONDS = 4,
+	AUTORESET_DELAY_SECONDS = 10,
 }
 
 challenge.state = challenge.state or {
