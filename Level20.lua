@@ -65,6 +65,10 @@ addon.LEVEL_CAP = 20
 ---@field windowYOfs number?
 ---@field lastSeenRemoteVersion integer?
 ---@field lastSeenRemoteVersionSource string?
+---@field groupDataWindowPoint string?
+---@field groupDataWindowRelativePoint string?
+---@field groupDataWindowXOfs number?
+---@field groupDataWindowYOfs number?
 
 ---@type Level20DB
 Level20DB = Level20DB or {}

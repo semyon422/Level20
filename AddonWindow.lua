@@ -133,6 +133,14 @@ versionStatusLabel:SetPoint("TOPRIGHT", infoPanel, "TOPRIGHT", 0, 0)
 versionStatusLabel:SetJustifyH("RIGHT")
 versionStatusLabel:SetText(L.UNKNOWN)
 
+local groupDataButton = CreateFrame("Button", nil, infoPanel, "UIPanelButtonTemplate")
+groupDataButton:SetSize(140, 24)
+groupDataButton:SetPoint("TOPLEFT", shadowlandsRow, "BOTTOMLEFT", 0, -12)
+groupDataButton:SetText(L.GROUP_TRINKETS_BUTTON)
+groupDataButton:SetScript("OnClick", function()
+	addon.ShowGroupDataWindow()
+end)
+
 local waypointData = {
 	{ labelKey = "WAYPOINT_CHROMIE", faction = "Alliance", mapID = 84, x = 56.26, y = 17.32 },
 	{ labelKey = "WAYPOINT_CHROMIE", faction = "Horde", mapID = 85, x = 40.82, y = 80.16 },

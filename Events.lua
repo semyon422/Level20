@@ -77,6 +77,8 @@ eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
 eventFrame:RegisterEvent("CHAT_MSG_ADDON")
+eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
 eventFrame:RegisterEvent("QUEST_ACCEPTED")
 eventFrame:RegisterEvent("QUEST_REMOVED")
 eventFrame:RegisterEvent("QUEST_TURNED_IN")
@@ -91,6 +93,9 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.DungeonChallenge.refresh()
 		addon.InitializeVersionCheck()
 		addon.BroadcastVersionCheck(true)
+		addon.InitializeGroupDataSync()
+		addon.UpdateLocalGroupData()
+		addon.BroadcastGroupData(true)
 		addon.RefreshShadowlandsProtection()
 		addon.InstallShadowlandsProtection()
 		addon.InstallTalentFilter()
@@ -113,6 +118,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.InstallShadowlandsProtection()
 	elseif event == "CHAT_MSG_ADDON" then
 		addon.OnVersionCheckMessage(...)
+		addon.OnGroupDataMessage(...)
 	elseif event == "TRAIT_CONFIG_UPDATED"
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED"
@@ -147,6 +153,12 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
 	if event == "GROUP_ROSTER_UPDATE" then
 		addon.BroadcastVersionCheck()
+		addon.UpdateLocalGroupData()
+		addon.BroadcastGroupData(true)
+	elseif event == "PLAYER_EQUIPMENT_CHANGED"
+		or event == "BAG_UPDATE_DELAYED" then
+		addon.UpdateLocalGroupData()
+		addon.BroadcastGroupData()
 	end
 
 	if event == "PLAYER_REGEN_DISABLED" then
@@ -167,6 +179,11 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "ENABLE_XP_GAIN"
 		or event == "DISABLE_XP_GAIN" then
 		addon.RefreshXPWarning()
+	end
+
+	if event == "PLAYER_ENTERING_WORLD" then
+		addon.UpdateLocalGroupData()
+		addon.BroadcastGroupData(true)
 	end
 
 	if event == "PLAYER_ENTERING_WORLD"

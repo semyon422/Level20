@@ -16,6 +16,7 @@ CharacterInfo.lua
 ShadowlandsInfo.lua
 ShadowlandsProtection.lua
 VersionCheck.lua
+GroupDataSync.lua
 AddonWindow.lua
 DungeonChallenge/Namespace.lua
 DungeonChallenge/Status.lua
