@@ -405,16 +405,6 @@ local function EnsureGroupDataWindow()
 		ArrangeGroupDataTable()
 		addon.RefreshGroupDataWindow()
 		RefreshAndBroadcastLocalGroupData(true)
-		frame.groupDataTicker = C_Timer.NewTicker(1, function()
-			RefreshAndBroadcastLocalGroupData()
-		end)
-	end)
-
-	frame:SetScript("OnHide", function()
-		if frame.groupDataTicker then
-			frame.groupDataTicker:Cancel()
-			frame.groupDataTicker = nil
-		end
 	end)
 
 	if Level20DB.groupDataWindowPoint then
@@ -486,6 +476,9 @@ function addon.InitializeGroupDataSync()
 
 	C_ChatInfo.RegisterAddonMessagePrefix(COMM_PREFIX)
 	state.initialized = true
+	state.syncTicker = C_Timer.NewTicker(1, function()
+		RefreshAndBroadcastLocalGroupData()
+	end)
 end
 
 function addon.UpdateLocalGroupData()
