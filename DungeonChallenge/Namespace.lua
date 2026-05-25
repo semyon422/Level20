@@ -23,6 +23,7 @@ challenge.state = challenge.state or {
 	defaultScenarioModuleDetached = false,
 	defaultScenarioModuleHidden = false,
 	originalChallengeModeBlockParent = nil,
+	originalObjectivesBlockParent = nil,
 	encounterCriteria = {},
 	observedDungeonInstanceID = nil,
 	observedDungeonLevel = nil,
