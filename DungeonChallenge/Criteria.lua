@@ -45,18 +45,14 @@ function challenge.GetLiveCriteriaFreshness()
 		return nil
 	end
 
-	local originalScenario = state.originals.C_Scenario or C_Scenario
-	local originalScenarioInfo = state.originals.C_ScenarioInfo or C_ScenarioInfo
-	local originalGetStepInfo = originalScenario.GetStepInfo
-	local originalGetCriteriaInfo = originalScenarioInfo.GetCriteriaInfo
-	local stepOk, _, _, numCriteria = pcall(originalGetStepInfo)
+	local stepOk, _, _, numCriteria = pcall(C_Scenario.GetStepInfo)
 	if not stepOk or not numCriteria or numCriteria <= 0 then
 		return nil
 	end
 
 	local hasCriteria = false
 	for index = 1, numCriteria do
-		local criteriaOk, criteriaInfo = pcall(originalGetCriteriaInfo, index)
+		local criteriaOk, criteriaInfo = pcall(C_ScenarioInfo.GetCriteriaInfo, index)
 		if criteriaOk and criteriaInfo and criteriaInfo.description and criteriaInfo.description ~= "" then
 			hasCriteria = true
 			if criteriaInfo.completed then
@@ -77,21 +73,19 @@ function challenge.GetLiveScenarioState()
 		return nil
 	end
 
-	local originalScenario = state.originals.C_Scenario or C_Scenario
-	local originalGetInfo = originalScenario.GetInfo
-	if not originalGetInfo then
+	if not C_Scenario.GetInfo then
 		return nil
 	end
 
 	local infoOk, scenarioName, currentStage, numStages, flags, _, _, _, xp, money, scenarioType, areaName, textureKit, scenarioID =
-		pcall(originalGetInfo)
+		pcall(C_Scenario.GetInfo)
 	if not infoOk then
 		return nil
 	end
 
 	local shouldShowCriteria
-	if originalScenario.ShouldShowCriteria then
-		local showOk, showValue = pcall(originalScenario.ShouldShowCriteria)
+	if C_Scenario.ShouldShowCriteria then
+		local showOk, showValue = pcall(C_Scenario.ShouldShowCriteria)
 		if showOk then
 			shouldShowCriteria = showValue and true or false
 		end
@@ -238,15 +232,11 @@ function challenge.RefreshEncounterCriteria()
 		return
 	end
 
-	local originalScenario = state.originals.C_Scenario or C_Scenario
-	local originalScenarioInfo = state.originals.C_ScenarioInfo or C_ScenarioInfo
-	local originalGetStepInfo = originalScenario.GetStepInfo
-	local originalGetCriteriaInfo = originalScenarioInfo.GetCriteriaInfo
 	local run = challenge.GetRunRecord()
-	local stepOk, _, _, numCriteria = pcall(originalGetStepInfo)
+	local stepOk, _, _, numCriteria = pcall(C_Scenario.GetStepInfo)
 	if stepOk and numCriteria and numCriteria > 0 then
 		for index = 1, numCriteria do
-			local criteriaOk, criteriaInfo = pcall(originalGetCriteriaInfo, index)
+			local criteriaOk, criteriaInfo = pcall(C_ScenarioInfo.GetCriteriaInfo, index)
 			if criteriaOk and criteriaInfo and criteriaInfo.description and criteriaInfo.description ~= "" then
 				local criteria = {
 					description = criteriaInfo.description,

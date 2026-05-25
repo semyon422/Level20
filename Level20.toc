@@ -22,7 +22,6 @@ DungeonChallenge/Namespace.lua
 DungeonChallenge/Status.lua
 DungeonChallenge/Run.lua
 DungeonChallenge/Criteria.lua
-DungeonChallenge/Patches.lua
 DungeonChallenge/Tracker.lua
 DungeonChallenge/CompletionBanner.lua
 DungeonChallenge/API.lua

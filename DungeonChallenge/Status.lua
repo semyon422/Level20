@@ -150,9 +150,8 @@ function challenge.GetChallengeLevelDisplayText()
 end
 
 function challenge.IsRealChallengeModeActive()
-	local originals = state.originals
-	if originals.C_ChallengeMode and originals.C_ChallengeMode.IsChallengeModeActive then
-		return originals.C_ChallengeMode.IsChallengeModeActive()
+	if C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive then
+		return C_ChallengeMode.IsChallengeModeActive()
 	end
 
 	return false

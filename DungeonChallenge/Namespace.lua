@@ -16,12 +16,14 @@ challenge.constants = {
 }
 
 challenge.state = challenge.state or {
-	hooksInstalled = false,
 	challengeBlockPatched = false,
 	scenarioTimerPatched = false,
+	customTrackerModule = nil,
+	customTrackerModuleRegistered = false,
+	defaultScenarioModuleDetached = false,
+	defaultScenarioModuleHidden = false,
+	originalChallengeModeBlockParent = nil,
 	encounterCriteria = {},
 	observedDungeonInstanceID = nil,
 	observedDungeonLevel = nil,
-	originals = {},
-	patched = {},
 }

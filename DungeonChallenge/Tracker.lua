@@ -4,6 +4,191 @@ local challenge = addon.DungeonChallenge
 local constants = challenge.constants
 local state = challenge.state
 
+local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, progressBarLineSpacing, offsetX)
+	local criteriaString = criteriaInfo.description
+	if not criteriaInfo.isWeightedProgress and not criteriaInfo.isFormatted then
+		criteriaString = string.format("%d/%d %s", criteriaInfo.quantity, criteriaInfo.totalQuantity, criteriaInfo.description)
+	end
+
+	local line
+	if criteriaInfo.completed then
+		local existingLine = objectivesBlock:GetExistingLine(objectiveKey)
+		line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE, OBJECTIVE_TRACKER_COLOR["Complete"])
+		line.Icon:Show()
+		line.Icon:SetAtlas("ui-questtracker-tracker-check", false)
+		if existingLine and (not line.state or line.state == ObjectiveTrackerAnimLineState.Present) then
+			line:SetState(ObjectiveTrackerAnimLineState.Completing)
+		end
+	else
+		line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE)
+		line.Icon:Show()
+		line.Icon:SetAtlas("ui-questtracker-objective-nub", false)
+	end
+
+	if offsetX and offsetX ~= 0 then
+		if line.Dash then
+			line.Dash:ClearAllPoints()
+			line.Dash:SetPoint("TOPLEFT", offsetX, 1)
+		end
+		if line.Text then
+			line.Text:ClearAllPoints()
+			line.Text:SetPoint("TOP")
+			line.Text:SetPoint("LEFT", line.Dash, "RIGHT")
+			line.Text:SetPoint("RIGHT")
+		end
+		if line.Icon then
+			line.Icon:ClearAllPoints()
+			line.Icon:SetPoint("TOPLEFT", offsetX - 10, 2)
+		end
+	end
+
+	if criteriaInfo.isWeightedProgress and not criteriaInfo.completed then
+		objectivesBlock:AddProgressBar(objectiveKey, progressBarLineSpacing)
+	end
+
+	if criteriaInfo.duration > 0 and criteriaInfo.elapsed <= criteriaInfo.duration then
+		objectivesBlock:AddTimerBar(criteriaInfo.duration, GetTime() - criteriaInfo.elapsed)
+	end
+end
+
+local customTrackerModuleMixin = {}
+
+local function GetCustomTrackerHeaderText()
+	local status = challenge.GetStatus()
+	if status and status.name and status.name ~= "" then
+		return status.name
+	end
+
+	return TRACKER_HEADER_DUNGEON
+end
+
+local function PrepareEmbeddedChallengeModeBlock(regionParent)
+	if not ScenarioObjectiveTracker or not ScenarioObjectiveTracker.ChallengeModeBlock then
+		return nil
+	end
+
+	local challengeBlock = ScenarioObjectiveTracker.ChallengeModeBlock
+	state.originalChallengeModeBlockParent = state.originalChallengeModeBlockParent or challengeBlock:GetParent()
+
+	challengeBlock:ClearAllPoints()
+	if challengeBlock:GetParent() ~= regionParent then
+		challengeBlock:SetParent(regionParent)
+	end
+
+	challenge.EnsureRaidSizeFrame(challengeBlock)
+	challengeBlock.timerID = constants.FAKE_TIMER_ID
+	challengeBlock.timeLimit = constants.TIME_LIMIT_SECONDS
+	challengeBlock.lastMedalShown = nil
+	challengeBlock.Level:SetText(challenge.GetChallengeLevelDisplayText())
+	challengeBlock.wasDepleted = false
+	challengeBlock.StartedDepleted:Hide()
+	challengeBlock.TimesUpLootStatus:Hide()
+	challengeBlock:SetUpAffixes({})
+	challenge.UpdateDeathCountFrame(challengeBlock)
+	challenge.UpdateRaidSizeFrame(challengeBlock)
+
+	local statusBar = challengeBlock.StatusBar
+	statusBar:SetMinMaxValues(0, constants.TIME_LIMIT_SECONDS)
+	local effectiveElapsedTime = challenge.GetElapsedTime()
+	local displayedElapsedTime = math.min(effectiveElapsedTime, constants.TIME_LIMIT_SECONDS)
+	statusBar:SetValue(constants.TIME_LIMIT_SECONDS - displayedElapsedTime)
+	challengeBlock.TimeLeft:SetTextColor(HIGHLIGHT_FONT_COLOR:GetRGB())
+	challengeBlock.TimeLeft:SetText(SecondsToClock(effectiveElapsedTime))
+	challengeBlock:Show()
+
+	return challengeBlock
+end
+
+local function RestoreEmbeddedChallengeModeBlockParent()
+	if not ScenarioObjectiveTracker or not ScenarioObjectiveTracker.ChallengeModeBlock or not state.originalChallengeModeBlockParent then
+		return
+	end
+
+	local challengeBlock = ScenarioObjectiveTracker.ChallengeModeBlock
+	if challengeBlock:GetParent() ~= state.originalChallengeModeBlockParent then
+		challengeBlock:ClearAllPoints()
+		challengeBlock:SetParent(state.originalChallengeModeBlockParent)
+	end
+end
+
+function customTrackerModuleMixin:CanUpdate()
+	return true
+end
+
+function customTrackerModuleMixin:InitModule()
+	self:SetHeader(GetCustomTrackerHeaderText())
+	self.Header:SetPoint("TOPLEFT", self, "TOPLEFT", self.blockOffsetX, 0)
+	self:SetWidth(self:GetWidth() + self.blockOffsetX)
+end
+
+function customTrackerModuleMixin:LayoutContents()
+	if not challenge.ShouldUse() then
+		return
+	end
+
+	self.Header.Text:SetText(GetCustomTrackerHeaderText())
+
+	local block = self:GetBlock(constants.FAKE_SCENARIO_ID)
+	block:SetHeader("")
+	block.HeaderText:Hide()
+	block.height = 0
+	block.lastRegion = nil
+
+	local challengeBlock = PrepareEmbeddedChallengeModeBlock(block)
+	if challengeBlock then
+		block:AddCustomRegion(challengeBlock, 0, 0)
+	end
+	if #state.encounterCriteria > 0 then
+		for index, criteriaInfo in ipairs(state.encounterCriteria) do
+			local objectiveKey = "criteria" .. tostring(criteriaInfo.criteriaID or criteriaInfo.assetID or index)
+			AddCriteriaLine(block, objectiveKey, criteriaInfo, self.progressBarLineSpacing, 12)
+		end
+	else
+		block:AddObjective("placeholder", challenge.L.DUNGEON_CHALLENGE_SUBTITLE, nil, nil, OBJECTIVE_DASH_STYLE_HIDE, OBJECTIVE_TRACKER_COLOR["Normal"])
+	end
+
+	self:LayoutBlock(block)
+end
+
+function challenge.EnsureCustomTrackerModule()
+	if state.customTrackerModule then
+		return state.customTrackerModule
+	end
+
+	if not ObjectiveTrackerFrame or not ObjectiveTrackerManager or not ObjectiveTrackerModuleMixin then
+		return nil
+	end
+
+	local module = CreateFrame("Frame", "Level20DungeonChallengeObjectiveTracker", ObjectiveTrackerFrame, "ObjectiveTrackerModuleTemplate")
+	Mixin(module, customTrackerModuleMixin)
+	module.blockTemplate = "ObjectiveTrackerAnimBlockTemplate"
+	module.lineTemplate = "ObjectiveTrackerAnimLineTemplate"
+	module.fromHeaderOffsetY = 0
+	module.blockOffsetX = 20
+	module.lineSpacing = 12
+	module.progressBarLineSpacing = 2
+	module.leftMargin = -20
+	module.headerText = TRACKER_HEADER_DUNGEON
+	module.hasDisplayPriority = true
+	module.uiOrder = (ScenarioObjectiveTracker and ScenarioObjectiveTracker.uiOrder and (ScenarioObjectiveTracker.uiOrder - 0.5)) or 0.5
+	module:SetWidth(ScenarioObjectiveTracker and ScenarioObjectiveTracker:GetWidth() or 260)
+	module:SetScript("OnUpdate", function(self, elapsed)
+		if not challenge.ShouldUse() or not challenge.IsTimerStarted() or challenge.IsTimerStopped() then
+			self.elapsedSinceRefresh = 0
+			return
+		end
+
+		self.elapsedSinceRefresh = (self.elapsedSinceRefresh or 0) + elapsed
+		if self.elapsedSinceRefresh >= 1 then
+			self.elapsedSinceRefresh = 0
+			self:MarkDirty()
+		end
+	end)
+
+	state.customTrackerModule = module
+	return module
+end
+
 function challenge.UpdateRaidSizeFrameLayout(block)
 	local raidSizeFrame = block and block.RaidSize
 	if not raidSizeFrame then
@@ -51,13 +236,17 @@ function challenge.UpdateDeathCountFrame(block)
 end
 
 function challenge.RefreshDeathCountDisplay()
+	if state.customTrackerModule then
+		state.customTrackerModule:MarkDirty()
+	end
+
 	if not ScenarioObjectiveTracker or not ScenarioObjectiveTracker.ChallengeModeBlock then
-		return false
+		return state.customTrackerModule and true or false
 	end
 
 	local block = ScenarioObjectiveTracker.ChallengeModeBlock
 	if block.timerID ~= constants.FAKE_TIMER_ID then
-		return false
+		return state.customTrackerModule and true or false
 	end
 
 	challenge.UpdateDeathCountFrame(block)
@@ -88,7 +277,70 @@ function challenge.EnsureRaidSizeFrame(block)
 end
 
 function challenge.ActivateBlizzardBlock()
+	local customTrackerModule = challenge.EnsureCustomTrackerModule()
+	if customTrackerModule then
+		if not state.customTrackerModuleRegistered and ObjectiveTrackerManager and ObjectiveTrackerFrame then
+			ObjectiveTrackerManager:SetModuleContainer(customTrackerModule, ObjectiveTrackerFrame)
+			state.customTrackerModuleRegistered = ObjectiveTrackerManager:GetContainerForModule(customTrackerModule) == ObjectiveTrackerFrame
+		end
+
+		if ScenarioObjectiveTracker and ObjectiveTrackerFrame then
+			if challenge.ShouldUse() then
+				if not state.defaultScenarioModuleDetached and ObjectiveTrackerFrame:HasModule(ScenarioObjectiveTracker) then
+					ObjectiveTrackerFrame:RemoveModule(ScenarioObjectiveTracker)
+					state.defaultScenarioModuleDetached = true
+				end
+
+				ScenarioObjectiveTracker:Hide()
+				ScenarioObjectiveTracker:SetAlpha(0)
+				state.defaultScenarioModuleHidden = true
+			elseif state.defaultScenarioModuleDetached and ObjectiveTrackerManager then
+				ObjectiveTrackerManager:SetModuleContainer(ScenarioObjectiveTracker, ObjectiveTrackerFrame)
+				state.defaultScenarioModuleDetached = false
+				ScenarioObjectiveTracker:SetAlpha(1)
+				state.defaultScenarioModuleHidden = false
+			end
+		end
+
+		if ScenarioTimerFrame then
+			ScenarioTimerFrame:StopTimer(constants.FAKE_TIMER_ID)
+		end
+
+		if ScenarioObjectiveTracker and ScenarioObjectiveTracker.ChallengeModeBlock then
+			ScenarioObjectiveTracker.ChallengeModeBlock.timerID = nil
+			ScenarioObjectiveTracker.ChallengeModeBlock:Hide()
+		end
+
+		if ScenarioObjectiveTracker and ScenarioObjectiveTracker.SetShouldShowCriteria then
+			ScenarioObjectiveTracker:SetShouldShowCriteria(not challenge.ShouldUse())
+		end
+
+		if challenge.ShouldUse() and ObjectiveTrackerFrame then
+			ObjectiveTrackerFrame:ForceExpand()
+		end
+
+		if state.customTrackerModuleRegistered and ObjectiveTrackerManager then
+			ObjectiveTrackerManager:UpdateModule(customTrackerModule)
+		else
+			customTrackerModule:MarkDirty()
+		end
+
+		return challenge.ShouldUse()
+	end
+
 	if not challenge.ShouldUse() then
+		if state.defaultScenarioModuleDetached and ObjectiveTrackerManager and ScenarioObjectiveTracker and ObjectiveTrackerFrame then
+			ObjectiveTrackerManager:SetModuleContainer(ScenarioObjectiveTracker, ObjectiveTrackerFrame)
+			state.defaultScenarioModuleDetached = false
+		end
+
+		RestoreEmbeddedChallengeModeBlockParent()
+
+		if ScenarioObjectiveTracker and state.defaultScenarioModuleHidden then
+			ScenarioObjectiveTracker:SetAlpha(1)
+			state.defaultScenarioModuleHidden = false
+		end
+
 		if ScenarioTimerFrame then
 			ScenarioTimerFrame:StopTimer(constants.FAKE_TIMER_ID)
 		end
@@ -112,8 +364,30 @@ function challenge.ActivateBlizzardBlock()
 	local block = ScenarioObjectiveTracker.ChallengeModeBlock
 	challenge.EnsureRaidSizeFrame(block)
 	if not state.challengeBlockPatched then
+		local originalActivate = block.Activate
 		local originalUpdateTime = block.UpdateTime
 		local originalUpdateDeathCount = block.UpdateDeathCount
+		block.Activate = function(self, timerID, elapsedTime, timeLimit)
+			if challenge.ShouldUse() and timerID == constants.FAKE_TIMER_ID then
+				self.timerID = timerID
+				self.timeLimit = timeLimit
+				self.lastMedalShown = nil
+				self.Level:SetText(challenge.GetChallengeLevelDisplayText())
+				self.wasDepleted = false
+				self.StartedDepleted:Hide()
+				self.TimesUpLootStatus:Hide()
+				self:SetUpAffixes({})
+				self:UpdateDeathCount()
+
+				local statusBar = self.StatusBar
+				statusBar:SetMinMaxValues(0, self.timeLimit)
+				self:UpdateTime(elapsedTime)
+				ScenarioTimerFrame:StartTimer(self)
+				ScenarioObjectiveTracker:ForceExpand()
+			else
+				originalActivate(self, timerID, elapsedTime, timeLimit)
+			end
+		end
 		block.UpdateTime = function(self, elapsedTime)
 			if challenge.ShouldUse() and self.timerID == constants.FAKE_TIMER_ID then
 				local effectiveElapsedTime = challenge.GetElapsedTime()
@@ -142,11 +416,11 @@ function challenge.ActivateBlizzardBlock()
 	if not state.scenarioTimerPatched then
 		local originalStartTimer = ScenarioTimerFrame.StartTimer
 		ScenarioTimerFrame.StartTimer = function(self, activeBlock)
-			if activeBlock and activeBlock.timerID == constants.FAKE_TIMER_ID and not challenge.IsTimerStarted() then
-				self:Hide()
-				self.baseTime = nil
-				self.timeSinceBase = nil
-				self.block = nil
+			if activeBlock and activeBlock.timerID == constants.FAKE_TIMER_ID and challenge.ShouldUse() then
+				self.baseTime = challenge.GetElapsedTime()
+				self.timeSinceBase = 0
+				self.block = activeBlock
+				self:Show()
 				return
 			end
 

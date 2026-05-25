@@ -8,7 +8,6 @@ function challenge.refresh(forceShow)
 		Level20DB.showDungeonChallengeFrame = true
 	end
 
-	challenge.InstallHooks()
 	if challenge.ShouldUse() then
 		challenge.RefreshEncounterCriteria()
 		challenge.AutoResetTimerIfNeeded()
