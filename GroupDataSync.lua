@@ -2,7 +2,7 @@ local addonName, addon = ...
 local L = addon.L
 
 local COMM_PREFIX = "L20TRK"
-local MESSAGE_VERSION = "4"
+local MESSAGE_VERSION = "5"
 local OOZE_TRINKET_ITEM_ID = 178769
 local UTTS_ITEM_ID = 158379
 local DRAGONLING_TRINKET_ITEM_ID = 77530
@@ -109,6 +109,15 @@ end
 
 local function GetBooleanDisplay(value)
 	return value and "+" or "-"
+end
+
+local function GetAddonVersionText()
+	local version = addon.GetCurrentVersion and addon.GetCurrentVersion()
+	if not version or version <= 0 then
+		return "v?"
+	end
+
+	return "v" .. tostring(version)
 end
 
 local function GetPlayerKey(name)
@@ -266,7 +275,7 @@ local function RefreshGroupDataWindow()
 			oozeEquipped = data.hasSync and GetBooleanDisplay(data.oozeEquipped) or UNKNOWN_VALUE,
 			uttsCount = data.hasSync and tostring(data.uttsCount or 0) or UNKNOWN_VALUE,
 			dragonlingEquipped = data.hasSync and GetBooleanDisplay(data.dragonlingEquipped) or UNKNOWN_VALUE,
-			addonInstalled = data.hasSync and GetBooleanDisplay(data.addonInstalled) or "-",
+			addonVersion = data.hasSync and (data.addonVersion or "v?") or UNKNOWN_VALUE,
 			timeText = data.hasSync and GetChromieTimeTextFromID(data.chromieTimeID) or UNKNOWN_VALUE,
 			warModeEnabled = data.hasSync and GetBooleanDisplay(data.warModeEnabled) or UNKNOWN_VALUE,
 			isPlayer = data.name == playerKey,
@@ -310,7 +319,7 @@ local function InitializeGroupDataTable(frame)
 		"GameFontNormal"
 	)
 
-	AddStatusColumn(tableBuilder, ADDON_COLUMN_WIDTH, L.GROUP_DATA_HEADER_ADDON, "addonInstalled")
+	AddStatusColumn(tableBuilder, ADDON_COLUMN_WIDTH, L.GROUP_DATA_HEADER_ADDON, "addonVersion")
 	AddStatusColumn(tableBuilder, TIME_COLUMN_WIDTH, L.GROUP_DATA_HEADER_TIME, "timeText")
 	AddStatusColumn(tableBuilder, WAR_MODE_COLUMN_WIDTH, L.GROUP_DATA_HEADER_WAR_MODE, "warModeEnabled")
 	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
@@ -348,16 +357,8 @@ local function EnsureGroupDataWindow()
 	frame:Hide()
 	frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefaultAnchors")
 
-	local refreshButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-	refreshButton:SetSize(100, 22)
-	refreshButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -32, -32)
-	refreshButton:SetText(REFRESH)
-	refreshButton:SetScript("OnClick", function()
-		RefreshAndBroadcastLocalGroupData(true)
-	end)
-
 	local tableFrame = CreateFrame("Frame", nil, frame)
-	tableFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", TABLE_INSET, -58)
+	tableFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", TABLE_INSET, -34)
 	tableFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -TABLE_INSET, 14)
 
 	local headerRow = CreateFrame("Frame", nil, tableFrame)
@@ -428,7 +429,7 @@ local function BuildMessage()
 		EncodeBoolean(IsTrackedTrinketEquipped(OOZE_TRINKET_ITEM_ID)),
 		tostring(GetTrackedItemCount(UTTS_ITEM_ID)),
 		EncodeBoolean(IsTrackedTrinketEquipped(DRAGONLING_TRINKET_ITEM_ID)),
-		BOOL_TRUE,
+		GetAddonVersionText(),
 		tostring(GetChromieTimeSyncValue()),
 		EncodeBoolean(IsWarModeEnabled()),
 	}, "\t")
@@ -444,7 +445,7 @@ RefreshAndBroadcastLocalGroupData = function(force)
 	addon.BroadcastGroupData(force)
 end
 
-local function UpdatePlayerData(fullName, oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled)
+local function UpdatePlayerData(fullName, oozeEquipped, uttsCount, dragonlingEquipped, addonVersion, chromieTimeID, warModeEnabled)
 	local playerKey = GetPlayerKey(fullName)
 	if not playerKey then
 		return
@@ -457,7 +458,7 @@ local function UpdatePlayerData(fullName, oozeEquipped, uttsCount, dragonlingEqu
 		oozeEquipped = DecodeBoolean(oozeEquipped),
 		uttsCount = tonumber(uttsCount) or 0,
 		dragonlingEquipped = DecodeBoolean(dragonlingEquipped),
-		addonInstalled = DecodeBoolean(addonInstalled),
+		addonVersion = addonVersion ~= "" and addonVersion or "v?",
 		chromieTimeID = tonumber(chromieTimeID) or -1,
 		warModeEnabled = DecodeBoolean(warModeEnabled),
 	}
@@ -483,8 +484,8 @@ end
 
 function addon.UpdateLocalGroupData()
 	local message = BuildMessage()
-	local _, oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled = strsplit("\t", message, 7)
-	UpdatePlayerData(GetUnitName("player", true), oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled)
+	local _, oozeEquipped, uttsCount, dragonlingEquipped, addonVersion, chromieTimeID, warModeEnabled = strsplit("\t", message, 7)
+	UpdatePlayerData(GetUnitName("player", true), oozeEquipped, uttsCount, dragonlingEquipped, addonVersion, chromieTimeID, warModeEnabled)
 	return message
 end
 
@@ -510,12 +511,12 @@ function addon.OnGroupDataMessage(prefix, message, _, sender)
 		return
 	end
 
-	local version, oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled = strsplit("\t", message or "", 7)
+	local version, oozeEquipped, uttsCount, dragonlingEquipped, addonVersion, chromieTimeID, warModeEnabled = strsplit("\t", message or "", 7)
 	if version ~= MESSAGE_VERSION then
 		return
 	end
 
-	UpdatePlayerData(sender, oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled)
+	UpdatePlayerData(sender, oozeEquipped, uttsCount, dragonlingEquipped, addonVersion, chromieTimeID, warModeEnabled)
 end
 
 function addon.RefreshGroupDataWindow()

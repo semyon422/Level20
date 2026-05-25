@@ -126,7 +126,8 @@ local accountTypeRow = CreateInfoRow(infoPanel, L.ACCOUNT_TYPE)
 local subscriptionRow = CreateInfoRow(infoPanel, L.SUBSCRIPTION, accountTypeRow)
 local xpGainRow = CreateInfoRow(infoPanel, L.XP_GAIN, subscriptionRow)
 local chromieTimeRow = CreateInfoRow(infoPanel, L.CHROMIE_TIME, xpGainRow)
-local shadowlandsRow = CreateInfoRow(infoPanel, L.SHADOWLANDS_STATE, chromieTimeRow)
+local warModeRow = CreateInfoRow(infoPanel, L.WAR_MODE, chromieTimeRow)
+local shadowlandsRow = CreateInfoRow(infoPanel, L.SHADOWLANDS_STATE, warModeRow)
 
 local versionStatusLabel = infoPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 versionStatusLabel:SetPoint("TOPRIGHT", infoPanel, "TOPRIGHT", 0, 0)
@@ -237,11 +238,20 @@ local function GetChromieTimeText()
 	return addon.GetChromieTimeText and addon.GetChromieTimeText() or L.UNKNOWN
 end
 
+local function GetWarModeText()
+	if C_PvP and C_PvP.IsWarModeDesired and C_PvP.IsWarModeDesired() then
+		return L.STATE_ENABLED
+	end
+
+	return L.STATE_DISABLED
+end
+
 function addon.RefreshInfoPanel()
 	accountTypeRow.value:SetText(GetAccountTypeText())
 	subscriptionRow.value:SetText(GetSubscriptionText())
 	xpGainRow.value:SetText(GetXPGainText())
 	chromieTimeRow.value:SetText(GetChromieTimeText())
+	warModeRow.value:SetText(GetWarModeText())
 	shadowlandsRow.value:SetText(addon.GetShadowlandsStateText())
 	versionStatusLabel:SetText(addon.GetVersionStatusText and addon.GetVersionStatusText() or L.UNKNOWN)
 
