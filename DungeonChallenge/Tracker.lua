@@ -316,9 +316,15 @@ function challenge.ActivateBlizzardBlock()
 				ScenarioObjectiveTracker:Hide()
 				ScenarioObjectiveTracker:SetAlpha(0)
 				state.defaultScenarioModuleHidden = true
-			elseif state.defaultScenarioModuleDetached and ObjectiveTrackerManager then
-				ObjectiveTrackerManager:SetModuleContainer(ScenarioObjectiveTracker, ObjectiveTrackerFrame)
-				state.defaultScenarioModuleDetached = false
+			else
+				if state.defaultScenarioModuleDetached and ObjectiveTrackerManager then
+					ObjectiveTrackerManager:SetModuleContainer(ScenarioObjectiveTracker, ObjectiveTrackerFrame)
+					state.defaultScenarioModuleDetached = false
+				end
+
+				RestoreEmbeddedChallengeModeBlockParent()
+				RestoreEmbeddedObjectivesBlockParent()
+
 				ScenarioObjectiveTracker:SetAlpha(1)
 				state.defaultScenarioModuleHidden = false
 			end
