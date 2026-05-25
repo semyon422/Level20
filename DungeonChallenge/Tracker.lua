@@ -188,6 +188,7 @@ function challenge.EnsureCustomTrackerModule()
 	module.fromBlockOffsetY = -2
 	module.blockOffsetX = 20
 	module.lineSpacing = 12
+	module.bottomSpacing = 6
 	module.progressBarLineSpacing = 2
 	module.leftMargin = -20
 	module.headerText = TRACKER_HEADER_DUNGEON
