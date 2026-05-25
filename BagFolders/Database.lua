@@ -271,24 +271,3 @@ function BagFolders.ShowAllFolders()
 	wipe(charData.hiddenFolders)
 	addon.RefreshBagFolders()
 end
-
-function addon.ResetBagFolders()
-	local enabled = false
-	if Level20DB.bagFolders and Level20DB.bagFolders.enabled ~= nil then
-		enabled = Level20DB.bagFolders.enabled and true or false
-	end
-
-	Level20DB.bagFolders = {
-		enabled = enabled,
-		characters = {},
-		defaultIcon = DEFAULT_FOLDER_ICON,
-	}
-
-	for _, folderFrame in pairs(BagFolders.folderFrames) do
-		folderFrame:Hide()
-	end
-	wipe(BagFolders.folderFrames)
-	BagFolders.pendingDraggedItemGUID = nil
-
-	addon.RefreshBagFolders()
-end
