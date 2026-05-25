@@ -16,6 +16,8 @@ CharacterInfo.lua
 ShadowlandsInfo.lua
 ShadowlandsProtection.lua
 VersionCheck.lua
+GroupDataTableTemplates.lua
+GroupDataTableTemplates.xml
 GroupDataSync.lua
 AddonWindow.lua
 DungeonChallenge/Namespace.lua

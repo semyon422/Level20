@@ -4,6 +4,17 @@ local L = addon.L
 local eventFrame = CreateFrame("Frame")
 local trackedGroupDeathState = {}
 
+local function RefreshAndBroadcastGroupData(force)
+	addon.UpdateLocalGroupData()
+	addon.BroadcastGroupData(force)
+end
+
+local function DelayedRefreshAndBroadcastGroupData(force, delaySeconds)
+	C_Timer.After(delaySeconds or 0, function()
+		RefreshAndBroadcastGroupData(force)
+	end)
+end
+
 local function IsTrackedGroupUnit(unit)
 	return unit ~= nil
 		and (
@@ -79,6 +90,8 @@ eventFrame:RegisterEvent("DISABLE_XP_GAIN")
 eventFrame:RegisterEvent("CHAT_MSG_ADDON")
 eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+eventFrame:RegisterEvent("WAR_MODE_STATUS_UPDATE")
+eventFrame:RegisterEvent("UNIT_PHASE")
 eventFrame:RegisterEvent("QUEST_ACCEPTED")
 eventFrame:RegisterEvent("QUEST_REMOVED")
 eventFrame:RegisterEvent("QUEST_TURNED_IN")
@@ -153,12 +166,22 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
 	if event == "GROUP_ROSTER_UPDATE" then
 		addon.BroadcastVersionCheck()
-		addon.UpdateLocalGroupData()
-		addon.BroadcastGroupData(true)
+		RefreshAndBroadcastGroupData(true)
 	elseif event == "PLAYER_EQUIPMENT_CHANGED"
-		or event == "BAG_UPDATE_DELAYED" then
-		addon.UpdateLocalGroupData()
-		addon.BroadcastGroupData()
+		or event == "BAG_UPDATE_DELAYED"
+		or event == "WAR_MODE_STATUS_UPDATE" then
+		if event == "WAR_MODE_STATUS_UPDATE" then
+			DelayedRefreshAndBroadcastGroupData(true, 0)
+			DelayedRefreshAndBroadcastGroupData(true, 1)
+		else
+			RefreshAndBroadcastGroupData()
+		end
+	elseif event == "UNIT_PHASE" then
+		local unit = ...
+		if unit == "player" then
+			DelayedRefreshAndBroadcastGroupData(true, 0)
+			DelayedRefreshAndBroadcastGroupData(true, 1)
+		end
 	end
 
 	if event == "PLAYER_REGEN_DISABLED" then
@@ -182,8 +205,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 	end
 
 	if event == "PLAYER_ENTERING_WORLD" then
-		addon.UpdateLocalGroupData()
-		addon.BroadcastGroupData(true)
+		RefreshAndBroadcastGroupData(true)
+		DelayedRefreshAndBroadcastGroupData(true, 1)
 	end
 
 	if event == "PLAYER_ENTERING_WORLD"

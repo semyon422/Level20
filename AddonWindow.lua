@@ -133,13 +133,13 @@ versionStatusLabel:SetPoint("TOPRIGHT", infoPanel, "TOPRIGHT", 0, 0)
 versionStatusLabel:SetJustifyH("RIGHT")
 versionStatusLabel:SetText(L.UNKNOWN)
 
--- local groupDataButton = CreateFrame("Button", nil, infoPanel, "UIPanelButtonTemplate")
--- groupDataButton:SetSize(140, 24)
--- groupDataButton:SetPoint("TOPLEFT", shadowlandsRow, "BOTTOMLEFT", 0, -12)
--- groupDataButton:SetText(L.GROUP_TRINKETS_BUTTON)
--- groupDataButton:SetScript("OnClick", function()
--- 	addon.ShowGroupDataWindow()
--- end)
+local groupDataButton = CreateFrame("Button", nil, infoPanel, "UIPanelButtonTemplate")
+groupDataButton:SetSize(140, 24)
+groupDataButton:SetPoint("TOPLEFT", shadowlandsRow, "BOTTOMLEFT", 0, -12)
+groupDataButton:SetText(L.GROUP_TRINKETS_BUTTON)
+groupDataButton:SetScript("OnClick", function()
+	addon.ShowGroupDataWindow()
+end)
 
 local waypointData = {
 	{ labelKey = "WAYPOINT_CHROMIE", faction = "Alliance", mapID = 84, x = 56.26, y = 17.32 },
@@ -234,27 +234,7 @@ local function GetXPGainText()
 end
 
 local function GetChromieTimeText()
-	if not C_PlayerInfo.IsPlayerInChromieTime() then
-		return L.CHROMIE_TIME_PRESENT
-	end
-
-	local chromieTimeID = UnitChromieTimeID("player")
-	if not chromieTimeID then
-		return L.UNKNOWN
-	end
-
-	local options = C_ChromieTime.GetChromieTimeExpansionOptions()
-	if type(options) ~= "table" then
-		return L.UNKNOWN
-	end
-
-	for _, option in ipairs(options) do
-		if option.id == chromieTimeID then
-			return option.name or L.UNKNOWN
-		end
-	end
-
-	return L.UNKNOWN
+	return addon.GetChromieTimeText and addon.GetChromieTimeText() or L.UNKNOWN
 end
 
 function addon.RefreshInfoPanel()

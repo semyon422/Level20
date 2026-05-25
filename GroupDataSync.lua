@@ -2,20 +2,114 @@ local addonName, addon = ...
 local L = addon.L
 
 local COMM_PREFIX = "L20TRK"
-local MESSAGE_VERSION = "2"
-local TRINKET_SLOT_1 = INVSLOT_TRINKET1 or 13
-local TRINKET_SLOT_2 = INVSLOT_TRINKET2 or 14
-local WATCHED_ITEM_1 = 178769
-local WATCHED_ITEM_2 = 158379
+local MESSAGE_VERSION = "4"
+local OOZE_TRINKET_ITEM_ID = 178769
+local UTTS_ITEM_ID = 158379
+local DRAGONLING_TRINKET_ITEM_ID = 77530
+local WINDOW_WIDTH = 760
+local WINDOW_HEIGHT = 320
+local TABLE_INSET = 16
+local HEADER_HEIGHT = 19
+local ROW_HEIGHT = 20
+local TRINKET_COLUMN_WIDTH = 72
+local COUNT_COLUMN_WIDTH = 72
+local ADDON_COLUMN_WIDTH = 72
+local TIME_COLUMN_WIDTH = 140
+local WAR_MODE_COLUMN_WIDTH = 56
+local HEADER_LEFT_INSET = 4
+local HEADER_RIGHT_INSET = 26
+local HEADER_TOP_OFFSET = -1
+local BODY_TOP_OFFSET = -1
+local SCROLL_BOTTOM_OFFSET = 3
+local SCROLLBOX_TOP_INSET = 5
+local SCROLLBOX_SIDE_INSET = 1
+local SCROLLBOX_BOTTOM_INSET = 1
+local SCROLLBAR_X_OFFSET = 9
+local SCROLLBAR_BOTTOM_OFFSET = 4
+local PLAYER_LEFT_CELL_PADDING = 12
+local BOOL_TRUE = "1"
+local BOOL_FALSE = "0"
+local UNKNOWN_VALUE = "?"
 
 local state = {
 	initialized = false,
 	players = {},
 	lastBroadcastMessage = nil,
+	lastLocalMessage = nil,
 }
 
 local groupDataFrame
-local groupDataRows = {}
+local RefreshAndBroadcastLocalGroupData
+
+local function GetChromieTimeTextFromID(chromieTimeID)
+	if chromieTimeID == 0 then
+		return L.CHROMIE_TIME_PRESENT
+	end
+
+	if not chromieTimeID or chromieTimeID < 0 then
+		return L.UNKNOWN
+	end
+
+	local options = C_ChromieTime and C_ChromieTime.GetChromieTimeExpansionOptions and C_ChromieTime.GetChromieTimeExpansionOptions()
+	if type(options) ~= "table" then
+		return L.UNKNOWN
+	end
+
+	for _, option in ipairs(options) do
+		if option.id == chromieTimeID then
+			return option.name or L.UNKNOWN
+		end
+	end
+
+	return L.UNKNOWN
+end
+
+function addon.GetChromieTimeText()
+	if not C_PlayerInfo or not C_PlayerInfo.IsPlayerInChromieTime or not C_PlayerInfo.IsPlayerInChromieTime() then
+		return L.CHROMIE_TIME_PRESENT
+	end
+
+	local chromieTimeID = UnitChromieTimeID("player")
+	if not chromieTimeID then
+		return L.UNKNOWN
+	end
+
+	return GetChromieTimeTextFromID(chromieTimeID)
+end
+
+local function GetChromieTimeSyncValue()
+	if not C_PlayerInfo or not C_PlayerInfo.IsPlayerInChromieTime or not C_PlayerInfo.IsPlayerInChromieTime() then
+		return 0
+	end
+
+	local chromieTimeID = UnitChromieTimeID("player")
+	return chromieTimeID or -1
+end
+
+local function IsWarModeEnabled()
+	return C_PvP and C_PvP.IsWarModeDesired and C_PvP.IsWarModeDesired() or false
+end
+
+local function IsTrackedTrinketEquipped(itemID)
+	if not itemID then
+		return false
+	end
+
+	return GetInventoryItemID("player", INVSLOT_TRINKET1) == itemID
+		or GetInventoryItemID("player", INVSLOT_TRINKET2) == itemID
+end
+
+local function EncodeBoolean(value)
+	return value and BOOL_TRUE or BOOL_FALSE
+end
+
+local function DecodeBoolean(value)
+	return value == BOOL_TRUE
+end
+
+local function GetBooleanDisplay(value)
+	return value and "+" or "-"
+end
 
 local function GetPlayerKey(name)
 	if not name or name == "" then
@@ -46,14 +140,6 @@ local function GetGroupDistribution()
 	if IsInGroup() then
 		return "PARTY"
 	end
-end
-
-local function GetEquippedTrinketLink(slotID)
-	if not UnitExists("player") then
-		return nil
-	end
-
-	return GetInventoryItemLink("player", slotID)
 end
 
 local function GetTrackedItemCount(itemID)
@@ -130,57 +216,31 @@ local function GetSortedSyncedPlayers()
 	return results
 end
 
-local function SetFrameLinkText(fontString, link)
-	fontString:SetText(link or L.GROUP_TRINKETS_UNKNOWN)
+local function IdentityDataProvider(rowData)
+	return rowData
 end
 
-local function SetFrameCountText(fontString, count)
-	fontString:SetText(tostring(count or 0))
+local function AddStatusColumn(tableBuilder, width, headerText, field)
+	tableBuilder:AddUnsortableFixedWidthColumn(
+		0,
+		width,
+		0,
+		0,
+		headerText,
+		"Level20GroupDataCellTemplate",
+		field,
+		"CENTER",
+		"GameFontHighlight"
+	)
 end
 
-local function EnsureRow(index)
-	if groupDataRows[index] then
-		return groupDataRows[index]
+local function ArrangeGroupDataTable()
+	if not groupDataFrame or not groupDataFrame.tableBuilder or not groupDataFrame.headerRow then
+		return
 	end
 
-	local parent = groupDataFrame.content
-	local row = CreateFrame("Frame", nil, parent)
-	row:SetSize(640, 22)
-
-	if index == 1 then
-		row:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
-	else
-		row:SetPoint("TOPLEFT", groupDataRows[index - 1], "BOTTOMLEFT", 0, -6)
-	end
-
-	row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	row.name:SetPoint("LEFT", row, "LEFT", 0, 0)
-	row.name:SetWidth(120)
-	row.name:SetJustifyH("LEFT")
-
-	row.trinket1 = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	row.trinket1:SetPoint("LEFT", row.name, "RIGHT", 12, 0)
-	row.trinket1:SetWidth(220)
-	row.trinket1:SetJustifyH("LEFT")
-
-	row.trinket2 = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	row.trinket2:SetPoint("TOPLEFT", row.trinket1, "BOTTOMLEFT", 0, -2)
-	row.trinket2:SetWidth(220)
-	row.trinket2:SetJustifyH("LEFT")
-
-	row.item178769 = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	row.item178769:SetPoint("LEFT", row.trinket1, "RIGHT", 16, 0)
-	row.item178769:SetWidth(70)
-	row.item178769:SetJustifyH("CENTER")
-
-	row.item158379 = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	row.item158379:SetPoint("LEFT", row.item178769, "RIGHT", 8, 0)
-	row.item158379:SetWidth(70)
-	row.item158379:SetJustifyH("CENTER")
-
-	row:SetHeight(34)
-	groupDataRows[index] = row
-	return row
+	groupDataFrame.tableBuilder:SetTableWidth(groupDataFrame.headerRow:GetWidth())
+	groupDataFrame.tableBuilder:Arrange()
 end
 
 local function RefreshGroupDataWindow()
@@ -189,30 +249,32 @@ local function RefreshGroupDataWindow()
 	end
 
 	local players = GetSortedSyncedPlayers()
-
-	for _, row in ipairs(groupDataRows) do
-		row:Hide()
-	end
-
 	if #players == 0 then
 		groupDataFrame.emptyLabel:Show()
-		groupDataFrame.content:SetHeight(24)
+		groupDataFrame.ScrollBox:SetDataProvider(CreateDataProvider())
 		return
 	end
 
 	groupDataFrame.emptyLabel:Hide()
 
+	local playerKey = GetPlayerKey(GetUnitName("player", true))
+	local rows = {}
 	for index, data in ipairs(players) do
-		local row = EnsureRow(index)
-		row.name:SetText(data.displayName or data.name or L.UNKNOWN)
-		SetFrameLinkText(row.trinket1, data.trinket1)
-		SetFrameLinkText(row.trinket2, data.trinket2)
-		SetFrameCountText(row.item178769, data.item178769)
-		SetFrameCountText(row.item158379, data.item158379)
-		row:Show()
+		rows[index] = {
+			index = index,
+			name = data.displayName or data.name or L.UNKNOWN,
+			oozeEquipped = data.hasSync and GetBooleanDisplay(data.oozeEquipped) or UNKNOWN_VALUE,
+			uttsCount = data.hasSync and tostring(data.uttsCount or 0) or UNKNOWN_VALUE,
+			dragonlingEquipped = data.hasSync and GetBooleanDisplay(data.dragonlingEquipped) or UNKNOWN_VALUE,
+			addonInstalled = data.hasSync and GetBooleanDisplay(data.addonInstalled) or "-",
+			timeText = data.hasSync and GetChromieTimeTextFromID(data.chromieTimeID) or UNKNOWN_VALUE,
+			warModeEnabled = data.hasSync and GetBooleanDisplay(data.warModeEnabled) or UNKNOWN_VALUE,
+			isPlayer = data.name == playerKey,
+		}
 	end
 
-	groupDataFrame.content:SetHeight(math.max(24, (#players * 40) - 6))
+	groupDataFrame.ScrollBox:SetDataProvider(CreateDataProvider(rows), ScrollBoxConstants.RetainScrollPosition)
+	ArrangeGroupDataTable()
 end
 
 local function SaveGroupDataWindowPosition(self)
@@ -225,13 +287,48 @@ local function SaveGroupDataWindowPosition(self)
 	Level20DB.groupDataWindowYOfs = yOfs
 end
 
+local function InitializeGroupDataTable(frame)
+	local view = CreateScrollBoxListLinearView()
+	view:SetElementInitializer("Level20GroupDataRowTemplate", function()
+	end)
+	ScrollUtil.InitScrollBoxListWithScrollBar(frame.ScrollBox, frame.scrollBar, view)
+
+	local tableBuilder = CreateTableBuilder(nil, Level20GroupDataTableBuilderMixin)
+	tableBuilder:SetDataProvider(IdentityDataProvider)
+	tableBuilder:SetColumnHeaderOverlap(2)
+	tableBuilder:SetHeaderContainer(frame.headerRow)
+
+	tableBuilder:AddUnsortableFillColumn(
+		0,
+		1.0,
+		PLAYER_LEFT_CELL_PADDING,
+		0,
+		L.GROUP_DATA_HEADER_PLAYER,
+		"Level20GroupDataCellTemplate",
+		"name",
+		"LEFT",
+		"GameFontNormal"
+	)
+
+	AddStatusColumn(tableBuilder, ADDON_COLUMN_WIDTH, L.GROUP_DATA_HEADER_ADDON, "addonInstalled")
+	AddStatusColumn(tableBuilder, TIME_COLUMN_WIDTH, L.GROUP_DATA_HEADER_TIME, "timeText")
+	AddStatusColumn(tableBuilder, WAR_MODE_COLUMN_WIDTH, L.GROUP_DATA_HEADER_WAR_MODE, "warModeEnabled")
+	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
+	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_DRAGONLING, "dragonlingEquipped")
+	AddStatusColumn(tableBuilder, COUNT_COLUMN_WIDTH, L.GROUP_DATA_HEADER_UTTS, "uttsCount")
+
+	ScrollUtil.RegisterTableBuilder(frame.ScrollBox, tableBuilder, IdentityDataProvider)
+	frame.tableBuilder = tableBuilder
+	ArrangeGroupDataTable()
+end
+
 local function EnsureGroupDataWindow()
 	if groupDataFrame then
 		return groupDataFrame
 	end
 
 	local frame = CreateFrame("Frame", "Level20GroupDataFrame", UIParent, "DefaultPanelTemplate")
-	frame:SetSize(760, 300)
+	frame:SetSize(WINDOW_WIDTH, WINDOW_HEIGHT)
 	frame:SetPoint("CENTER", UIParent, "CENTER", 120, 0)
 	frame:SetMovable(true)
 	frame:SetClampedToScreen(true)
@@ -256,55 +353,68 @@ local function EnsureGroupDataWindow()
 	refreshButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -32, -32)
 	refreshButton:SetText(REFRESH)
 	refreshButton:SetScript("OnClick", function()
-		addon.UpdateLocalGroupData()
-		addon.BroadcastGroupData(true)
-		addon.RefreshGroupDataWindow()
+		RefreshAndBroadcastLocalGroupData(true)
 	end)
 
-	local headerPlayer = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	headerPlayer:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -38)
-	headerPlayer:SetWidth(120)
-	headerPlayer:SetJustifyH("LEFT")
-	headerPlayer:SetText(L.GROUP_TRINKETS_HEADER_PLAYER)
+	local tableFrame = CreateFrame("Frame", nil, frame)
+	tableFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", TABLE_INSET, -58)
+	tableFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -TABLE_INSET, 14)
 
-	local headerTrinkets = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	headerTrinkets:SetPoint("LEFT", headerPlayer, "RIGHT", 12, 0)
-	headerTrinkets:SetWidth(220)
-	headerTrinkets:SetJustifyH("LEFT")
-	headerTrinkets:SetText(L.GROUP_TRINKETS_HEADER_TRINKET_1 .. " / " .. L.GROUP_TRINKETS_HEADER_TRINKET_2)
+	local headerRow = CreateFrame("Frame", nil, tableFrame)
+	headerRow:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", HEADER_LEFT_INSET, HEADER_TOP_OFFSET)
+	headerRow:SetPoint("TOPRIGHT", tableFrame, "TOPRIGHT", -HEADER_RIGHT_INSET, HEADER_TOP_OFFSET)
+	headerRow:SetHeight(HEADER_HEIGHT)
 
-	local headerItem178769 = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	headerItem178769:SetPoint("LEFT", headerTrinkets, "RIGHT", 16, 0)
-	headerItem178769:SetWidth(70)
-	headerItem178769:SetJustifyH("CENTER")
-	headerItem178769:SetText(L.GROUP_TRINKETS_HEADER_ITEM_178769)
+	local bodyFrame = CreateFrame("Frame", nil, tableFrame, "InsetFrameTemplate")
+	bodyFrame:SetPoint("TOPLEFT", headerRow, "BOTTOMLEFT", -1, BODY_TOP_OFFSET)
+	bodyFrame:SetPoint("BOTTOMRIGHT", tableFrame, "BOTTOMRIGHT", -22, 0)
 
-	local headerItem158379 = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	headerItem158379:SetPoint("LEFT", headerItem178769, "RIGHT", 8, 0)
-	headerItem158379:SetWidth(70)
-	headerItem158379:SetJustifyH("CENTER")
-	headerItem158379:SetText(L.GROUP_TRINKETS_HEADER_ITEM_158379)
+	local scrollBox = CreateFrame("Frame", nil, bodyFrame, "WowScrollBoxList")
+	scrollBox:SetPoint("TOPLEFT", bodyFrame, "TOPLEFT", SCROLLBOX_SIDE_INSET, -SCROLLBOX_TOP_INSET)
+	scrollBox:SetPoint("TOPRIGHT", bodyFrame, "TOPRIGHT", -SCROLLBOX_SIDE_INSET, -SCROLLBOX_TOP_INSET)
+	scrollBox:SetPoint("BOTTOMLEFT", bodyFrame, "BOTTOMLEFT", SCROLLBOX_SIDE_INSET, SCROLLBOX_BOTTOM_INSET)
+	scrollBox:SetPoint("BOTTOMRIGHT", bodyFrame, "BOTTOMRIGHT", -SCROLLBOX_SIDE_INSET, SCROLLBOX_BOTTOM_INSET)
 
-	local scrollFrame = CreateFrame("ScrollFrame", nil, frame, "ScrollFrameTemplate")
-	scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, -58)
-	scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -30, 12)
+	local scrollBar = CreateFrame("EventFrame", nil, tableFrame, "MinimalScrollBar")
+	scrollBar:SetPoint("TOPLEFT", scrollBox, "TOPRIGHT", SCROLLBAR_X_OFFSET, 0)
+	scrollBar:SetPoint("BOTTOMLEFT", scrollBox, "BOTTOMRIGHT", SCROLLBAR_X_OFFSET, SCROLLBAR_BOTTOM_OFFSET)
+	scrollBar:SetHideIfUnscrollable(false)
 
-	local content = CreateFrame("Frame", nil, scrollFrame)
-	content:SetSize(1, 24)
-	scrollFrame:SetScrollChild(content)
-	scrollFrame:SetScript("OnSizeChanged", function(self, width)
-		content:SetWidth(math.max(1, width))
-	end)
-
-	local emptyLabel = content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-	emptyLabel:SetPoint("TOPLEFT", content, "TOPLEFT", 4, -8)
+	local emptyLabel = bodyFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	emptyLabel:SetPoint("TOP", scrollBox, "TOP", 0, -28)
+	emptyLabel:SetPoint("LEFT", scrollBox, "LEFT", 24, 0)
+	emptyLabel:SetPoint("RIGHT", scrollBox, "RIGHT", -24, 0)
 	emptyLabel:SetText(L.GROUP_TRINKETS_EMPTY)
+	emptyLabel:SetTextColor(0.75, 0.75, 0.75)
 
-	frame.content = content
 	frame.emptyLabel = emptyLabel
+	frame.tableFrame = tableFrame
+	frame.bodyFrame = bodyFrame
+	frame.headerRow = headerRow
+	frame.ScrollBox = scrollBox
+	frame.scrollBar = scrollBar
+
+	InitializeGroupDataTable(frame)
+
+	scrollBox:SetScript("OnSizeChanged", function()
+		ArrangeGroupDataTable()
+	end)
+
 	frame:SetScript("OnShow", function()
 		frame:Raise()
+		ArrangeGroupDataTable()
 		addon.RefreshGroupDataWindow()
+		RefreshAndBroadcastLocalGroupData(true)
+		frame.groupDataTicker = C_Timer.NewTicker(1, function()
+			RefreshAndBroadcastLocalGroupData()
+		end)
+	end)
+
+	frame:SetScript("OnHide", function()
+		if frame.groupDataTicker then
+			frame.groupDataTicker:Cancel()
+			frame.groupDataTicker = nil
+		end
 	end)
 
 	if Level20DB.groupDataWindowPoint then
@@ -323,14 +433,28 @@ local function EnsureGroupDataWindow()
 end
 
 local function BuildMessage()
-	local trinket1 = GetEquippedTrinketLink(TRINKET_SLOT_1) or ""
-	local trinket2 = GetEquippedTrinketLink(TRINKET_SLOT_2) or ""
-	local item178769 = tostring(GetTrackedItemCount(WATCHED_ITEM_1))
-	local item158379 = tostring(GetTrackedItemCount(WATCHED_ITEM_2))
-	return table.concat({ MESSAGE_VERSION, trinket1, trinket2, item178769, item158379 }, "\t")
+	return table.concat({
+		MESSAGE_VERSION,
+		EncodeBoolean(IsTrackedTrinketEquipped(OOZE_TRINKET_ITEM_ID)),
+		tostring(GetTrackedItemCount(UTTS_ITEM_ID)),
+		EncodeBoolean(IsTrackedTrinketEquipped(DRAGONLING_TRINKET_ITEM_ID)),
+		BOOL_TRUE,
+		tostring(GetChromieTimeSyncValue()),
+		EncodeBoolean(IsWarModeEnabled()),
+	}, "\t")
 end
 
-local function UpdatePlayerData(fullName, trinket1, trinket2, item178769, item158379)
+RefreshAndBroadcastLocalGroupData = function(force)
+	local message = addon.UpdateLocalGroupData()
+	if not force and message == state.lastLocalMessage then
+		return
+	end
+
+	state.lastLocalMessage = message
+	addon.BroadcastGroupData(force)
+end
+
+local function UpdatePlayerData(fullName, oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled)
 	local playerKey = GetPlayerKey(fullName)
 	if not playerKey then
 		return
@@ -339,10 +463,13 @@ local function UpdatePlayerData(fullName, trinket1, trinket2, item178769, item15
 	state.players[playerKey] = {
 		name = playerKey,
 		displayName = Ambiguate(fullName, "short"),
-		trinket1 = trinket1 ~= "" and trinket1 or nil,
-		trinket2 = trinket2 ~= "" and trinket2 or nil,
-		item178769 = tonumber(item178769) or 0,
-		item158379 = tonumber(item158379) or 0,
+		hasSync = true,
+		oozeEquipped = DecodeBoolean(oozeEquipped),
+		uttsCount = tonumber(uttsCount) or 0,
+		dragonlingEquipped = DecodeBoolean(dragonlingEquipped),
+		addonInstalled = DecodeBoolean(addonInstalled),
+		chromieTimeID = tonumber(chromieTimeID) or -1,
+		warModeEnabled = DecodeBoolean(warModeEnabled),
 	}
 
 	addon.RefreshGroupDataWindow()
@@ -363,8 +490,8 @@ end
 
 function addon.UpdateLocalGroupData()
 	local message = BuildMessage()
-	local _, trinket1, trinket2, item178769, item158379 = strsplit("\t", message, 5)
-	UpdatePlayerData(GetUnitName("player", true), trinket1, trinket2, item178769, item158379)
+	local _, oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled = strsplit("\t", message, 7)
+	UpdatePlayerData(GetUnitName("player", true), oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled)
 	return message
 end
 
@@ -390,12 +517,12 @@ function addon.OnGroupDataMessage(prefix, message, _, sender)
 		return
 	end
 
-	local version, trinket1, trinket2, item178769, item158379 = strsplit("\t", message or "", 5)
+	local version, oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled = strsplit("\t", message or "", 7)
 	if version ~= MESSAGE_VERSION then
 		return
 	end
 
-	UpdatePlayerData(sender, trinket1, trinket2, item178769, item158379)
+	UpdatePlayerData(sender, oozeEquipped, uttsCount, dragonlingEquipped, addonInstalled, chromieTimeID, warModeEnabled)
 end
 
 function addon.RefreshGroupDataWindow()
@@ -403,9 +530,7 @@ function addon.RefreshGroupDataWindow()
 end
 
 function addon.ShowGroupDataWindow()
-	addon.UpdateLocalGroupData()
 	EnsureGroupDataWindow():Show()
-	addon.BroadcastGroupData(true)
 end
 
 function addon.ToggleGroupDataWindow()
