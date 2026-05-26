@@ -300,6 +300,9 @@ local function PatchCompletionBannerForPlayback(banner, completionInfo)
 		ReanchorPartyMembers(self.PartyMembers, self.Title, partyMemberDistance, #unitTokens)
 
 		self:Show()
+		if PlaySound and SOUNDKIT and SOUNDKIT.UI_70_CHALLENGE_MODE_KEYSTONE_UPGRADE then
+			PlaySound(SOUNDKIT.UI_70_CHALLENGE_MODE_KEYSTONE_UPGRADE)
+		end
 		self.AnimIn:Play()
 
 		for index, unitToken in ipairs(unitTokens) do
@@ -328,7 +331,15 @@ function challenge.ShowCompletionBanner(completionInfo)
 	end
 
 	banner = PatchCompletionBannerForPlayback(banner, resolvedCompletionInfo)
-	banner:PlayBanner(resolvedCompletionInfo)
+
+	-- Use Blizzard's shared top-banner queue so our completion banner waits for
+	-- boss defeat and encounter loot toasts instead of overlapping them.
+	if TopBannerManager_Show then
+		TopBannerManager_Show(banner, resolvedCompletionInfo)
+	else
+		banner:PlayBanner(resolvedCompletionInfo)
+	end
+
 	return true
 end
 
