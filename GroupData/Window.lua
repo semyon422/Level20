@@ -30,6 +30,14 @@ local function GetBooleanDisplay(value)
 	return value and "+" or "-"
 end
 
+local function GetDisplayValue(data, field, formatter)
+	if not data.hasSync or data[field] == nil then
+		return UNKNOWN_VALUE
+	end
+
+	return formatter(data[field])
+end
+
 local function IdentityDataProvider(rowData)
 	return rowData
 end
@@ -70,12 +78,17 @@ local function BuildRows()
 		rows[index] = {
 			index = index,
 			name = data.displayName or data.name or L.UNKNOWN,
-			oozeEquipped = data.hasSync and GetBooleanDisplay(data.oozeEquipped) or UNKNOWN_VALUE,
-			uttsCount = data.hasSync and tostring(data.uttsCount or 0) or UNKNOWN_VALUE,
-			dragonlingEquipped = data.hasSync and GetBooleanDisplay(data.dragonlingEquipped) or UNKNOWN_VALUE,
-			addonVersion = data.hasSync and (data.addonVersion or "v?") or UNKNOWN_VALUE,
+			addonVersion = GetDisplayValue(data, "addonVersion", function(value)
+				return value or "v?"
+			end),
 			timeText = data.unit and groupData.GetChromieTimeTextFromID(chromieTimeID or 0) or UNKNOWN_VALUE,
-			warModeEnabled = data.hasSync and GetBooleanDisplay(data.warModeEnabled) or UNKNOWN_VALUE,
+			warModeEnabled = GetDisplayValue(data, "warModeEnabled", GetBooleanDisplay),
+			oozeEquipped = GetDisplayValue(data, "oozeEquipped", GetBooleanDisplay),
+			dragonlingEquipped = GetDisplayValue(data, "dragonlingEquipped", GetBooleanDisplay),
+			uttsCount = GetDisplayValue(data, "uttsCount", function(value)
+				return tostring(value or 0)
+			end),
+			amberOwned = GetDisplayValue(data, "amberOwned", GetBooleanDisplay),
 			isPlayer = data.name == playerKey,
 		}
 	end
@@ -122,6 +135,7 @@ local function InitializeTable(window)
 	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
 	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_DRAGONLING, "dragonlingEquipped")
 	AddStatusColumn(tableBuilder, COUNT_COLUMN_WIDTH, L.GROUP_DATA_HEADER_UTTS, "uttsCount")
+	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_AMBER, "amberOwned")
 
 	ScrollUtil.RegisterTableBuilder(window.ScrollBox, tableBuilder, IdentityDataProvider)
 	window.tableBuilder = tableBuilder

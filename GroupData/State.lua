@@ -33,10 +33,11 @@ function groupData.StorePlayerData(fullName, payload)
 		name = playerKey,
 		displayName = Ambiguate(fullName, "short"),
 		hasSync = true,
-		oozeEquipped = payload.oozeEquipped and true or false,
-		uttsCount = tonumber(payload.uttsCount) or 0,
-		dragonlingEquipped = payload.dragonlingEquipped and true or false,
-		addonVersion = payload.addonVersion ~= "" and payload.addonVersion or "v?",
-		warModeEnabled = payload.warModeEnabled and true or false,
+		addonVersion = payload.addon,
+		warModeEnabled = payload.wm,
+		oozeEquipped = payload.ooze,
+		dragonlingEquipped = payload.dragon,
+		uttsCount = payload.utts,
+		amberOwned = payload.amber,
 	}
 end

@@ -20,6 +20,7 @@ GroupData/Namespace.lua
 GroupData/TableTemplates.lua
 GroupData/TableTemplates.xml
 GroupData/State.lua
+GroupData/Serializer.lua
 GroupData/Protocol.lua
 GroupData/Roster.lua
 GroupData/Window.lua

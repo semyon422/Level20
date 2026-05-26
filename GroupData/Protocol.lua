@@ -2,22 +2,14 @@ local _, addon = ...
 local L = addon.L
 
 local groupData = addon.GroupData
+local serializer = groupData.Serializer
 
 local COMM_PREFIX = "L20TRK"
-local MESSAGE_VERSION = "6"
+local MESSAGE_FORMAT_VERSION = "1"
+local AMBER_ITEM_ID = 86577
 local OOZE_TRINKET_ITEM_ID = 178769
 local UTTS_ITEM_ID = 158379
 local DRAGONLING_TRINKET_ITEM_ID = 77530
-local BOOL_TRUE = "1"
-local BOOL_FALSE = "0"
-
-local function EncodeBoolean(value)
-	return value and BOOL_TRUE or BOOL_FALSE
-end
-
-local function DecodeBoolean(value)
-	return value == BOOL_TRUE
-end
 
 local function IsTrackedTrinketEquipped(itemID)
 	if not itemID then
@@ -91,23 +83,17 @@ end
 
 function groupData.BuildLocalPayload()
 	return {
-		oozeEquipped = IsTrackedTrinketEquipped(OOZE_TRINKET_ITEM_ID),
-		uttsCount = GetTrackedItemCount(UTTS_ITEM_ID),
-		dragonlingEquipped = IsTrackedTrinketEquipped(DRAGONLING_TRINKET_ITEM_ID),
-		addonVersion = GetAddonVersionText(),
-		warModeEnabled = IsWarModeEnabled(),
+		addon = GetAddonVersionText(),
+		wm = IsWarModeEnabled(),
+		ooze = IsTrackedTrinketEquipped(OOZE_TRINKET_ITEM_ID),
+		dragon = IsTrackedTrinketEquipped(DRAGONLING_TRINKET_ITEM_ID),
+		utts = GetTrackedItemCount(UTTS_ITEM_ID),
+		amber = GetTrackedItemCount(AMBER_ITEM_ID) > 0,
 	}
 end
 
 function groupData.SerializePayload(payload)
-	return table.concat({
-		MESSAGE_VERSION,
-		EncodeBoolean(payload.oozeEquipped),
-		tostring(payload.uttsCount or 0),
-		EncodeBoolean(payload.dragonlingEquipped),
-		payload.addonVersion or "v?",
-		EncodeBoolean(payload.warModeEnabled),
-	}, "\t")
+	return MESSAGE_FORMAT_VERSION .. "\t" .. serializer.Serialize(payload)
 end
 
 function groupData.BuildLocalMessage()
@@ -115,17 +101,30 @@ function groupData.BuildLocalMessage()
 	return groupData.SerializePayload(payload), payload
 end
 
-function groupData.ParseMessage(message)
-	local version, oozeEquipped, uttsCount, dragonlingEquipped, addonVersion, warModeEnabled = strsplit("\t", message or "", 6)
-	if version ~= MESSAGE_VERSION then
+local function CreateEmptyPayload()
+	return {}
+end
+
+local function ParseTypedMessage(message)
+	local payload = CreateEmptyPayload()
+	local version, serializedPayload = strsplit("\t", message or "", 2)
+
+	if version ~= MESSAGE_FORMAT_VERSION then
 		return nil
 	end
 
-	return {
-		oozeEquipped = DecodeBoolean(oozeEquipped),
-		uttsCount = tonumber(uttsCount) or 0,
-		dragonlingEquipped = DecodeBoolean(dragonlingEquipped),
-		addonVersion = addonVersion ~= "" and addonVersion or "v?",
-		warModeEnabled = DecodeBoolean(warModeEnabled),
-	}
+	local fields = serializer.Deserialize(serializedPayload or "")
+	for key, value in pairs(fields) do
+		payload[key] = value
+	end
+
+	return payload
+end
+
+function groupData.ParseMessage(message)
+	if type(message) ~= "string" or message == "" then
+		return nil
+	end
+
+	return ParseTypedMessage(message)
 end
