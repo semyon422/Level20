@@ -126,8 +126,7 @@ local accountTypeRow = CreateInfoRow(infoPanel, L.ACCOUNT_TYPE)
 local subscriptionRow = CreateInfoRow(infoPanel, L.SUBSCRIPTION, accountTypeRow)
 local xpGainRow = CreateInfoRow(infoPanel, L.XP_GAIN, subscriptionRow)
 local chromieTimeRow = CreateInfoRow(infoPanel, L.CHROMIE_TIME, xpGainRow)
-local warModeRow = CreateInfoRow(infoPanel, L.WAR_MODE, chromieTimeRow)
-local shadowlandsRow = CreateInfoRow(infoPanel, L.SHADOWLANDS_STATE, warModeRow)
+local shadowlandsRow = CreateInfoRow(infoPanel, L.SHADOWLANDS_STATE, chromieTimeRow)
 
 local versionStatusLabel = infoPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 versionStatusLabel:SetPoint("TOPRIGHT", infoPanel, "TOPRIGHT", 0, 0)
@@ -235,15 +234,10 @@ local function GetXPGainText()
 end
 
 local function GetChromieTimeText()
-	return addon.GroupData and addon.GroupData.GetChromieTimeText and addon.GroupData.GetChromieTimeText() or L.UNKNOWN
-end
-
-local function GetWarModeText()
-	if C_PvP and C_PvP.IsWarModeDesired and C_PvP.IsWarModeDesired() then
-		return L.STATE_ENABLED
-	end
-
-	return L.STATE_DISABLED
+	local chromieText = addon.GroupData and addon.GroupData.GetChromieTimeText and addon.GroupData.GetChromieTimeText() or L.UNKNOWN
+	local warModeEnabled = C_PvP and C_PvP.IsWarModeDesired and C_PvP.IsWarModeDesired() or false
+	local lorewalkingActive = addon.IsLorewalkingActive and addon.IsLorewalkingActive() or false
+	return addon.GroupData and addon.GroupData.FormatChromieStatusText and addon.GroupData.FormatChromieStatusText(chromieText, warModeEnabled, lorewalkingActive) or chromieText
 end
 
 function addon.RefreshInfoPanel()
@@ -251,7 +245,6 @@ function addon.RefreshInfoPanel()
 	subscriptionRow.value:SetText(GetSubscriptionText())
 	xpGainRow.value:SetText(GetXPGainText())
 	chromieTimeRow.value:SetText(GetChromieTimeText())
-	warModeRow.value:SetText(GetWarModeText())
 	shadowlandsRow.value:SetText(addon.GetShadowlandsStateText())
 	versionStatusLabel:SetText(addon.GetVersionStatusText and addon.GetVersionStatusText() or L.UNKNOWN)
 

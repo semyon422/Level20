@@ -35,6 +35,7 @@ function groupData.StorePlayerData(fullName, payload)
 		hasSync = true,
 		addonVersion = payload.addon,
 		warModeEnabled = payload.wm,
+		lorewalkingActive = payload.lw,
 		oozeEquipped = payload.ooze,
 		dragonlingEquipped = payload.dragon,
 		uttsCount = payload.utts,

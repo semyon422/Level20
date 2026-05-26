@@ -77,6 +77,24 @@ local function IsWarModeEnabled()
 	return C_PvP and C_PvP.IsWarModeDesired and C_PvP.IsWarModeDesired() or false
 end
 
+local function IsLorewalkingEnabled()
+	return addon.IsLorewalkingActive and addon.IsLorewalkingActive() or false
+end
+
+function groupData.FormatChromieStatusText(chromieText, warModeEnabled, lorewalkingActive)
+	local text = chromieText or L.UNKNOWN
+
+	if warModeEnabled then
+		text = text .. " + WM"
+	end
+
+	if lorewalkingActive then
+		text = text .. " + LW"
+	end
+
+	return text
+end
+
 function groupData.GetCommPrefix()
 	return COMM_PREFIX
 end
@@ -85,6 +103,7 @@ function groupData.BuildLocalPayload()
 	return {
 		addon = GetAddonVersionText(),
 		wm = IsWarModeEnabled(),
+		lw = IsLorewalkingEnabled(),
 		ooze = IsTrackedTrinketEquipped(OOZE_TRINKET_ITEM_ID),
 		dragon = IsTrackedTrinketEquipped(DRAGONLING_TRINKET_ITEM_ID),
 		utts = GetTrackedItemCount(UTTS_ITEM_ID),

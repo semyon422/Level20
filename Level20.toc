@@ -16,6 +16,7 @@ CharacterInfo.lua
 ShadowlandsInfo.lua
 ShadowlandsProtection.lua
 VersionCheck.lua
+Lorewalking.lua
 GroupData/Namespace.lua
 GroupData/TableTemplates.lua
 GroupData/TableTemplates.xml

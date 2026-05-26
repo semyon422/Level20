@@ -10,8 +10,7 @@ local HEADER_HEIGHT = 19
 local TRINKET_COLUMN_WIDTH = 72
 local COUNT_COLUMN_WIDTH = 72
 local ADDON_COLUMN_WIDTH = 72
-local TIME_COLUMN_WIDTH = 140
-local WAR_MODE_COLUMN_WIDTH = 56
+local TIME_COLUMN_WIDTH = 196
 local HEADER_LEFT_INSET = 4
 local HEADER_RIGHT_INSET = 26
 local HEADER_TOP_OFFSET = -1
@@ -75,14 +74,14 @@ local function BuildRows()
 	local rows = {}
 	for index, data in ipairs(players) do
 		local chromieTimeID = data.unit and UnitChromieTimeID(data.unit) or nil
+		local baseChromieText = data.unit and groupData.GetChromieTimeTextFromID(chromieTimeID or 0) or UNKNOWN_VALUE
 		rows[index] = {
 			index = index,
 			name = data.displayName or data.name or L.UNKNOWN,
 			addonVersion = GetDisplayValue(data, "addonVersion", function(value)
 				return value or "v?"
 			end),
-			timeText = data.unit and groupData.GetChromieTimeTextFromID(chromieTimeID or 0) or UNKNOWN_VALUE,
-			warModeEnabled = GetDisplayValue(data, "warModeEnabled", GetBooleanDisplay),
+			timeText = groupData.FormatChromieStatusText(baseChromieText, data.warModeEnabled, data.lorewalkingActive),
 			oozeEquipped = GetDisplayValue(data, "oozeEquipped", GetBooleanDisplay),
 			dragonlingEquipped = GetDisplayValue(data, "dragonlingEquipped", GetBooleanDisplay),
 			uttsCount = GetDisplayValue(data, "uttsCount", function(value)
@@ -131,7 +130,6 @@ local function InitializeTable(window)
 
 	AddStatusColumn(tableBuilder, ADDON_COLUMN_WIDTH, L.GROUP_DATA_HEADER_ADDON, "addonVersion")
 	AddStatusColumn(tableBuilder, TIME_COLUMN_WIDTH, L.GROUP_DATA_HEADER_TIME, "timeText")
-	AddStatusColumn(tableBuilder, WAR_MODE_COLUMN_WIDTH, L.GROUP_DATA_HEADER_WAR_MODE, "warModeEnabled")
 	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
 	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_DRAGONLING, "dragonlingEquipped")
 	AddStatusColumn(tableBuilder, COUNT_COLUMN_WIDTH, L.GROUP_DATA_HEADER_UTTS, "uttsCount")
