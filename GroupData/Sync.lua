@@ -80,8 +80,10 @@ function groupData.Initialize()
 	end
 
 	C_ChatInfo.RegisterAddonMessagePrefix(groupData.GetCommPrefix())
+	groupData.LoadPlayersFromDB()
 	groupData.state.initialized = true
 	groupData.state.syncTicker = C_Timer.NewTicker(1, function()
 		groupData.RefreshAndBroadcast()
 	end)
+	groupData.RefreshWindow()
 end

@@ -70,6 +70,7 @@ addon.LEVEL_CAP = 20
 ---@field groupDataWindowRelativePoint string?
 ---@field groupDataWindowXOfs number?
 ---@field groupDataWindowYOfs number?
+---@field groupDataPlayers table<string, table>?
 
 ---@type Level20DB
 Level20DB = Level20DB or {}
@@ -92,6 +93,7 @@ local defaultSettings = {
 		characters = {},
 		defaultIcon = "Interface/Icons/Inv_misc_bag_08",
 	},
+	groupDataPlayers = {},
 	lastSeenRemoteVersion = nil,
 	lastSeenRemoteVersionSource = nil,
 }
