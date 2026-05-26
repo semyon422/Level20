@@ -9,6 +9,7 @@ function groupData.BuildRosterOrder()
 		players[#players + 1] = {
 			key = groupData.GetPlayerKey(GetUnitName("player", true)),
 			displayName = GetUnitName("player", false),
+			unit = "player",
 		}
 	end
 
@@ -19,6 +20,7 @@ function groupData.BuildRosterOrder()
 				players[#players + 1] = {
 					key = groupData.GetPlayerKey(GetUnitName(unit, true)),
 					displayName = GetUnitName(unit, false),
+					unit = unit,
 				}
 			end
 		end
@@ -29,6 +31,7 @@ function groupData.BuildRosterOrder()
 				players[#players + 1] = {
 					key = groupData.GetPlayerKey(GetUnitName(unit, true)),
 					displayName = GetUnitName(unit, false),
+					unit = unit,
 				}
 			end
 		end
@@ -54,6 +57,8 @@ function groupData.GetSortedPlayers()
 			name = rosterEntry.key,
 			displayName = rosterEntry.displayName,
 		}
+
+		results[#results].unit = rosterEntry.unit
 	end
 
 	table.sort(results, function(left, right)

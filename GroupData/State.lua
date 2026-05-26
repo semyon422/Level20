@@ -37,7 +37,6 @@ function groupData.StorePlayerData(fullName, payload)
 		uttsCount = tonumber(payload.uttsCount) or 0,
 		dragonlingEquipped = payload.dragonlingEquipped and true or false,
 		addonVersion = payload.addonVersion ~= "" and payload.addonVersion or "v?",
-		chromieTimeID = tonumber(payload.chromieTimeID) or -1,
 		warModeEnabled = payload.warModeEnabled and true or false,
 	}
 end

@@ -4,7 +4,7 @@ local L = addon.L
 local groupData = addon.GroupData
 
 local COMM_PREFIX = "L20TRK"
-local MESSAGE_VERSION = "5"
+local MESSAGE_VERSION = "6"
 local OOZE_TRINKET_ITEM_ID = 178769
 local UTTS_ITEM_ID = 158379
 local DRAGONLING_TRINKET_ITEM_ID = 77530
@@ -81,15 +81,6 @@ function groupData.GetChromieTimeText()
 	return groupData.GetChromieTimeTextFromID(chromieTimeID)
 end
 
-local function GetChromieTimeSyncValue()
-	if not C_PlayerInfo or not C_PlayerInfo.IsPlayerInChromieTime or not C_PlayerInfo.IsPlayerInChromieTime() then
-		return 0
-	end
-
-	local chromieTimeID = UnitChromieTimeID("player")
-	return chromieTimeID or -1
-end
-
 local function IsWarModeEnabled()
 	return C_PvP and C_PvP.IsWarModeDesired and C_PvP.IsWarModeDesired() or false
 end
@@ -104,7 +95,6 @@ function groupData.BuildLocalPayload()
 		uttsCount = GetTrackedItemCount(UTTS_ITEM_ID),
 		dragonlingEquipped = IsTrackedTrinketEquipped(DRAGONLING_TRINKET_ITEM_ID),
 		addonVersion = GetAddonVersionText(),
-		chromieTimeID = GetChromieTimeSyncValue(),
 		warModeEnabled = IsWarModeEnabled(),
 	}
 end
@@ -116,7 +106,6 @@ function groupData.SerializePayload(payload)
 		tostring(payload.uttsCount or 0),
 		EncodeBoolean(payload.dragonlingEquipped),
 		payload.addonVersion or "v?",
-		tostring(payload.chromieTimeID or -1),
 		EncodeBoolean(payload.warModeEnabled),
 	}, "\t")
 end
@@ -127,7 +116,7 @@ function groupData.BuildLocalMessage()
 end
 
 function groupData.ParseMessage(message)
-	local version, oozeEquipped, uttsCount, dragonlingEquipped, addonVersion, chromieTimeID, warModeEnabled = strsplit("\t", message or "", 7)
+	local version, oozeEquipped, uttsCount, dragonlingEquipped, addonVersion, warModeEnabled = strsplit("\t", message or "", 6)
 	if version ~= MESSAGE_VERSION then
 		return nil
 	end
@@ -137,7 +126,6 @@ function groupData.ParseMessage(message)
 		uttsCount = tonumber(uttsCount) or 0,
 		dragonlingEquipped = DecodeBoolean(dragonlingEquipped),
 		addonVersion = addonVersion ~= "" and addonVersion or "v?",
-		chromieTimeID = tonumber(chromieTimeID) or -1,
 		warModeEnabled = DecodeBoolean(warModeEnabled),
 	}
 end

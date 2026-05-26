@@ -66,6 +66,7 @@ local function BuildRows()
 	local playerKey = groupData.GetPlayerKey(GetUnitName("player", true))
 	local rows = {}
 	for index, data in ipairs(players) do
+		local chromieTimeID = data.unit and UnitChromieTimeID(data.unit) or nil
 		rows[index] = {
 			index = index,
 			name = data.displayName or data.name or L.UNKNOWN,
@@ -73,7 +74,7 @@ local function BuildRows()
 			uttsCount = data.hasSync and tostring(data.uttsCount or 0) or UNKNOWN_VALUE,
 			dragonlingEquipped = data.hasSync and GetBooleanDisplay(data.dragonlingEquipped) or UNKNOWN_VALUE,
 			addonVersion = data.hasSync and (data.addonVersion or "v?") or UNKNOWN_VALUE,
-			timeText = data.hasSync and groupData.GetChromieTimeTextFromID(data.chromieTimeID) or UNKNOWN_VALUE,
+			timeText = data.unit and groupData.GetChromieTimeTextFromID(chromieTimeID or 0) or UNKNOWN_VALUE,
 			warModeEnabled = data.hasSync and GetBooleanDisplay(data.warModeEnabled) or UNKNOWN_VALUE,
 			isPlayer = data.name == playerKey,
 		}
