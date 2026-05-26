@@ -63,6 +63,20 @@ local function CheckGroupDeathState(unit, eventName)
 	end
 end
 
+local function CheckGroupCombatState(unit)
+	if not addon.DungeonChallenge.ShouldUse() then
+		return
+	end
+
+	if not IsTrackedGroupUnit(unit) or not UnitExists(unit) or not UnitIsPlayer(unit) then
+		return
+	end
+
+	if UnitAffectingCombat(unit) then
+		addon.DungeonChallenge.startTimer()
+	end
+end
+
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ADDON_LOADED")
@@ -202,6 +216,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.DungeonChallenge.startTimer()
 	elseif event == "UNIT_FLAGS" then
 		local unit = ...
+		CheckGroupCombatState(unit)
 		CheckGroupDeathState(unit, event)
 		if IsTrackedGroupUnit(unit) then
 			addon.DungeonChallenge.RefreshBattleResDisplay()
