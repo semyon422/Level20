@@ -4,6 +4,38 @@ local challenge = addon.DungeonChallenge
 local constants = challenge.constants
 local state = challenge.state
 
+local function GetRunStore()
+	Level20DB.dungeonChallengeRuns = Level20DB.dungeonChallengeRuns or {}
+	return Level20DB.dungeonChallengeRuns
+end
+
+function challenge.GetCurrentDungeonKey()
+	local status = challenge.GetStatus and challenge.GetStatus() or nil
+	if not status then
+		return state.activeRunRecordKey
+	end
+
+	local instanceType = status.instanceType or "unknown"
+	local instanceID = tonumber(status.instanceID)
+	local lfgDungeonID = tonumber(status.lfgDungeonID)
+	local name = status.name
+
+	local key
+	if instanceID and instanceID > 0 then
+		key = string.format("instance:%s:%d", instanceType, instanceID)
+	elseif lfgDungeonID and lfgDungeonID > 0 then
+		key = string.format("lfg:%s:%d", instanceType, lfgDungeonID)
+	elseif name and name ~= "" then
+		key = string.format("name:%s:%s", instanceType, name)
+	end
+
+	if key then
+		state.activeRunRecordKey = key
+	end
+
+	return key or state.activeRunRecordKey
+end
+
 function challenge.GetCurrentServerTime()
 	if GetServerTime then
 		return GetServerTime()
@@ -13,8 +45,14 @@ function challenge.GetCurrentServerTime()
 end
 
 function challenge.GetRunRecord()
-	Level20DB.dungeonChallengeTimer = Level20DB.dungeonChallengeTimer or {}
-	return Level20DB.dungeonChallengeTimer
+	local store = GetRunStore()
+	local dungeonKey = challenge.GetCurrentDungeonKey()
+	if not dungeonKey then
+		return nil
+	end
+
+	store[dungeonKey] = store[dungeonKey] or {}
+	return store[dungeonKey]
 end
 
 function challenge.GetEncounterCompletionTimes(run)
@@ -46,7 +84,14 @@ end
 
 function challenge.ClearRunRecord()
 	challenge.CancelCompletionBannerTimer()
-	Level20DB.dungeonChallengeTimer = {}
+
+	local store = GetRunStore()
+	local dungeonKey = challenge.GetCurrentDungeonKey()
+	if not dungeonKey then
+		return
+	end
+
+	store[dungeonKey] = {}
 end
 
 function challenge.ResetTimerState()

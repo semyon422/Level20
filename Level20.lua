@@ -38,10 +38,11 @@ addon.LEVEL_CAP = 20
 ---@field flags integer?
 ---@field assetID integer?
 
----@class Level20DungeonChallengeTimer
+---@class Level20DungeonChallengeRun
 ---@field startedAt integer?
 ---@field completedAt integer?
 ---@field completedElapsed integer?
+---@field deathCount integer?
 ---@field completionBannerShown boolean?
 ---@field encounterCompletionTimes {[string]: integer}?
 ---@field encounterCriteriaSnapshot Level20DungeonChallengeCriteria[]?
@@ -57,7 +58,7 @@ addon.LEVEL_CAP = 20
 ---@field debugPlayerMarks boolean
 ---@field debugCompletionBannerPlayerCount integer
 ---@field minimapButtonAngle number
----@field dungeonChallengeTimer Level20DungeonChallengeTimer
+---@field dungeonChallengeRuns {[string]: Level20DungeonChallengeRun}
 ---@field bagFolders Level20BagFoldersDB
 ---@field windowPoint string?
 ---@field windowRelativePoint string?
@@ -85,7 +86,7 @@ local defaultSettings = {
 	debugPlayerMarks = false,
 	debugCompletionBannerPlayerCount = 5,
 	minimapButtonAngle = 195,
-	dungeonChallengeTimer = {},
+	dungeonChallengeRuns = {},
 	bagFolders = {
 		enabled = false,
 		characters = {},
