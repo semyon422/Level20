@@ -50,6 +50,7 @@ local function ApplyFakeChallengeModeState(challengeBlock, elapsedTime, timeLimi
 		return
 	end
 
+	challenge.EnsureBattleResFrame(challengeBlock)
 	challenge.EnsureRaidSizeFrame(challengeBlock)
 	challengeBlock.timerID = constants.FAKE_TIMER_ID
 	challengeBlock.timeLimit = timeLimit
@@ -60,6 +61,7 @@ local function ApplyFakeChallengeModeState(challengeBlock, elapsedTime, timeLimi
 	challengeBlock.TimesUpLootStatus:Hide()
 	challengeBlock:SetUpAffixes({})
 	challenge.UpdateDeathCountFrame(challengeBlock)
+	challenge.UpdateBattleResFrame(challengeBlock)
 	challenge.UpdateRaidSizeFrame(challengeBlock)
 
 	local statusBar = challengeBlock.StatusBar
@@ -219,7 +221,9 @@ function challenge.UpdateRaidSizeFrameLayout(block)
 	end
 
 	raidSizeFrame:ClearAllPoints()
-	if block.DeathCount and block.DeathCount:IsShown() then
+	if block.BattleRes and block.BattleRes:IsShown() then
+		raidSizeFrame:SetPoint("RIGHT", block.BattleRes, "LEFT", -4, 0)
+	elseif block.DeathCount and block.DeathCount:IsShown() then
 		raidSizeFrame:SetPoint("RIGHT", block.DeathCount, "LEFT", -2, 0)
 	else
 		raidSizeFrame:SetPoint("TOPRIGHT", block, "BOTTOMRIGHT", -24, 43)
@@ -255,6 +259,7 @@ function challenge.UpdateDeathCountFrame(block)
 	deathCount:Show()
 	deathCount.Count:SetText(count)
 
+	challenge.UpdateBattleResFrameLayout(block)
 	challenge.UpdateRaidSizeFrameLayout(block)
 end
 
@@ -453,6 +458,7 @@ function challenge.ActivateBlizzardBlock()
 	end
 
 	challenge.UpdateDeathCountFrame(block)
+	challenge.UpdateBattleResFrame(block)
 	challenge.UpdateRaidSizeFrame(block)
 
 	if InCombatLockdown and InCombatLockdown() then

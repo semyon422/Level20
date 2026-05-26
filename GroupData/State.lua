@@ -40,5 +40,7 @@ function groupData.StorePlayerData(fullName, payload)
 		dragonlingEquipped = payload.dragon,
 		uttsCount = payload.utts,
 		amberOwned = payload.amber,
+		classBattleResCooldownEndTime = payload.brce,
+		itemBattleResCooldownEndTime = payload.brie,
 	}
 end

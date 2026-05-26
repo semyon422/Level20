@@ -100,6 +100,8 @@ function groupData.GetCommPrefix()
 end
 
 function groupData.BuildLocalPayload()
+	local battleResPayload = addon.DungeonChallenge and addon.DungeonChallenge.GetBattleResSyncPayload and addon.DungeonChallenge.GetBattleResSyncPayload() or {}
+
 	return {
 		addon = GetAddonVersionText(),
 		wm = IsWarModeEnabled(),
@@ -108,6 +110,8 @@ function groupData.BuildLocalPayload()
 		dragon = IsTrackedTrinketEquipped(DRAGONLING_TRINKET_ITEM_ID),
 		utts = GetTrackedItemCount(UTTS_ITEM_ID),
 		amber = GetTrackedItemCount(AMBER_ITEM_ID) > 0,
+		brce = battleResPayload.brce or 0,
+		brie = battleResPayload.brie or 0,
 	}
 end
 

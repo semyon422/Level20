@@ -87,6 +87,10 @@ L.DUNGEON_CHALLENGE_COMPLETION_ERROR = "|cffff5a5aLevel20|r ошибка бан�
 L.DUNGEON_CHALLENGE_COMPLETION_FINISHED = "Подземелье завершено!"
 L.DUNGEON_CHALLENGE_COMPLETION_RAID_FINISHED = "Рейд завершен!"
 L.DUNGEON_CHALLENGE_COMPLETION_TIME_VALUE = "Время забега: %s"
+L.DUNGEON_CHALLENGE_BATTLE_RES_TITLE = "Боевое воскрешение: %d/%d"
+L.DUNGEON_CHALLENGE_BATTLE_RES_CLASS = "Классовый БР: %d/%d"
+L.DUNGEON_CHALLENGE_BATTLE_RES_ITEM = "Инженерный БР: %d/%d"
+L.DUNGEON_CHALLENGE_BATTLE_RES_READY = "Следующий готов через: %s"
 L.DEBUG_COMPLETION_BANNER_PLAYERS_LABEL = "Игроки в баннере завершения"
 L.DEBUG_SHOW_COMPLETION_BANNER = "Показать тестовый баннер"
 

@@ -78,6 +78,7 @@ eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_CRITERIA_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_UPDATE")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+eventFrame:RegisterEvent("PLAYER_ALIVE")
 eventFrame:RegisterEvent("ENCOUNTER_END")
 eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
@@ -87,6 +88,7 @@ eventFrame:RegisterEvent("PLAYER_MONEY")
 eventFrame:RegisterEvent("ENABLE_XP_GAIN")
 eventFrame:RegisterEvent("DISABLE_XP_GAIN")
 eventFrame:RegisterEvent("CHAT_MSG_ADDON")
+eventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
 eventFrame:RegisterEvent("WAR_MODE_STATUS_UPDATE")
@@ -130,6 +132,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 	elseif event == "CHAT_MSG_ADDON" then
 		addon.OnVersionCheckMessage(...)
 		addon.GroupData.HandleMessage(...)
+		addon.DungeonChallenge.RefreshBattleResDisplay()
 	elseif event == "TRAIT_CONFIG_UPDATED"
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED"
@@ -160,11 +163,20 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_ENTERING_WORLD"
 		or event == "GROUP_ROSTER_UPDATE" then
 		RefreshTrackedGroupDeathState()
+		addon.DungeonChallenge.RefreshBattleResDisplay()
 	end
 
 	if event == "GROUP_ROSTER_UPDATE" then
 		addon.BroadcastVersionCheck()
 		RefreshAndBroadcastGroupData(true)
+	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+		local unit, _, spellID = ...
+		if addon.DungeonChallenge.RecordBattleResCast(unit, spellID) then
+			if unit == "player" then
+				addon.GroupData.RefreshAndBroadcast(true)
+			end
+			addon.DungeonChallenge.RefreshBattleResDisplay()
+		end
 	elseif event == "PLAYER_EQUIPMENT_CHANGED"
 		or event == "BAG_UPDATE_DELAYED"
 		or event == "WAR_MODE_STATUS_UPDATE" then
@@ -173,6 +185,10 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 			DelayedRefreshAndBroadcastGroupData(true, 1)
 		else
 			RefreshAndBroadcastGroupData()
+		end
+
+		if event == "PLAYER_EQUIPMENT_CHANGED" or event == "BAG_UPDATE_DELAYED" then
+			addon.DungeonChallenge.RefreshBattleResDisplay()
 		end
 	elseif event == "UNIT_PHASE" then
 		local unit = ...
@@ -187,6 +203,9 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 	elseif event == "UNIT_FLAGS" then
 		local unit = ...
 		CheckGroupDeathState(unit, event)
+		if IsTrackedGroupUnit(unit) then
+			addon.DungeonChallenge.RefreshBattleResDisplay()
+		end
 	elseif event == "ENCOUNTER_END" then
 		local _, _, _, _, success = ...
 		if success == 1 then
@@ -198,8 +217,12 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED"
 		or event == "ENABLE_XP_GAIN"
-		or event == "DISABLE_XP_GAIN" then
+		or event == "DISABLE_XP_GAIN"
+		or event == "PLAYER_ALIVE" then
 		addon.RefreshXPWarning()
+		if event == "PLAYER_ALIVE" then
+			addon.DungeonChallenge.RefreshBattleResDisplay()
+		end
 	end
 
 	if event == "PLAYER_ENTERING_WORLD" then
