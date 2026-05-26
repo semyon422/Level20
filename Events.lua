@@ -5,8 +5,7 @@ local eventFrame = CreateFrame("Frame")
 local trackedGroupDeathState = {}
 
 local function RefreshAndBroadcastGroupData(force)
-	addon.UpdateLocalGroupData()
-	addon.BroadcastGroupData(force)
+	addon.GroupData.RefreshAndBroadcast(force)
 end
 
 local function DelayedRefreshAndBroadcastGroupData(force, delaySeconds)
@@ -106,9 +105,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.DungeonChallenge.refresh()
 		addon.InitializeVersionCheck()
 		addon.BroadcastVersionCheck(true)
-		addon.InitializeGroupDataSync()
-		addon.UpdateLocalGroupData()
-		addon.BroadcastGroupData(true)
+		addon.GroupData.Initialize()
+		addon.GroupData.RefreshAndBroadcast(true)
 		addon.RefreshShadowlandsProtection()
 		addon.InstallShadowlandsProtection()
 		addon.InstallTalentFilter()
@@ -131,7 +129,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.InstallShadowlandsProtection()
 	elseif event == "CHAT_MSG_ADDON" then
 		addon.OnVersionCheckMessage(...)
-		addon.OnGroupDataMessage(...)
+		addon.GroupData.HandleMessage(...)
 	elseif event == "TRAIT_CONFIG_UPDATED"
 		or event == "PLAYER_LEVEL_UP"
 		or event == "PLAYER_LEVEL_CHANGED"

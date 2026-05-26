@@ -139,7 +139,7 @@ groupDataButton:SetSize(140, 24)
 groupDataButton:SetPoint("TOPLEFT", shadowlandsRow, "BOTTOMLEFT", 0, -12)
 groupDataButton:SetText(L.GROUP_TRINKETS_BUTTON)
 groupDataButton:SetScript("OnClick", function()
-	addon.ShowGroupDataWindow()
+	addon.GroupData.ShowWindow()
 end)
 
 local waypointData = {
@@ -235,7 +235,7 @@ local function GetXPGainText()
 end
 
 local function GetChromieTimeText()
-	return addon.GetChromieTimeText and addon.GetChromieTimeText() or L.UNKNOWN
+	return addon.GroupData and addon.GroupData.GetChromieTimeText and addon.GroupData.GetChromieTimeText() or L.UNKNOWN
 end
 
 local function GetWarModeText()
