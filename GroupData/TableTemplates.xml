@@ -29,6 +29,20 @@
 		</Layers>
 	</Frame>
 
+	<Frame name="Level20GroupDataIconCellTemplate" mixin="Level20GroupDataIconCellMixin" virtual="true">
+		<Size x="0" y="16"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Icon" hidden="true">
+					<Size x="16" y="16"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+	</Frame>
+
 	<Button name="Level20GroupDataHeaderTemplate" mixin="Level20GroupDataHeaderMixin" inherits="ColumnDisplayButtonShortTemplate" virtual="true">
 		<Size x="0" y="19"/>
 	</Button>

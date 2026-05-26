@@ -27,6 +27,50 @@ function Level20GroupDataCellMixin:Populate(rowData)
 end
 
 
+Level20GroupDataIconCellMixin = CreateFromMixins(TableBuilderCellMixin)
+
+function Level20GroupDataIconCellMixin:Init(field)
+	self.field = field
+end
+
+function Level20GroupDataIconCellMixin:Populate(rowData)
+	local iconData = rowData and rowData[self.field] or nil
+	if not self.Icon then
+		return
+	end
+
+	if not iconData then
+		self.Icon:Hide()
+		self.Icon:SetAtlas(nil)
+		self.Icon:SetTexture(nil)
+		return
+	end
+
+	if iconData.atlas then
+		self.Icon:SetAtlas(iconData.atlas, TextureKitConstants.IgnoreAtlasSize)
+		self.Icon:SetTexCoord(0, 1, 0, 1)
+		self.Icon:Show()
+		return
+	end
+
+	if iconData.texture then
+		self.Icon:SetAtlas(nil)
+		self.Icon:SetTexture(iconData.texture)
+		if iconData.texCoords then
+			self.Icon:SetTexCoord(unpack(iconData.texCoords))
+		else
+			self.Icon:SetTexCoord(0, 1, 0, 1)
+		end
+		self.Icon:Show()
+		return
+	end
+
+	self.Icon:Hide()
+	self.Icon:SetAtlas(nil)
+	self.Icon:SetTexture(nil)
+end
+
+
 Level20GroupDataRowMixin = CreateFromMixins(TableBuilderRowMixin)
 
 function Level20GroupDataRowMixin:Populate(rowData)

@@ -3,14 +3,17 @@ local L = addon.L
 
 local groupData = addon.GroupData
 
-local WINDOW_WIDTH = 760
+local WINDOW_WIDTH = 980
 local WINDOW_HEIGHT = 320
 local TABLE_INSET = 16
 local HEADER_HEIGHT = 19
+local LEVEL_COLUMN_WIDTH = 40
+local CLASS_COLUMN_WIDTH = 40
+local ROLE_COLUMN_WIDTH = 40
 local TRINKET_COLUMN_WIDTH = 72
 local COUNT_COLUMN_WIDTH = 72
 local ADDON_COLUMN_WIDTH = 72
-local TIME_COLUMN_WIDTH = 196
+local TIME_COLUMN_WIDTH = 172
 local HEADER_LEFT_INSET = 4
 local HEADER_RIGHT_INSET = 26
 local HEADER_TOP_OFFSET = -1
@@ -22,11 +25,107 @@ local SCROLLBAR_X_OFFSET = 9
 local SCROLLBAR_BOTTOM_OFFSET = 4
 local PLAYER_LEFT_CELL_PADDING = 12
 local UNKNOWN_VALUE = "?"
+local CLASS_ICON_TEXTURE = "Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES"
 
 local frame
 
 local function GetBooleanDisplay(value)
 	return value and "+" or "-"
+end
+
+local function GetUnitLevelDisplay(unit)
+	if not unit or not UnitExists(unit) then
+		return UNKNOWN_VALUE
+	end
+
+	local level = UnitLevel(unit)
+	if not level or level <= 0 then
+		return UNKNOWN_VALUE
+	end
+
+	return tostring(level)
+end
+
+local function GetUnitClassDisplay(unit)
+	if not unit or not UnitExists(unit) then
+		return UNKNOWN_VALUE
+	end
+
+	local className = select(1, UnitClass(unit))
+	return className or UNKNOWN_VALUE
+end
+
+local function GetUnitClassIconData(unit)
+	if not unit or not UnitExists(unit) then
+		return nil
+	end
+
+	local _, classFile = UnitClass(unit)
+	local texCoords = classFile and CLASS_ICON_TCOORDS[classFile]
+	if not texCoords then
+		return nil
+	end
+
+	return {
+		texture = CLASS_ICON_TEXTURE,
+		texCoords = texCoords,
+	}
+end
+
+local function GetUnitRoleDisplay(unit)
+	if not unit or not UnitExists(unit) then
+		return UNKNOWN_VALUE
+	end
+
+	local role = UnitGroupRolesAssigned(unit)
+	if role == "TANK" then
+		return TANK
+	elseif role == "HEALER" then
+		return HEALER
+	elseif role == "DAMAGER" then
+		return DAMAGER
+	elseif role == "NONE" then
+		return NONE
+	end
+
+	return UNKNOWN_VALUE
+end
+
+local function GetUnitRoleIconData(unit)
+	if not unit or not UnitExists(unit) then
+		return nil
+	end
+
+	local role = UnitGroupRolesAssigned(unit)
+	if role == "TANK" then
+		return { atlas = GetMicroIconForRoleEnum(Enum.LFGRole.Tank) }
+	elseif role == "HEALER" then
+		return { atlas = GetMicroIconForRoleEnum(Enum.LFGRole.Healer) }
+	elseif role == "DAMAGER" then
+		return { atlas = GetMicroIconForRoleEnum(Enum.LFGRole.Damage) }
+	end
+
+	return nil
+end
+
+local function GetUnitClassColorString(unit)
+	if not unit or not UnitExists(unit) then
+		return NORMAL_FONT_COLOR and NORMAL_FONT_COLOR.colorStr or "ffffffff"
+	end
+
+	local _, classFile = UnitClass(unit)
+	local classColorTable = (CUSTOM_CLASS_COLORS and classFile and CUSTOM_CLASS_COLORS[classFile])
+		or (RAID_CLASS_COLORS and classFile and RAID_CLASS_COLORS[classFile])
+
+	if classColorTable and classColorTable.colorStr then
+		return classColorTable.colorStr
+	end
+
+	if classColorTable and CreateColor then
+		return CreateColor(classColorTable.r, classColorTable.g, classColorTable.b):GenerateColorString()
+	end
+
+	return NORMAL_FONT_COLOR and NORMAL_FONT_COLOR.colorStr or "ffffffff"
 end
 
 local function GetDisplayValue(data, field, formatter)
@@ -75,9 +174,16 @@ local function BuildRows()
 	for index, data in ipairs(players) do
 		local chromieTimeID = data.unit and UnitChromieTimeID(data.unit) or nil
 		local baseChromieText = data.unit and groupData.GetChromieTimeTextFromID(chromieTimeID or 0) or UNKNOWN_VALUE
+		local playerName = data.displayName or data.name or L.UNKNOWN
 		rows[index] = {
 			index = index,
-			name = data.displayName or data.name or L.UNKNOWN,
+			name = playerName,
+			nameColored = WrapTextInColorCode(playerName, GetUnitClassColorString(data.unit)),
+			level = GetUnitLevelDisplay(data.unit),
+			class = GetUnitClassDisplay(data.unit),
+			role = GetUnitRoleDisplay(data.unit),
+			classIcon = GetUnitClassIconData(data.unit),
+			roleIcon = GetUnitRoleIconData(data.unit),
 			addonVersion = GetDisplayValue(data, "addonVersion", function(value)
 				return value or "v?"
 			end),
@@ -116,6 +222,25 @@ local function InitializeTable(window)
 	tableBuilder:SetColumnHeaderOverlap(2)
 	tableBuilder:SetHeaderContainer(window.headerRow)
 
+	AddStatusColumn(tableBuilder, LEVEL_COLUMN_WIDTH, L.GROUP_DATA_HEADER_LEVEL, "level")
+	tableBuilder:AddUnsortableFixedWidthColumn(
+		0,
+		CLASS_COLUMN_WIDTH,
+		0,
+		0,
+		L.GROUP_DATA_HEADER_CLASS,
+		"Level20GroupDataIconCellTemplate",
+		"classIcon"
+	)
+	tableBuilder:AddUnsortableFixedWidthColumn(
+		0,
+		ROLE_COLUMN_WIDTH,
+		0,
+		0,
+		L.GROUP_DATA_HEADER_ROLE,
+		"Level20GroupDataIconCellTemplate",
+		"roleIcon"
+	)
 	tableBuilder:AddUnsortableFillColumn(
 		0,
 		1.0,
@@ -123,11 +248,10 @@ local function InitializeTable(window)
 		0,
 		L.GROUP_DATA_HEADER_PLAYER,
 		"Level20GroupDataCellTemplate",
-		"name",
+		"nameColored",
 		"LEFT",
 		"GameFontNormal"
 	)
-
 	AddStatusColumn(tableBuilder, ADDON_COLUMN_WIDTH, L.GROUP_DATA_HEADER_ADDON, "addonVersion")
 	AddStatusColumn(tableBuilder, TIME_COLUMN_WIDTH, L.GROUP_DATA_HEADER_TIME, "timeText")
 	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
