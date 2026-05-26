@@ -453,6 +453,16 @@ local dungeonChallengeFrameCheckbox = CreateCheckbox(
 )
 dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
 
+local enemyForcesEstimateCheckbox = CreateCheckbox(
+	settingsContent,
+	L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_LABEL,
+	L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_TOOLTIP,
+	function(checked)
+		addon.DungeonChallenge.setEnemyForcesEnabled(checked)
+	end
+)
+enemyForcesEstimateCheckbox:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
+
 local bagFoldersCheckbox = CreateCheckbox(
 	settingsContent,
 	L.BAG_FOLDERS_SETTING_LABEL,
@@ -461,10 +471,10 @@ local bagFoldersCheckbox = CreateCheckbox(
 		addon.SetBagFoldersEnabled(checked)
 	end
 )
-bagFoldersCheckbox:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
+bagFoldersCheckbox:SetPoint("TOPLEFT", enemyForcesEstimateCheckbox, "BOTTOMLEFT", 0, -8)
 
 settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
-settingsContent:SetHeight(252)
+settingsContent:SetHeight(286)
 settingsScrollFrame.ScrollBar:Update()
 
 local debugXPWarningCheckbox = CreateCheckbox(
@@ -500,6 +510,16 @@ local debugPlayerMarksCheckbox = CreateCheckbox(
 )
 debugPlayerMarksCheckbox:SetPoint("TOPLEFT", debugCovenantWarningCheckbox, "BOTTOMLEFT", 0, -8)
 
+local debugUnitTooltipValuesCheckbox = CreateCheckbox(
+	debugContent,
+	L.DEBUG_UNIT_TOOLTIP_VALUES_LABEL,
+	L.DEBUG_UNIT_TOOLTIP_VALUES_TOOLTIP,
+	function(checked)
+		Level20DB.debugUnitTooltipValues = checked and true or false
+	end
+)
+debugUnitTooltipValuesCheckbox:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, "BOTTOMLEFT", 0, -8)
+
 local completionBannerPlayerCountSlider = CreateSlider(
 	debugContent,
 	"Level20CompletionBannerPlayerCountSlider",
@@ -508,7 +528,7 @@ local completionBannerPlayerCountSlider = CreateSlider(
 	40,
 	1
 )
-completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, "BOTTOMLEFT", 4, -32)
+completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugUnitTooltipValuesCheckbox, "BOTTOMLEFT", 4, -32)
 
 local completionBannerPlayerCountValue = debugContent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 completionBannerPlayerCountValue:SetPoint("LEFT", completionBannerPlayerCountSlider, "RIGHT", 12, 0)
@@ -533,7 +553,7 @@ showTestCompletionBannerButton:SetScript("OnClick", function()
 end)
 
 debugContent:SetPoint("TOPLEFT", debugScrollFrame, "TOPLEFT", 0, 0)
-debugContent:SetHeight(268)
+debugContent:SetHeight(302)
 debugScrollFrame.ScrollBar:Update()
 
 function addon.RestoreWindowPosition()
@@ -559,10 +579,12 @@ function addon.RefreshWindow()
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
 	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)
+	enemyForcesEstimateCheckbox:SetChecked(Level20DB.enableEnemyForces)
 	bagFoldersCheckbox:SetChecked(Level20DB.bagFolders and Level20DB.bagFolders.enabled)
 	debugXPWarningCheckbox:SetChecked(Level20DB.debugXPWarning)
 	debugCovenantWarningCheckbox:SetChecked(Level20DB.debugCovenantWarning)
 	debugPlayerMarksCheckbox:SetChecked(Level20DB.debugPlayerMarks)
+	debugUnitTooltipValuesCheckbox:SetChecked(Level20DB.debugUnitTooltipValues)
 	completionBannerPlayerCountSlider:SetValue(Level20DB.debugCompletionBannerPlayerCount or 5)
 	addon.RefreshInfoPanel()
 	addon.RefreshDungeonPanel()

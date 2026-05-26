@@ -3,6 +3,36 @@ local addonName, addon = ...
 local challenge = addon.DungeonChallenge
 local state = challenge.state
 
+function challenge.IsEnemyForcesEnabled()
+	return Level20DB.enableEnemyForces and true or false
+end
+
+function challenge.BuildEnemyForcesCriteria(run)
+	if not challenge.IsEnemyForcesEnabled() then
+		return nil
+	end
+
+	local quantity = challenge.GetEnemyForcesPercent and challenge.GetEnemyForcesPercent(run) or 0
+	return {
+		description = challenge.L.DUNGEON_CHALLENGE_ENEMY_FORCES,
+		quantity = quantity,
+		totalQuantity = 100,
+		completed = quantity >= 100,
+		duration = 0,
+		elapsed = 0,
+		failed = false,
+		isWeightedProgress = true,
+		isFormatted = true,
+		quantityString = nil,
+		criteriaType = 0,
+		flags = 0,
+		assetID = challenge.constants.FAKE_AFFIX_ID,
+		criteriaID = challenge.constants.FAKE_AFFIX_ID,
+		excludeFromCompletion = true,
+		syntheticEnemyForces = true,
+	}
+end
+
 function challenge.FormatEncounterDescription(criteria, run)
 	if not criteria or not criteria.description then
 		return nil
@@ -146,7 +176,7 @@ function challenge.HasCompletedAllCriteria()
 	end
 
 	for _, criteria in ipairs(state.encounterCriteria) do
-		if not criteria.completed then
+		if not criteria.excludeFromCompletion and not criteria.completed then
 			return false
 		end
 	end
@@ -227,12 +257,17 @@ end
 function challenge.RefreshEncounterCriteria()
 	table.wipe(state.encounterCriteria)
 
+	local run = challenge.GetRunRecord()
+	local enemyForcesCriteria = challenge.BuildEnemyForcesCriteria(run)
+
 	if not C_Scenario or not C_ScenarioInfo then
 		challenge.BuildEncounterCriteriaFromJournal(challenge.GetStatus())
+		if enemyForcesCriteria then
+			table.insert(state.encounterCriteria, enemyForcesCriteria)
+		end
 		return
 	end
 
-	local run = challenge.GetRunRecord()
 	local stepOk, _, _, numCriteria = pcall(C_Scenario.GetStepInfo)
 	if stepOk and numCriteria and numCriteria > 0 then
 		for index = 1, numCriteria do
@@ -263,6 +298,10 @@ function challenge.RefreshEncounterCriteria()
 			end
 		end
 
+		if enemyForcesCriteria then
+			table.insert(state.encounterCriteria, enemyForcesCriteria)
+		end
+
 		if #state.encounterCriteria > 0 then
 			if run and run.completedAt and not challenge.HasAnyCompletedCriteria(state.encounterCriteria) then
 				local snapshot = challenge.GetEncounterCriteriaSnapshot(run)
@@ -282,7 +321,14 @@ function challenge.RefreshEncounterCriteria()
 		end
 	end
 
+	if enemyForcesCriteria then
+		table.insert(state.encounterCriteria, enemyForcesCriteria)
+	end
+
 	if challenge.BuildEncounterCriteriaFromJournal(challenge.GetStatus()) then
+		if enemyForcesCriteria then
+			table.insert(state.encounterCriteria, enemyForcesCriteria)
+		end
 		challenge.SaveEncounterCriteriaSnapshot(run)
 		if run and challenge.HasCompletedAllCriteria() then
 			challenge.CompleteRun(run)
@@ -290,7 +336,11 @@ function challenge.RefreshEncounterCriteria()
 		return
 	end
 
+	table.wipe(state.encounterCriteria)
 	challenge.RestoreEncounterCriteriaSnapshot(run)
+	if enemyForcesCriteria then
+		table.insert(state.encounterCriteria, enemyForcesCriteria)
+	end
 end
 
 function challenge.BuildCriteriaInfo(index)

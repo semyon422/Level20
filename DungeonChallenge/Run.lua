@@ -82,6 +82,15 @@ function challenge.GetDeathCount(run)
 	return math.max(0, tonumber(run.deathCount) or 0)
 end
 
+function challenge.GetEnemyForcesPercent(run)
+	run = run or challenge.GetRunRecord()
+	if not run then
+		return 0
+	end
+
+	return math.max(0, math.min(100, tonumber(run.enemyForcesPercent) or 0))
+end
+
 function challenge.ClearRunRecord()
 	challenge.CancelCompletionBannerTimer()
 
@@ -267,6 +276,7 @@ function challenge.StartRun(run)
 
 	run.startedAt = challenge.GetCurrentServerTime()
 	run.deathCount = math.max(0, tonumber(run.deathCount) or 0)
+	run.enemyForcesPercent = challenge.GetEnemyForcesPercent(run)
 	return true
 end
 
@@ -277,6 +287,17 @@ function challenge.RecordDeath(run)
 	end
 
 	run.deathCount = challenge.GetDeathCount(run) + 1
+	return true
+end
+
+function challenge.RecordEnemyForcesProgress(amount, run)
+	run = run or challenge.GetRunRecord()
+	amount = tonumber(amount)
+	if not run or not run.startedAt or run.completedAt or not amount or amount <= 0 then
+		return false
+	end
+
+	run.enemyForcesPercent = math.min(100, challenge.GetEnemyForcesPercent(run) + amount)
 	return true
 end
 

@@ -3,6 +3,15 @@ local L = addon.L
 
 local eventFrame = CreateFrame("Frame")
 local trackedGroupDeathState = {}
+local trackedEnemyNameplates = {}
+local enemyForcesByClassification = {
+	minus = 0.2,
+	normal = 0.5,
+	elite = 1,
+	rare = 1,
+	rareelite = 1,
+	worldboss = 1,
+}
 
 local function RefreshAndBroadcastGroupData(force)
 	addon.GroupData.RefreshAndBroadcast(force)
@@ -77,6 +86,138 @@ local function CheckGroupCombatState(unit)
 	end
 end
 
+local function IsTrackedEnemyUnit(unit)
+	if not unit then
+		return false
+	end
+
+	if C_NamePlate and C_NamePlate.GetNamePlateForUnit then
+		local ok, nameplate = pcall(C_NamePlate.GetNamePlateForUnit, unit)
+		if not ok or not nameplate then
+			return false
+		end
+	end
+
+	return UnitExists(unit) and UnitCanAttack("player", unit)
+end
+
+local function GetTooltipEnemyUnitToken()
+	for _, unit in ipairs({ "mouseover", "target" }) do
+		if UnitExists(unit) and UnitCanAttack("player", unit) then
+			return unit
+		end
+	end
+
+	return nil
+end
+
+local function AddEnemyTooltipValues(tooltip)
+	if not tooltip or not Level20DB.debugUnitTooltipValues then
+		return
+	end
+
+	local unit = GetTooltipEnemyUnitToken()
+	if not unit then
+		return
+	end
+
+	tooltip:AddLine(" ")
+	tooltip:AddLine("Level20 Safe Unit Values", 0.25, 1, 0.6)
+	tooltip:AddLine(("Classification: %s"):format(tostring(UnitClassification(unit) or "nil")), 1, 1, 1)
+	tooltip:AddLine(("Creature Family: %s"):format(tostring(UnitCreatureFamily(unit) or "nil")), 1, 1, 1)
+	tooltip:AddLine(("Level: %s"):format(tostring(UnitLevel(unit) or "nil")), 1, 1, 1)
+	if UnitEffectiveLevel then
+		tooltip:AddLine(("Effective Level: %s"):format(tostring(UnitEffectiveLevel(unit) or "nil")), 1, 1, 1)
+	end
+	tooltip:AddLine(("Is Trivial: %s"):format(tostring(UnitIsTrivial(unit) and true or false)), 1, 1, 1)
+	tooltip:AddLine(("Can Attack: %s"):format(tostring(UnitCanAttack("player", unit) and true or false)), 1, 1, 1)
+	if UnitSelectionType then
+		tooltip:AddLine(("Selection Type: %s"):format(tostring(UnitSelectionType(unit, true) or "nil")), 1, 1, 1)
+	end
+	tooltip:Show()
+end
+
+local function HookEnemyTooltipValues()
+	if addon.enemyTooltipValuesHooked or not TooltipDataProcessor or not TooltipDataProcessor.AddTooltipPostCall or not Enum or not Enum.TooltipDataType or not Enum.TooltipDataType.Unit then
+		return
+	end
+
+	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
+		AddEnemyTooltipValues(tooltip)
+	end)
+
+	addon.enemyTooltipValuesHooked = true
+end
+
+local function FindTrackedEnemyNameplateIndex(unit)
+	for index, entry in ipairs(trackedEnemyNameplates) do
+		if entry and entry.unit and UnitIsUnit(entry.unit, unit) then
+			return index, entry
+		end
+	end
+
+	return nil, nil
+end
+
+local function ResetTrackedEnemyNameplates()
+	table.wipe(trackedEnemyNameplates)
+end
+
+local function UpdateTrackedEnemyNameplate(unit, sourceEvent)
+	if not IsTrackedEnemyUnit(unit) then
+		return
+	end
+
+	local _, entry = FindTrackedEnemyNameplateIndex(unit)
+	if not entry then
+		return
+	end
+
+	if UnitIsDead(unit) and not entry.deathReported then
+		entry.deathReported = true
+		entry.dead = true
+		local classification = UnitClassification(unit) or "normal"
+		local amount = enemyForcesByClassification[classification] or enemyForcesByClassification.normal
+		local recorded
+		if addon.DungeonChallenge.ShouldUse() and addon.DungeonChallenge.IsEnemyForcesEnabled and addon.DungeonChallenge.IsEnemyForcesEnabled() then
+			recorded = addon.DungeonChallenge.RecordEnemyForcesProgress(amount)
+		end
+		if recorded then
+			addon.DungeonChallenge.refresh()
+		end
+	end
+end
+
+local function AddTrackedEnemyNameplate(unit)
+	if not IsTrackedEnemyUnit(unit) then
+		return
+	end
+
+	local _, existingEntry = FindTrackedEnemyNameplateIndex(unit)
+	if existingEntry then
+		existingEntry.unit = unit
+		existingEntry.dead = UnitIsDead(unit) and true or false
+		return
+	end
+
+	table.insert(trackedEnemyNameplates, {
+		unit = unit,
+		dead = UnitIsDead(unit) and true or false,
+		deathReported = false,
+	})
+end
+
+local function RemoveTrackedEnemyNameplate(unit)
+	if not unit then
+		return
+	end
+
+	local index = FindTrackedEnemyNameplateIndex(unit)
+	if index then
+		table.remove(trackedEnemyNameplates, index)
+	end
+end
+
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ADDON_LOADED")
@@ -113,8 +254,12 @@ eventFrame:RegisterEvent("QUEST_TURNED_IN")
 eventFrame:RegisterEvent("GOSSIP_SHOW")
 eventFrame:RegisterEvent("GOSSIP_CLOSED")
 eventFrame:RegisterEvent("COVENANT_CHOSEN")
+eventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+eventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+eventFrame:RegisterEvent("UNIT_HEALTH")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_LOGIN" then
+		HookEnemyTooltipValues()
 		addon.RestoreWindowPosition()
 		addon.DungeonChallenge.refresh()
 		addon.RefreshXPWarning()
@@ -177,6 +322,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "PLAYER_ENTERING_WORLD"
 		or event == "GROUP_ROSTER_UPDATE" then
 		RefreshTrackedGroupDeathState()
+		ResetTrackedEnemyNameplates()
 		addon.DungeonChallenge.RefreshBattleResDisplay()
 	end
 
@@ -210,6 +356,15 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 			DelayedRefreshAndBroadcastGroupData(true, 0)
 			DelayedRefreshAndBroadcastGroupData(true, 1)
 		end
+	elseif event == "NAME_PLATE_UNIT_ADDED" then
+		local unit = ...
+		AddTrackedEnemyNameplate(unit)
+	elseif event == "NAME_PLATE_UNIT_REMOVED" then
+		local unit = ...
+		RemoveTrackedEnemyNameplate(unit)
+	elseif event == "UNIT_HEALTH" then
+		local unit = ...
+		UpdateTrackedEnemyNameplate(unit, event)
 	end
 
 	if event == "PLAYER_REGEN_DISABLED" then

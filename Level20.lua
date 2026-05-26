@@ -43,6 +43,7 @@ addon.LEVEL_CAP = 20
 ---@field completedAt integer?
 ---@field completedElapsed integer?
 ---@field deathCount integer?
+---@field enemyForcesPercent integer?
 ---@field completionBannerShown boolean?
 ---@field encounterCompletionTimes {[string]: integer}?
 ---@field encounterCriteriaSnapshot Level20DungeonChallengeCriteria[]?
@@ -53,9 +54,11 @@ addon.LEVEL_CAP = 20
 ---@field showPlayerMarks boolean
 ---@field shadowlandsProtection boolean
 ---@field showDungeonChallengeFrame boolean
+---@field enableEnemyForces boolean
 ---@field debugXPWarning boolean
 ---@field debugCovenantWarning boolean
 ---@field debugPlayerMarks boolean
+---@field debugUnitTooltipValues boolean
 ---@field debugCompletionBannerPlayerCount integer
 ---@field minimapButtonAngle number
 ---@field dungeonChallengeRuns {[string]: Level20DungeonChallengeRun}
@@ -82,9 +85,11 @@ local defaultSettings = {
 	showPlayerMarks = true,
 	shadowlandsProtection = true,
 	showDungeonChallengeFrame = true,
+	enableEnemyForces = false,
 	debugXPWarning = false,
 	debugCovenantWarning = false,
 	debugPlayerMarks = false,
+	debugUnitTooltipValues = false,
 	debugCompletionBannerPlayerCount = 5,
 	minimapButtonAngle = 195,
 	dungeonChallengeRuns = {},

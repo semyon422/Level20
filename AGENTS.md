@@ -10,3 +10,18 @@
   - `./tools/blizzard_api_docs.lua find aura`
   - `./tools/blizzard_api_docs.lua systems unit`
 - Do not assume `Blizzard_APIDocumentationGenerated` contains every callable WoW API surface or behavior detail; use the wider `BlizzardInterfaceCode` source as a fallback for undocumented globals, helper Lua, XML/template behavior, and internal/secure details.
+- Some unit API return values behave like protected "secret" values in this environment. Do not assume they are safe for equality checks, table keys, pattern matching, or identity logic unless they have been verified in-game.
+- Verified unsafe/protected unit values:
+  - `UnitGUID(unit)`
+  - `UnitName(unit)`
+  - `UnitCreatureType(unit)`
+  - `UnitHealthMax(unit)`
+- Verified safe unit values:
+  - `UnitClassification(unit)`
+  - `UnitCreatureFamily(unit)`
+  - `UnitLevel(unit)`
+  - `UnitEffectiveLevel(unit)`
+  - `UnitIsTrivial(unit)`
+  - `UnitCanAttack("player", unit)`
+  - `UnitSelectionType(unit, true)`
+- Prefer ephemeral unit tokens like `nameplateX`, `target`, `focus`, `partyX`, and `raidX` for live tracking. Do not assume a safe stable per-NPC identifier is available from generic unit APIs.

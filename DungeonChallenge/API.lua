@@ -19,6 +19,11 @@ function challenge.refresh(forceShow)
 	challenge.ActivateBlizzardBlock()
 end
 
+function challenge.setEnemyForcesEnabled(enabled)
+	Level20DB.enableEnemyForces = enabled and true or false
+	challenge.refresh(Level20DB.showDungeonChallengeFrame)
+end
+
 function challenge.AutoResetTimerIfNeeded()
 	local run = challenge.GetRunRecord()
 	local isStopped = challenge.IsTimerStopped(run)

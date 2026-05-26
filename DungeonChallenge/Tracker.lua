@@ -4,10 +4,71 @@ local challenge = addon.DungeonChallenge
 local constants = challenge.constants
 local state = challenge.state
 
+local function AddScenarioStyleProgressBar(objectivesBlock, line, lineSpacing, percent)
+	if not objectivesBlock or not line or not objectivesBlock.parentModule then
+		return nil
+	end
+
+	local parentModule = objectivesBlock.parentModule
+	parentModule.usedEnemyForcesProgressBars = parentModule.usedEnemyForcesProgressBars or {}
+
+	local progressBar = parentModule.usedEnemyForcesProgressBars[line]
+	if not progressBar then
+		progressBar = parentModule:AcquireFrame("ScenarioProgressBarTemplate")
+		parentModule.usedEnemyForcesProgressBars[line] = progressBar
+		progressBar:Show()
+		if not progressBar.height then
+			progressBar.height = progressBar:GetHeight()
+		end
+	end
+
+	progressBar.used = true
+	if progressBar.Bar then
+		if progressBar.Bar.Icon then
+			progressBar.Bar.Icon:Hide()
+		end
+		if progressBar.Bar.IconBG then
+			progressBar.Bar.IconBG:Hide()
+		end
+		if progressBar.Bar.BarGlow then
+			progressBar.Bar.BarGlow:SetAtlas("bonusobjectives-bar-glow", true)
+		end
+	end
+	lineSpacing = lineSpacing or objectivesBlock.parentModule.lineSpacing
+
+	local anchor = objectivesBlock.lastRegion or objectivesBlock.HeaderText
+	if anchor then
+		progressBar:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -lineSpacing)
+	else
+		progressBar:SetPoint("TOPLEFT", 0, -lineSpacing)
+	end
+
+	line.progressBar = progressBar
+	progressBar.parentLine = line
+
+	objectivesBlock.height = objectivesBlock.height + progressBar.height + lineSpacing
+	objectivesBlock.lastRegion = progressBar
+	local isManaged = true
+	objectivesBlock:OnAddedRegion(progressBar, isManaged)
+
+	if progressBar.SetValue then
+		progressBar:SetValue(percent or 0)
+	end
+
+	return progressBar
+end
+
 local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, progressBarLineSpacing)
 	local criteriaString = criteriaInfo.description
 	if not criteriaInfo.isWeightedProgress and not criteriaInfo.isFormatted then
 		criteriaString = string.format("%d/%d %s", criteriaInfo.quantity, criteriaInfo.totalQuantity, criteriaInfo.description)
+	end
+
+	if criteriaInfo.syntheticEnemyForces then
+		local line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE)
+		line.Icon:Hide()
+		AddScenarioStyleProgressBar(objectivesBlock, line, progressBarLineSpacing, tonumber(criteriaInfo.quantity) or 0)
+		return
 	end
 
 	local line
