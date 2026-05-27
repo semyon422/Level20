@@ -59,8 +59,12 @@ local function AddScenarioStyleProgressBar(objectivesBlock, line, lineSpacing, p
 	local isManaged = true
 	objectivesBlock:OnAddedRegion(progressBar, isManaged)
 
+	local oldPercent = progressBar.percentage
 	if progressBar.SetValue then
 		progressBar:SetValue(percent or 0)
+	end
+	if oldPercent and percent and percent > oldPercent and progressBar.PlayFlareAnim then
+		progressBar:PlayFlareAnim(oldPercent)
 	end
 
 	return progressBar
