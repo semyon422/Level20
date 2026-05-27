@@ -12,7 +12,10 @@ function challenge.BuildEnemyForcesCriteria(run)
 		return nil
 	end
 
-	local quantity = challenge.GetEnemyForcesPercent and challenge.GetEnemyForcesPercent(run) or 0
+	local quantity = 0
+	if run and run.startedAt and challenge.GetEnemyForcesPercent then
+		quantity = challenge.GetEnemyForcesPercent(run)
+	end
 	return {
 		description = challenge.L.DUNGEON_CHALLENGE_ENEMY_FORCES,
 		quantity = quantity,
@@ -58,7 +61,7 @@ function challenge.HasAnyCompletedCriteria(criteriaList)
 	end
 
 	for _, criteria in ipairs(criteriaList) do
-		if criteria.completed then
+		if not criteria.excludeFromCompletion and criteria.completed then
 			return true
 		end
 	end
@@ -320,6 +323,9 @@ function challenge.RefreshEncounterCriteria()
 				if challenge.DoesCriteriaListMatchSnapshot(state.encounterCriteria, snapshot) then
 					table.wipe(state.encounterCriteria)
 					challenge.RestoreEncounterCriteriaSnapshot(run)
+					if enemyForcesCriteria then
+						table.insert(state.encounterCriteria, enemyForcesCriteria)
+					end
 					return
 				end
 			end

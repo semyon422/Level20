@@ -65,9 +65,22 @@ local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, prog
 	end
 
 	if criteriaInfo.syntheticEnemyForces then
-		local line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE)
-		line.Icon:Hide()
-		AddScenarioStyleProgressBar(objectivesBlock, line, progressBarLineSpacing, tonumber(criteriaInfo.quantity) or 0)
+		local line
+		if criteriaInfo.completed then
+			local existingLine = objectivesBlock:GetExistingLine(objectiveKey)
+			line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE, OBJECTIVE_TRACKER_COLOR["Complete"])
+			line.Icon:Show()
+			line.Icon:SetAtlas("ui-questtracker-tracker-check", false)
+			line.progressBar = nil
+			if existingLine and (not line.state or line.state == ObjectiveTrackerAnimLineState.Present) then
+				line:SetState(ObjectiveTrackerAnimLineState.Completing)
+			end
+		else
+			line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE)
+			line.Icon:Show()
+			line.Icon:SetAtlas("ui-questtracker-objective-nub", false)
+			AddScenarioStyleProgressBar(objectivesBlock, line, progressBarLineSpacing, tonumber(criteriaInfo.quantity) or 0)
+		end
 		return
 	end
 
@@ -195,6 +208,32 @@ end
 
 function customTrackerModuleMixin:CanUpdate()
 	return true
+end
+
+function customTrackerModuleMixin:MarkProgressBarsUnused()
+	ObjectiveTrackerModuleMixin.MarkProgressBarsUnused(self)
+
+	if self.usedEnemyForcesProgressBars then
+		for _, progressBar in pairs(self.usedEnemyForcesProgressBars) do
+			progressBar.used = nil
+		end
+	end
+end
+
+function customTrackerModuleMixin:FreeUnusedProgressBars()
+	ObjectiveTrackerModuleMixin.FreeUnusedProgressBars(self)
+
+	if self.usedEnemyForcesProgressBars then
+		for key, progressBar in pairs(self.usedEnemyForcesProgressBars) do
+			if not progressBar.used then
+				self.usedEnemyForcesProgressBars[key] = nil
+				if progressBar.OnFree then
+					progressBar:OnFree()
+				end
+				ObjectiveTrackerManager:ReleaseFrame(progressBar)
+			end
+		end
+	end
 end
 
 function customTrackerModuleMixin:InitModule()

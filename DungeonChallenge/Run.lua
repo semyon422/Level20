@@ -278,7 +278,7 @@ function challenge.StartRun(run)
 
 	run.startedAt = challenge.GetCurrentServerTime()
 	run.deathCount = math.max(0, tonumber(run.deathCount) or 0)
-	run.enemyForcesPercent = challenge.GetEnemyForcesPercent(run)
+	run.enemyForcesPercent = 0
 	return true
 end
 
