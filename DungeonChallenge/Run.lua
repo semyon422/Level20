@@ -82,13 +82,13 @@ function challenge.GetDeathCount(run)
 	return math.max(0, tonumber(run.deathCount) or 0)
 end
 
-function challenge.GetEnemyForcesPercent(run)
+function challenge.GetEnemyForcesScore(run)
 	run = run or challenge.GetRunRecord()
 	if not run then
 		return 0
 	end
 
-	return math.max(0, math.min(100, tonumber(run.enemyForcesPercent) or 0))
+	return math.max(0, tonumber(run.enemyForcesScore) or 0)
 end
 
 function challenge.ClearRunRecord()
@@ -278,7 +278,7 @@ function challenge.StartRun(run)
 
 	run.startedAt = challenge.GetCurrentServerTime()
 	run.deathCount = math.max(0, tonumber(run.deathCount) or 0)
-	run.enemyForcesPercent = 0
+	run.enemyForcesScore = 0
 	return true
 end
 
@@ -299,7 +299,9 @@ function challenge.RecordEnemyForcesProgress(amount, run)
 		return false
 	end
 
-	run.enemyForcesPercent = math.min(100, challenge.GetEnemyForcesPercent(run) + amount)
+	local config = challenge.GetEnemyForcesConfig(run, challenge.state.encounterCriteria)
+	local requiredScore = config and tonumber(config.requiredScore) or 100
+	run.enemyForcesScore = math.min(requiredScore, challenge.GetEnemyForcesScore(run) + amount)
 	return true
 end
 

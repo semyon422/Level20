@@ -12,6 +12,47 @@ local function ShouldAnimateCriteriaCompletion(objectiveKey, completed)
 	return not not objectiveKey and not (state.criteriaCompletionStates[objectiveKey] and true or false)
 end
 
+local function HideObjectiveTooltip()
+	GameTooltip_Hide()
+end
+
+local function ClearObjectiveTooltip(target)
+	if not target then
+		return
+	end
+
+	target:SetScript("OnEnter", nil)
+	target:SetScript("OnLeave", nil)
+end
+
+local function SetEnemyForcesTooltip(target, criteriaInfo)
+	if not target or not criteriaInfo or not criteriaInfo.enemyForcesConfig then
+		return
+	end
+
+	target:SetScript("OnEnter", function(self)
+		local config = criteriaInfo.enemyForcesConfig
+		local weights = config.weights
+		local instanceID = config.instanceID and tostring(config.instanceID) or "nil"
+		GameTooltip:SetOwner(self, "ANCHOR_NONE")
+		GameTooltip:ClearAllPoints()
+		GameTooltip:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
+		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_ENEMY_FORCES, 1, 1, 1)
+		GameTooltip:AddLine(("Instance ID: %s"):format(instanceID), 1, 1, 1)
+		GameTooltip:AddLine(("Total Score: %s"):format(tostring(config.requiredScore)), 1, 1, 1)
+		GameTooltip:AddLine(" ")
+		GameTooltip:AddLine("Weights", 0.25, 1, 0.6)
+		for _, classification in ipairs({ "normal", "minus", "elite", "rare", "rareelite", "worldboss" }) do
+			local amount = weights[classification]
+			if amount ~= nil then
+				GameTooltip:AddLine(("%s: %s"):format(classification, tostring(amount)), 1, 1, 1)
+			end
+		end
+		GameTooltip:Show()
+	end)
+	target:SetScript("OnLeave", HideObjectiveTooltip)
+end
+
 local function AddScenarioStyleProgressBar(objectivesBlock, line, lineSpacing, percent)
 	if not objectivesBlock or not line or not objectivesBlock.parentModule then
 		return nil
@@ -84,6 +125,7 @@ local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, prog
 			line.Icon:Show()
 			line.Icon:SetAtlas("ui-questtracker-tracker-check", false)
 			line.progressBar = nil
+			SetEnemyForcesTooltip(line, criteriaInfo)
 			if shouldAnimateCompletion and (not line.state or line.state == ObjectiveTrackerAnimLineState.Present) then
 				line:SetState(ObjectiveTrackerAnimLineState.Completing)
 			end
@@ -91,7 +133,12 @@ local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, prog
 			line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE)
 			line.Icon:Show()
 			line.Icon:SetAtlas("ui-questtracker-objective-nub", false)
-			AddScenarioStyleProgressBar(objectivesBlock, line, progressBarLineSpacing, tonumber(criteriaInfo.quantity) or 0)
+			local totalQuantity = tonumber(criteriaInfo.totalQuantity) or 0
+			local quantity = tonumber(criteriaInfo.quantity) or 0
+			local percent = totalQuantity > 0 and math.min(100, math.max(0, (quantity / totalQuantity) * 100)) or 0
+			local progressBar = AddScenarioStyleProgressBar(objectivesBlock, line, progressBarLineSpacing, percent)
+			SetEnemyForcesTooltip(line, criteriaInfo)
+			SetEnemyForcesTooltip(progressBar, criteriaInfo)
 		end
 		return
 	end
@@ -110,6 +157,8 @@ local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, prog
 		line.Icon:Show()
 		line.Icon:SetAtlas("ui-questtracker-objective-nub", false)
 	end
+	ClearObjectiveTooltip(line)
+	ClearObjectiveTooltip(line.progressBar)
 
 	if criteriaInfo.isWeightedProgress and not criteriaInfo.completed then
 		objectivesBlock:AddProgressBar(objectiveKey, progressBarLineSpacing)

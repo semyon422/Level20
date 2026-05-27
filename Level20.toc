@@ -29,6 +29,7 @@ GroupData/Sync.lua
 AddonWindow.lua
 DungeonChallenge/Namespace.lua
 DungeonChallenge/Status.lua
+DungeonChallenge/EnemyForces.lua
 DungeonChallenge/Run.lua
 DungeonChallenge/Criteria.lua
 DungeonChallenge/BattleRes.lua

@@ -4,14 +4,6 @@ local L = addon.L
 local eventFrame = CreateFrame("Frame")
 local trackedGroupDeathState = {}
 local trackedEnemyNameplates = {}
-local enemyForcesByClassification = {
-	minus = 0.2,
-	normal = 0.5,
-	elite = 1,
-	rare = 1,
-	rareelite = 1,
-	worldboss = 1,
-}
 
 local function RefreshAndBroadcastGroupData(force)
 	addon.GroupData.RefreshAndBroadcast(force)
@@ -177,7 +169,7 @@ local function UpdateTrackedEnemyNameplate(unit, sourceEvent)
 		entry.deathReported = true
 		entry.dead = true
 		local classification = UnitClassification(unit) or "normal"
-		local amount = enemyForcesByClassification[classification] or enemyForcesByClassification.normal
+		local amount = addon.DungeonChallenge.GetEnemyForcesWeight(classification)
 		local recorded = addon.DungeonChallenge.ShouldUse() and addon.DungeonChallenge.RecordEnemyForcesProgress(amount)
 		if recorded then
 			addon.DungeonChallenge.refresh()

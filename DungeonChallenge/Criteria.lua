@@ -12,15 +12,19 @@ function challenge.BuildEnemyForcesCriteria(run)
 		return nil
 	end
 
+	local config = challenge.GetEnemyForcesConfig(run, state.encounterCriteria)
+	local totalQuantity = math.max(1, tonumber(config and config.requiredScore) or 100)
 	local quantity = 0
-	if run and run.startedAt and challenge.GetEnemyForcesPercent then
-		quantity = challenge.GetEnemyForcesPercent(run)
+	if run and run.startedAt and challenge.GetEnemyForcesScore then
+		quantity = challenge.GetEnemyForcesScore(run)
 	end
+
 	return {
 		description = challenge.L.DUNGEON_CHALLENGE_ENEMY_FORCES,
 		quantity = quantity,
-		totalQuantity = 100,
-		completed = quantity >= 100,
+		totalQuantity = totalQuantity,
+		completed = quantity >= totalQuantity,
+		enemyForcesConfig = config,
 		duration = 0,
 		elapsed = 0,
 		failed = false,
