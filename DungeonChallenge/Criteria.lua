@@ -35,7 +35,6 @@ function challenge.BuildEnemyForcesCriteria(run)
 		flags = 0,
 		assetID = challenge.constants.FAKE_AFFIX_ID,
 		criteriaID = challenge.constants.FAKE_AFFIX_ID,
-		excludeFromCompletion = true,
 		excludeFromSnapshot = true,
 		syntheticEnemyForces = true,
 	}
@@ -71,6 +70,33 @@ function challenge.HasAnyCompletedCriteria(criteriaList)
 	end
 
 	return false
+end
+
+function challenge.HasAnyCompletedSnapshotCriteria(criteriaList)
+	if not criteriaList then
+		return false
+	end
+
+	for _, criteria in ipairs(criteriaList) do
+		if not criteria.excludeFromSnapshot and criteria.completed then
+			return true
+		end
+	end
+
+	return false
+end
+
+function challenge.ShouldRestoreEncounterSnapshot(run, criteriaList)
+	if not run or not run.startedAt or challenge.HasAnyCompletedSnapshotCriteria(criteriaList) then
+		return false
+	end
+
+	local snapshot = challenge.GetEncounterCriteriaSnapshot(run)
+	if not challenge.HasAnyCompletedSnapshotCriteria(snapshot) then
+		return false
+	end
+
+	return challenge.DoesCriteriaListMatchSnapshot(criteriaList, snapshot)
 end
 
 function challenge.IsFreshDungeon(criteriaList)
@@ -284,6 +310,16 @@ function challenge.RefreshEncounterCriteria()
 		if enemyForcesCriteria then
 			table.insert(state.encounterCriteria, enemyForcesCriteria)
 		end
+		if challenge.ShouldRestoreEncounterSnapshot(run, state.encounterCriteria) then
+			table.wipe(state.encounterCriteria)
+			challenge.RestoreEncounterCriteriaSnapshot(run)
+			if enemyForcesCriteria then
+				table.insert(state.encounterCriteria, enemyForcesCriteria)
+			end
+		end
+		if run and challenge.HasCompletedAllCriteria() then
+			challenge.CompleteRun(run)
+		end
 		return
 	end
 
@@ -322,16 +358,16 @@ function challenge.RefreshEncounterCriteria()
 		end
 
 		if #state.encounterCriteria > 0 then
-			if run and run.completedAt and not challenge.HasAnyCompletedCriteria(state.encounterCriteria) then
-				local snapshot = challenge.GetEncounterCriteriaSnapshot(run)
-				if challenge.DoesCriteriaListMatchSnapshot(state.encounterCriteria, snapshot) then
-					table.wipe(state.encounterCriteria)
-					challenge.RestoreEncounterCriteriaSnapshot(run)
-					if enemyForcesCriteria then
-						table.insert(state.encounterCriteria, enemyForcesCriteria)
-					end
-					return
+			if challenge.ShouldRestoreEncounterSnapshot(run, state.encounterCriteria) then
+				table.wipe(state.encounterCriteria)
+				challenge.RestoreEncounterCriteriaSnapshot(run)
+				if enemyForcesCriteria then
+					table.insert(state.encounterCriteria, enemyForcesCriteria)
 				end
+				if run and challenge.HasCompletedAllCriteria() then
+					challenge.CompleteRun(run)
+				end
+				return
 			end
 
 			challenge.SaveEncounterCriteriaSnapshot(run)
@@ -351,6 +387,17 @@ function challenge.RefreshEncounterCriteria()
 		if enemyForcesCriteria then
 			table.insert(state.encounterCriteria, enemyForcesCriteria)
 		end
+		if challenge.ShouldRestoreEncounterSnapshot(run, state.encounterCriteria) then
+			table.wipe(state.encounterCriteria)
+			challenge.RestoreEncounterCriteriaSnapshot(run)
+			if enemyForcesCriteria then
+				table.insert(state.encounterCriteria, enemyForcesCriteria)
+			end
+			if run and challenge.HasCompletedAllCriteria() then
+				challenge.CompleteRun(run)
+			end
+			return
+		end
 		challenge.SaveEncounterCriteriaSnapshot(run)
 		if run and challenge.HasCompletedAllCriteria() then
 			challenge.CompleteRun(run)
@@ -362,6 +409,9 @@ function challenge.RefreshEncounterCriteria()
 	challenge.RestoreEncounterCriteriaSnapshot(run)
 	if enemyForcesCriteria then
 		table.insert(state.encounterCriteria, enemyForcesCriteria)
+	end
+	if run and challenge.HasCompletedAllCriteria() then
+		challenge.CompleteRun(run)
 	end
 end
 
