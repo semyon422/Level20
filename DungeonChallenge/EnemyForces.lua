@@ -104,3 +104,26 @@ function challenge.GetEnemyForcesWeight(classification, run, criteriaList)
 
 	return tonumber(weights[normalizedClassification]) or tonumber(weights.normal)
 end
+
+function challenge.GetEnemyForcesCounts(run)
+	run = run or challenge.GetRunRecord()
+	if not run then
+		return {}
+	end
+
+	run.enemyForcesCounts = run.enemyForcesCounts or {}
+	return run.enemyForcesCounts
+end
+
+function challenge.GetEnemyForcesScore(run, criteriaList)
+	local counts = challenge.GetEnemyForcesCounts(run)
+	local config = challenge.GetEnemyForcesConfig(run, criteriaList)
+	local score = 0
+
+	for classification, count in pairs(counts) do
+		local amount = tonumber(config.weights[classification]) or tonumber(config.weights.normal)
+		score = score + (math.max(0, tonumber(count) or 0) * amount)
+	end
+
+	return math.max(0, math.min(config.requiredScore, score))
+end

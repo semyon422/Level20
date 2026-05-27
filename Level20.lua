@@ -43,7 +43,7 @@ addon.LEVEL_CAP = 20
 ---@field completedAt integer?
 ---@field completedElapsed integer?
 ---@field deathCount integer?
----@field enemyForcesScore number?
+---@field enemyForcesCounts table<string, integer>?
 ---@field completionBannerShown boolean?
 ---@field encounterCompletionTimes {[string]: integer}?
 ---@field encounterCriteriaSnapshot Level20DungeonChallengeCriteria[]?

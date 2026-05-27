@@ -13,10 +13,10 @@ function challenge.BuildEnemyForcesCriteria(run)
 	end
 
 	local config = challenge.GetEnemyForcesConfig(run, state.encounterCriteria)
-	local totalQuantity = math.max(1, tonumber(config and config.requiredScore) or 100)
+	local totalQuantity = config.requiredScore
 	local quantity = 0
 	if run and run.startedAt and challenge.GetEnemyForcesScore then
-		quantity = challenge.GetEnemyForcesScore(run)
+		quantity = challenge.GetEnemyForcesScore(run, state.encounterCriteria)
 	end
 
 	return {

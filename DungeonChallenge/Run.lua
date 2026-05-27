@@ -82,15 +82,6 @@ function challenge.GetDeathCount(run)
 	return math.max(0, tonumber(run.deathCount) or 0)
 end
 
-function challenge.GetEnemyForcesScore(run)
-	run = run or challenge.GetRunRecord()
-	if not run then
-		return 0
-	end
-
-	return math.max(0, tonumber(run.enemyForcesScore) or 0)
-end
-
 function challenge.ClearRunRecord()
 	challenge.CancelCompletionBannerTimer()
 
@@ -278,7 +269,7 @@ function challenge.StartRun(run)
 
 	run.startedAt = challenge.GetCurrentServerTime()
 	run.deathCount = math.max(0, tonumber(run.deathCount) or 0)
-	run.enemyForcesScore = 0
+	run.enemyForcesCounts = {}
 	return true
 end
 
@@ -292,16 +283,15 @@ function challenge.RecordDeath(run)
 	return true
 end
 
-function challenge.RecordEnemyForcesProgress(amount, run)
+function challenge.RecordEnemyForcesProgress(classification, run)
 	run = run or challenge.GetRunRecord()
-	amount = tonumber(amount)
-	if not run or not run.startedAt or run.completedAt or not amount or amount <= 0 then
+	classification = classification or "normal"
+	if not run or not run.startedAt or run.completedAt then
 		return false
 	end
 
-	local config = challenge.GetEnemyForcesConfig(run, challenge.state.encounterCriteria)
-	local requiredScore = config and tonumber(config.requiredScore) or 100
-	run.enemyForcesScore = math.min(requiredScore, challenge.GetEnemyForcesScore(run) + amount)
+	local counts = challenge.GetEnemyForcesCounts(run)
+	counts[classification] = math.max(0, tonumber(counts[classification]) or 0) + 1
 	return true
 end
 

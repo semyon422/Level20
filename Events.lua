@@ -169,8 +169,7 @@ local function UpdateTrackedEnemyNameplate(unit, sourceEvent)
 		entry.deathReported = true
 		entry.dead = true
 		local classification = UnitClassification(unit) or "normal"
-		local amount = addon.DungeonChallenge.GetEnemyForcesWeight(classification)
-		local recorded = addon.DungeonChallenge.ShouldUse() and addon.DungeonChallenge.RecordEnemyForcesProgress(amount)
+		local recorded = addon.DungeonChallenge.ShouldUse() and addon.DungeonChallenge.RecordEnemyForcesProgress(classification)
 		if recorded then
 			addon.DungeonChallenge.refresh()
 		end
