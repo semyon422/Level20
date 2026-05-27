@@ -248,7 +248,9 @@ function challenge.SaveEncounterCriteriaSnapshot(run)
 	table.wipe(snapshot)
 
 	for index, criteria in ipairs(state.encounterCriteria) do
-		snapshot[index] = challenge.CopyCriteria(criteria)
+		if not criteria.excludeFromSnapshot then
+			table.insert(snapshot, challenge.CopyCriteria(criteria))
+		end
 	end
 end
 

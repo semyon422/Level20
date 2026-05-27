@@ -29,6 +29,7 @@ function challenge.BuildEnemyForcesCriteria(run)
 		assetID = challenge.constants.FAKE_AFFIX_ID,
 		criteriaID = challenge.constants.FAKE_AFFIX_ID,
 		excludeFromCompletion = true,
+		excludeFromSnapshot = true,
 		syntheticEnemyForces = true,
 	}
 end
@@ -151,11 +152,22 @@ function challenge.IsFreshDungeonForAutoReset(liveScenarioState)
 end
 
 function challenge.DoesCriteriaListMatchSnapshot(criteriaList, snapshot)
-	if not criteriaList or not snapshot or #criteriaList ~= #snapshot then
+	if not criteriaList or not snapshot then
 		return false
 	end
 
-	for index, criteria in ipairs(criteriaList) do
+	local filteredCriteriaList = {}
+	for _, criteria in ipairs(criteriaList) do
+		if not criteria.excludeFromSnapshot then
+			table.insert(filteredCriteriaList, criteria)
+		end
+	end
+
+	if #filteredCriteriaList ~= #snapshot then
+		return false
+	end
+
+	for index, criteria in ipairs(filteredCriteriaList) do
 		local snapshotCriteria = snapshot[index]
 		if not snapshotCriteria then
 			return false
