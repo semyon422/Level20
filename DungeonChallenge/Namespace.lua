@@ -27,6 +27,7 @@ challenge.state = challenge.state or {
 	originalChallengeModeBlockParent = nil,
 	originalObjectivesBlockParent = nil,
 	encounterCriteria = {},
+	criteriaCompletionStates = {},
 	observedDungeonInstanceID = nil,
 	observedDungeonLevel = nil,
 }

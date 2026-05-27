@@ -4,6 +4,14 @@ local challenge = addon.DungeonChallenge
 local constants = challenge.constants
 local state = challenge.state
 
+local function ShouldAnimateCriteriaCompletion(objectiveKey, completed)
+	if not completed then
+		return false
+	end
+
+	return not not objectiveKey and not (state.criteriaCompletionStates[objectiveKey] and true or false)
+end
+
 local function AddScenarioStyleProgressBar(objectivesBlock, line, lineSpacing, percent)
 	if not objectivesBlock or not line or not objectivesBlock.parentModule then
 		return nil
@@ -65,14 +73,14 @@ local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, prog
 	end
 
 	if criteriaInfo.syntheticEnemyForces then
+		local shouldAnimateCompletion = ShouldAnimateCriteriaCompletion(objectiveKey, criteriaInfo.completed)
 		local line
 		if criteriaInfo.completed then
-			local existingLine = objectivesBlock:GetExistingLine(objectiveKey)
 			line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE, OBJECTIVE_TRACKER_COLOR["Complete"])
 			line.Icon:Show()
 			line.Icon:SetAtlas("ui-questtracker-tracker-check", false)
 			line.progressBar = nil
-			if existingLine and (not line.state or line.state == ObjectiveTrackerAnimLineState.Present) then
+			if shouldAnimateCompletion and (not line.state or line.state == ObjectiveTrackerAnimLineState.Present) then
 				line:SetState(ObjectiveTrackerAnimLineState.Completing)
 			end
 		else
@@ -85,12 +93,12 @@ local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, prog
 	end
 
 	local line
+	local shouldAnimateCompletion = ShouldAnimateCriteriaCompletion(objectiveKey, criteriaInfo.completed)
 	if criteriaInfo.completed then
-		local existingLine = objectivesBlock:GetExistingLine(objectiveKey)
 		line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE, OBJECTIVE_TRACKER_COLOR["Complete"])
 		line.Icon:Show()
 		line.Icon:SetAtlas("ui-questtracker-tracker-check", false)
-		if existingLine and (not line.state or line.state == ObjectiveTrackerAnimLineState.Present) then
+		if shouldAnimateCompletion and (not line.state or line.state == ObjectiveTrackerAnimLineState.Present) then
 			line:SetState(ObjectiveTrackerAnimLineState.Completing)
 		end
 	else
@@ -255,12 +263,15 @@ function customTrackerModuleMixin:LayoutContents()
 	end
 
 	local objectivesBlock = PrepareEmbeddedObjectivesBlock(self.ContentsFrame, self)
+	local nextCriteriaCompletionStates = {}
 	if objectivesBlock and #state.encounterCriteria > 0 then
 		for index, criteriaInfo in ipairs(state.encounterCriteria) do
 			local objectiveKey = "criteria" .. tostring(criteriaInfo.criteriaID or criteriaInfo.assetID or index)
 			AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, self.progressBarLineSpacing)
+			nextCriteriaCompletionStates[objectiveKey] = criteriaInfo.completed and true or false
 		end
 	end
+	state.criteriaCompletionStates = nextCriteriaCompletionStates
 
 	if objectivesBlock then
 		if #state.encounterCriteria == 0 then
