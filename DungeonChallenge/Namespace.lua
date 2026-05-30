@@ -30,4 +30,5 @@ challenge.state = challenge.state or {
 	criteriaCompletionStates = {},
 	observedDungeonInstanceID = nil,
 	observedDungeonLevel = nil,
+	combatLogManagedRunActive = false,
 }

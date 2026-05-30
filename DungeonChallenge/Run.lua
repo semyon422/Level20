@@ -92,6 +92,9 @@ function challenge.ClearRunRecord()
 	end
 
 	store[dungeonKey] = {}
+	if challenge.UpdateManagedCombatLog then
+		challenge.UpdateManagedCombatLog()
+	end
 end
 
 function challenge.ResetTimerState()
@@ -270,6 +273,9 @@ function challenge.StartRun(run)
 	run.startedAt = challenge.GetCurrentServerTime()
 	run.deathCount = math.max(0, tonumber(run.deathCount) or 0)
 	run.enemyForcesCounts = {}
+	if challenge.UpdateManagedCombatLog then
+		challenge.UpdateManagedCombatLog()
+	end
 	return true
 end
 
@@ -303,6 +309,9 @@ function challenge.CompleteRun(run)
 	local now = challenge.GetCurrentServerTime()
 	run.completedAt = now
 	run.completedElapsed = math.max(0, now - run.startedAt)
+	if challenge.UpdateManagedCombatLog then
+		challenge.UpdateManagedCombatLog()
+	end
 	challenge.ScheduleCompletionBanner(run)
 	return true
 end

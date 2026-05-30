@@ -593,7 +593,7 @@ function challenge.ActivateBlizzardBlock()
 		block.Activate = function(self, timerID, elapsedTime, timeLimit)
 			if challenge.ShouldUse() and timerID == constants.FAKE_TIMER_ID then
 				ApplyFakeChallengeModeState(self, elapsedTime, timeLimit)
-				ScenarioTimerFrame:StartTimer(self)
+				ScenarioTimerFrame:StopTimer(constants.FAKE_TIMER_ID)
 				ScenarioObjectiveTracker:ForceExpand()
 			else
 				originalActivate(self, timerID, elapsedTime, timeLimit)
@@ -618,25 +618,13 @@ function challenge.ActivateBlizzardBlock()
 	end
 
 	if not state.scenarioTimerPatched then
-		local originalStartTimer = ScenarioTimerFrame.StartTimer
-		ScenarioTimerFrame.StartTimer = function(self, activeBlock)
-			if activeBlock and activeBlock.timerID == constants.FAKE_TIMER_ID and challenge.ShouldUse() then
-				self.baseTime = challenge.GetElapsedTime()
-				self.timeSinceBase = 0
-				self.block = activeBlock
-				self:Show()
-				return
-			end
-
-			originalStartTimer(self, activeBlock)
-		end
 		state.scenarioTimerPatched = true
 	end
 
 	if not block:IsActive() or block.timerID ~= constants.FAKE_TIMER_ID then
 		block:Activate(constants.FAKE_TIMER_ID, challenge.GetElapsedTime(), constants.TIME_LIMIT_SECONDS)
-	elseif run and run.startedAt and ScenarioTimerFrame.block ~= block then
-		ScenarioTimerFrame:StartTimer(block)
+	elseif run and run.startedAt and not run.completedAt then
+		block:UpdateTime(challenge.GetElapsedTime())
 	elseif run and run.completedAt then
 		block:UpdateTime(challenge.GetElapsedTime())
 	end
@@ -660,12 +648,7 @@ function challenge.ActivateBlizzardBlock()
 end
 
 function challenge.StartVisibleTimerIfNeeded()
-	if not ScenarioTimerFrame or not ScenarioObjectiveTracker or not ScenarioObjectiveTracker.ChallengeModeBlock then
-		return
-	end
-
-	local block = ScenarioObjectiveTracker.ChallengeModeBlock
-	if block.timerID == constants.FAKE_TIMER_ID then
-		ScenarioTimerFrame:StartTimer(block)
+	if ScenarioTimerFrame then
+		ScenarioTimerFrame:StopTimer(constants.FAKE_TIMER_ID)
 	end
 end

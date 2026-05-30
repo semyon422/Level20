@@ -122,6 +122,34 @@ local function CreateInfoRow(parent, label, previous)
 	return row
 end
 
+local function CreateSectionFrame(parent, title, width, height)
+	local section = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+	section:SetSize(width, height)
+	section:SetBackdrop({
+		bgFile = "Interface\\Buttons\\WHITE8x8",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		edgeSize = 10,
+		insets = { left = 3, right = 3, top = 3, bottom = 3 },
+	})
+	section:SetBackdropColor(0.05, 0.05, 0.07, 0.35)
+	section:SetBackdropBorderColor(0.35, 0.35, 0.4, 1)
+
+	section.title = section:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+	section.title:SetPoint("TOP", section, "TOP", 0, -12)
+	section.title:SetTextColor(1.0, 0.82, 0.0)
+	section.title:SetShadowColor(0, 0, 0, 1)
+	section.title:SetShadowOffset(1, -1)
+	section.title:SetText(title)
+
+	section.divider = section:CreateTexture(nil, "ARTWORK")
+	section.divider:SetHeight(1)
+	section.divider:SetPoint("TOPLEFT", section, "TOPLEFT", 12, -30)
+	section.divider:SetPoint("TOPRIGHT", section, "TOPRIGHT", -12, -30)
+	section.divider:SetColorTexture(1.0, 0.82, 0.0, 0.22)
+
+	return section
+end
+
 local accountTypeRow = CreateInfoRow(infoPanel, L.ACCOUNT_TYPE)
 local subscriptionRow = CreateInfoRow(infoPanel, L.SUBSCRIPTION, accountTypeRow)
 local xpGainRow = CreateInfoRow(infoPanel, L.XP_GAIN, subscriptionRow)
@@ -255,22 +283,58 @@ function addon.RefreshInfoPanel()
 	versionStatusLabel:SetTextColor(red, green, blue)
 end
 
-local dungeonStatusRow = CreateInfoRow(dungeonPanel, L.DUNGEON_CHALLENGE_STATUS_LABEL)
-local dungeonTimerRow = CreateInfoRow(dungeonPanel, L.DUNGEON_CHALLENGE_TIMER_LABEL, dungeonStatusRow)
+local dungeonRunSection = CreateSectionFrame(dungeonPanel, L.DUNGEON_CHALLENGE_RUN_SECTION, 236, 196)
+dungeonRunSection:SetPoint("TOPLEFT", dungeonPanel, "TOPLEFT", 0, 0)
 
-local resetDungeonTimerButton = CreateFrame("Button", nil, dungeonPanel, "UIPanelButtonTemplate")
-resetDungeonTimerButton:SetSize(180, 24)
+local dungeonLoggingSection = CreateSectionFrame(dungeonPanel, L.DUNGEON_CHALLENGE_LOGGING_SECTION, 252, 196)
+dungeonLoggingSection:SetPoint("TOPLEFT", dungeonRunSection, "TOPRIGHT", 12, 0)
+
+local dungeonStatusRow = CreateInfoRow(dungeonRunSection, L.DUNGEON_CHALLENGE_STATUS_LABEL)
+dungeonStatusRow:SetPoint("TOPLEFT", dungeonRunSection, "TOPLEFT", 12, -34)
+dungeonStatusRow:SetWidth(212)
+dungeonStatusRow.value:SetPoint("RIGHT", dungeonStatusRow, "RIGHT", 0, 0)
+
+local dungeonTimerRow = CreateInfoRow(dungeonRunSection, L.DUNGEON_CHALLENGE_TIMER_LABEL, dungeonStatusRow)
+dungeonTimerRow:SetWidth(212)
+dungeonTimerRow.value:SetPoint("RIGHT", dungeonTimerRow, "RIGHT", 0, 0)
+
+local dungeonCombatLogRow = CreateInfoRow(dungeonLoggingSection, L.DUNGEON_CHALLENGE_COMBAT_LOG_LABEL)
+dungeonCombatLogRow:SetPoint("TOPLEFT", dungeonLoggingSection, "TOPLEFT", 12, -34)
+dungeonCombatLogRow:SetWidth(228)
+dungeonCombatLogRow.label:SetWidth(128)
+dungeonCombatLogRow.value:SetPoint("RIGHT", dungeonCombatLogRow, "RIGHT", 0, 0)
+
+local dungeonAdvancedCombatLogRow = CreateInfoRow(dungeonLoggingSection, L.DUNGEON_CHALLENGE_ADVANCED_COMBAT_LOG_LABEL, dungeonCombatLogRow)
+dungeonAdvancedCombatLogRow:SetWidth(228)
+dungeonAdvancedCombatLogRow.label:SetWidth(128)
+dungeonAdvancedCombatLogRow.value:SetPoint("RIGHT", dungeonAdvancedCombatLogRow, "RIGHT", 0, 0)
+
+local resetDungeonTimerButton = CreateFrame("Button", nil, dungeonRunSection, "UIPanelButtonTemplate")
+resetDungeonTimerButton:SetSize(170, 24)
 resetDungeonTimerButton:SetPoint("TOPLEFT", dungeonTimerRow, "BOTTOMLEFT", 0, -12)
-resetDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_RESET_TIMER)
 resetDungeonTimerButton:SetScript("OnClick", function()
-	addon.DungeonChallenge.resetTimer()
+	local challenge = addon.DungeonChallenge
+	local isStarted = challenge and challenge.IsTimerStarted and challenge.IsTimerStarted()
+	local isStopped = challenge and challenge.IsTimerStopped and challenge.IsTimerStopped()
+
+	if not isStarted then
+		challenge.startTimer()
+	elseif isStopped then
+		challenge.resetTimer()
+	else
+		challenge.completeRun()
+	end
+
 	addon.RefreshDungeonPanel()
 end)
 
-local showCompletionBannerButton = CreateFrame("Button", nil, dungeonPanel, "UIPanelButtonTemplate")
-showCompletionBannerButton:SetSize(180, 24)
-showCompletionBannerButton:SetPoint("LEFT", resetDungeonTimerButton, "RIGHT", 12, 0)
-showCompletionBannerButton:SetText(L.DUNGEON_CHALLENGE_SHOW_COMPLETION_BANNER)
+local toggleCombatLogButton = CreateFrame("Button", nil, dungeonLoggingSection, "UIPanelButtonTemplate")
+toggleCombatLogButton:SetSize(220, 24)
+toggleCombatLogButton:SetPoint("TOPLEFT", dungeonAdvancedCombatLogRow, "BOTTOMLEFT", 0, -12)
+
+local toggleAdvancedCombatLogButton = CreateFrame("Button", nil, dungeonLoggingSection, "UIPanelButtonTemplate")
+toggleAdvancedCombatLogButton:SetSize(220, 24)
+toggleAdvancedCombatLogButton:SetPoint("TOPLEFT", toggleCombatLogButton, "BOTTOMLEFT", 0, -8)
 
 local function FormatDuration(seconds)
 	seconds = math.max(0, math.floor(seconds or 0))
@@ -278,10 +342,27 @@ local function FormatDuration(seconds)
 end
 
 function addon.RefreshDungeonPanel()
-	local isActive = addon.DungeonChallenge and addon.DungeonChallenge.ShouldUse and addon.DungeonChallenge.ShouldUse()
+	local challenge = addon.DungeonChallenge
+	local isActive = challenge and challenge.ShouldUse and challenge.ShouldUse()
+	local isStarted = challenge and challenge.IsTimerStarted and challenge.IsTimerStarted()
+	local isStopped = challenge and challenge.IsTimerStopped and challenge.IsTimerStopped()
+
 	dungeonStatusRow.value:SetText(isActive and L.STATE_ENABLED or L.STATE_DISABLED)
-	dungeonTimerRow.value:SetText(FormatDuration(addon.DungeonChallenge and addon.DungeonChallenge.GetElapsedTime and addon.DungeonChallenge.GetElapsedTime() or 0))
+	dungeonTimerRow.value:SetText(FormatDuration(challenge and challenge.GetElapsedTime and challenge.GetElapsedTime() or 0))
+	dungeonCombatLogRow.value:SetText(challenge and challenge.GetCombatLogStatusText and challenge.GetCombatLogStatusText() or L.UNKNOWN)
+	dungeonAdvancedCombatLogRow.value:SetText(challenge and challenge.GetAdvancedCombatLogStatusText and challenge.GetAdvancedCombatLogStatusText() or L.UNKNOWN)
+	if not isStarted then
+		resetDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_START_RUN)
+	elseif isStopped then
+		resetDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_RESET_TIMER)
+	else
+		resetDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_COMPLETE_RUN)
+	end
 	resetDungeonTimerButton:SetEnabled(isActive and not InCombatLockdown())
+	toggleCombatLogButton:SetText(challenge and challenge.GetCombatLogToggleLabel and challenge.GetCombatLogToggleLabel() or L.DUNGEON_CHALLENGE_COMBAT_LOG_START)
+	toggleCombatLogButton:SetEnabled(challenge and challenge.CanControlCombatLog and challenge.CanControlCombatLog())
+	toggleAdvancedCombatLogButton:SetText(challenge and challenge.GetAdvancedCombatLogToggleLabel and challenge.GetAdvancedCombatLogToggleLabel() or L.DUNGEON_CHALLENGE_ADVANCED_COMBAT_LOG_START)
+	toggleAdvancedCombatLogButton:SetEnabled(challenge and challenge.CanControlAdvancedCombatLog and challenge.CanControlAdvancedCombatLog())
 end
 
 local dungeonPanelRefreshElapsed = 0
@@ -366,8 +447,20 @@ local function CreateCheckbox(parent, label, tooltip, onClick)
 	return checkbox
 end
 
-showCompletionBannerButton:SetScript("OnClick", function()
-	ReportCompletionBannerResult(addon.DungeonChallenge.ShowCompletionBanner())
+toggleCombatLogButton:SetScript("OnClick", function()
+	addon.DungeonChallenge.ToggleCombatLog()
+	addon.RefreshDungeonPanel()
+	if addon.RefreshCombatLogWarning then
+		addon.RefreshCombatLogWarning()
+	end
+end)
+
+toggleAdvancedCombatLogButton:SetScript("OnClick", function()
+	addon.DungeonChallenge.ToggleAdvancedCombatLog()
+	addon.RefreshDungeonPanel()
+	if addon.RefreshCombatLogWarning then
+		addon.RefreshCombatLogWarning()
+	end
 end)
 
 local function CreateSlider(parent, name, label, minValue, maxValue, valueStep)
@@ -463,6 +556,16 @@ local enemyForcesEstimateCheckbox = CreateCheckbox(
 )
 enemyForcesEstimateCheckbox:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
 
+local combatLogManagementCheckbox = CreateCheckbox(
+	settingsContent,
+	L.DUNGEON_CHALLENGE_COMBAT_LOG_MANAGEMENT_LABEL,
+	L.DUNGEON_CHALLENGE_COMBAT_LOG_MANAGEMENT_TOOLTIP,
+	function(checked)
+		addon.DungeonChallenge.SetCombatLogManagementEnabled(checked)
+	end
+)
+combatLogManagementCheckbox:SetPoint("TOPLEFT", enemyForcesEstimateCheckbox, "BOTTOMLEFT", 0, -8)
+
 local bagFoldersCheckbox = CreateCheckbox(
 	settingsContent,
 	L.BAG_FOLDERS_SETTING_LABEL,
@@ -471,10 +574,10 @@ local bagFoldersCheckbox = CreateCheckbox(
 		addon.SetBagFoldersEnabled(checked)
 	end
 )
-bagFoldersCheckbox:SetPoint("TOPLEFT", enemyForcesEstimateCheckbox, "BOTTOMLEFT", 0, -8)
+bagFoldersCheckbox:SetPoint("TOPLEFT", combatLogManagementCheckbox, "BOTTOMLEFT", 0, -8)
 
 settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
-settingsContent:SetHeight(286)
+settingsContent:SetHeight(318)
 settingsScrollFrame.ScrollBar:Update()
 
 local debugXPWarningCheckbox = CreateCheckbox(
@@ -580,6 +683,7 @@ function addon.RefreshWindow()
 	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
 	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)
 	enemyForcesEstimateCheckbox:SetChecked(Level20DB.enableEnemyForces)
+	combatLogManagementCheckbox:SetChecked(Level20DB.manageCombatLog)
 	bagFoldersCheckbox:SetChecked(Level20DB.bagFolders and Level20DB.bagFolders.enabled)
 	debugXPWarningCheckbox:SetChecked(Level20DB.debugXPWarning)
 	debugCovenantWarningCheckbox:SetChecked(Level20DB.debugCovenantWarning)

@@ -212,6 +212,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
 eventFrame:RegisterEvent("PLAYER_LEVEL_UP")
 eventFrame:RegisterEvent("PLAYER_LEVEL_CHANGED")
+eventFrame:RegisterEvent("CVAR_UPDATE")
 eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 eventFrame:RegisterEvent("ZONE_CHANGED")
 eventFrame:RegisterEvent("ZONE_CHANGED_INDOORS")
@@ -251,6 +252,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.RestoreWindowPosition()
 		addon.DungeonChallenge.refresh()
 		addon.RefreshXPWarning()
+		addon.RefreshCombatLogWarning()
 		addon.DungeonChallenge.refresh()
 		addon.InitializeVersionCheck()
 		addon.BroadcastVersionCheck(true)
@@ -376,8 +378,10 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "PLAYER_LEVEL_CHANGED"
 		or event == "ENABLE_XP_GAIN"
 		or event == "DISABLE_XP_GAIN"
-		or event == "PLAYER_ALIVE" then
+		or event == "PLAYER_ALIVE"
+		or event == "CVAR_UPDATE" then
 		addon.RefreshXPWarning()
+		addon.RefreshCombatLogWarning()
 		if event == "PLAYER_ALIVE" then
 			addon.DungeonChallenge.RefreshBattleResDisplay()
 		end

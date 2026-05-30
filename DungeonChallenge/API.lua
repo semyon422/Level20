@@ -62,3 +62,13 @@ function challenge.startTimer()
 		challenge.StartVisibleTimerIfNeeded()
 	end
 end
+
+function challenge.completeRun()
+	if not challenge.ShouldUse() then
+		return
+	end
+
+	if challenge.CompleteRun(challenge.GetRunRecord()) then
+		challenge.refresh(true)
+	end
+end
