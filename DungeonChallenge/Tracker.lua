@@ -86,6 +86,7 @@ local function AddScenarioStyleProgressBar(objectivesBlock, line, lineSpacing, p
 	lineSpacing = lineSpacing or objectivesBlock.parentModule.lineSpacing
 
 	local anchor = objectivesBlock.lastRegion or objectivesBlock.HeaderText
+	progressBar:ClearAllPoints()
 	if anchor then
 		progressBar:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -lineSpacing)
 	else
@@ -109,6 +110,29 @@ local function AddScenarioStyleProgressBar(objectivesBlock, line, lineSpacing, p
 	end
 
 	return progressBar
+end
+
+local function BuildCriteriaObjectiveKey(criteriaInfo, index)
+	local parts = {
+		"criteria",
+		tostring(index or 0),
+	}
+
+	if criteriaInfo then
+		if criteriaInfo.criteriaID ~= nil then
+			parts[#parts + 1] = "cid"
+			parts[#parts + 1] = tostring(criteriaInfo.criteriaID)
+		end
+		if criteriaInfo.assetID ~= nil then
+			parts[#parts + 1] = "aid"
+			parts[#parts + 1] = tostring(criteriaInfo.assetID)
+		end
+		if criteriaInfo.syntheticEnemyForces then
+			parts[#parts + 1] = "enemyforces"
+		end
+	end
+
+	return table.concat(parts, ":")
 end
 
 local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, progressBarLineSpacing)
@@ -319,7 +343,7 @@ function customTrackerModuleMixin:LayoutContents()
 	local nextCriteriaCompletionStates = {}
 	if objectivesBlock and #state.encounterCriteria > 0 then
 		for index, criteriaInfo in ipairs(state.encounterCriteria) do
-			local objectiveKey = "criteria" .. tostring(criteriaInfo.criteriaID or criteriaInfo.assetID or index)
+			local objectiveKey = BuildCriteriaObjectiveKey(criteriaInfo, index)
 			AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, self.progressBarLineSpacing)
 			nextCriteriaCompletionStates[objectiveKey] = criteriaInfo.completed and true or false
 		end
