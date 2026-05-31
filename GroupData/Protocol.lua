@@ -101,8 +101,9 @@ end
 
 function groupData.BuildLocalPayload()
 	local battleResPayload = addon.DungeonChallenge and addon.DungeonChallenge.GetBattleResSyncPayload and addon.DungeonChallenge.GetBattleResSyncPayload() or {}
+	local enemyForcesPayload = addon.DungeonChallenge and addon.DungeonChallenge.GetEnemyForcesSyncPayload and addon.DungeonChallenge.GetEnemyForcesSyncPayload() or {}
 
-	return {
+	local payload = {
 		addon = GetAddonVersionText(),
 		wm = IsWarModeEnabled(),
 		lw = IsLorewalkingEnabled(),
@@ -113,6 +114,12 @@ function groupData.BuildLocalPayload()
 		brce = battleResPayload.brce or 0,
 		brie = battleResPayload.brie or 0,
 	}
+
+	for key, value in pairs(enemyForcesPayload) do
+		payload[key] = value
+	end
+
+	return payload
 end
 
 function groupData.SerializePayload(payload)

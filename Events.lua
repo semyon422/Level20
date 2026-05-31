@@ -172,6 +172,7 @@ local function UpdateTrackedEnemyNameplate(unit, sourceEvent)
 		local recorded = addon.DungeonChallenge.ShouldUse() and addon.DungeonChallenge.RecordEnemyForcesProgress(classification)
 		if recorded then
 			addon.DungeonChallenge.refresh()
+			addon.GroupData.RefreshAndBroadcast(true)
 		end
 	end
 end

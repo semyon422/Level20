@@ -2,6 +2,16 @@ local addonName, addon = ...
 
 local challenge = addon.DungeonChallenge
 local state = challenge.state
+local ENEMY_FORCES_SYNC_FIELD_PREFIX = "efc_"
+local ENEMY_FORCES_SYNC_START_TIME_TOLERANCE_SECONDS = 30
+local DEFAULT_ENEMY_FORCES_CLASSIFICATIONS = {
+	"normal",
+	"minus",
+	"elite",
+	"rare",
+	"rareelite",
+	"worldboss",
+}
 
 challenge.enemyForcesConfig = {
 	default = {
@@ -113,6 +123,98 @@ function challenge.GetEnemyForcesCounts(run)
 
 	run.enemyForcesCounts = run.enemyForcesCounts or {}
 	return run.enemyForcesCounts
+end
+
+function challenge.GetEnemyForcesSyncFieldName(classification)
+	return ENEMY_FORCES_SYNC_FIELD_PREFIX .. tostring(classification or "normal")
+end
+
+function challenge.GetEnemyForcesTrackedClassifications(run, criteriaList)
+	local seen = {}
+	local classifications = {}
+	local config = challenge.GetEnemyForcesConfig(run, criteriaList)
+
+	for _, classification in ipairs(DEFAULT_ENEMY_FORCES_CLASSIFICATIONS) do
+		seen[classification] = true
+		classifications[#classifications + 1] = classification
+	end
+
+	for classification in pairs(config.weights or {}) do
+		if not seen[classification] then
+			seen[classification] = true
+			classifications[#classifications + 1] = classification
+		end
+	end
+
+	return classifications
+end
+
+function challenge.GetEnemyForcesSyncPayload(run)
+	run = run or challenge.GetRunRecord()
+	if not run or not run.startedAt or run.completedAt then
+		return {
+			efa = false,
+		}
+	end
+
+	local payload = {
+		efa = true,
+		efdk = challenge.GetCurrentDungeonKey(),
+		efst = math.floor(tonumber(run.startedAt) or 0),
+	}
+	local counts = challenge.GetEnemyForcesCounts(run)
+
+	for _, classification in ipairs(challenge.GetEnemyForcesTrackedClassifications(run, state.encounterCriteria)) do
+		local count = math.max(0, tonumber(counts[classification]) or 0)
+		if count > 0 then
+			payload[challenge.GetEnemyForcesSyncFieldName(classification)] = count
+		end
+	end
+
+	return payload
+end
+
+function challenge.ApplyEnemyForcesSyncPayload(payload, run)
+	if type(payload) ~= "table" or not payload.efa or not challenge.ShouldUse() then
+		return false
+	end
+
+	run = run or challenge.GetRunRecord()
+	if not run or not run.startedAt or run.completedAt then
+		return false
+	end
+
+	local currentDungeonKey = challenge.GetCurrentDungeonKey()
+	if not currentDungeonKey or payload.efdk ~= currentDungeonKey then
+		return false
+	end
+
+	local localStartedAt = math.floor(tonumber(run.startedAt) or 0)
+	local remoteStartedAt = math.floor(tonumber(payload.efst) or 0)
+	if localStartedAt <= 0 or remoteStartedAt <= 0 then
+		return false
+	end
+
+	if math.abs(localStartedAt - remoteStartedAt) > ENEMY_FORCES_SYNC_START_TIME_TOLERANCE_SECONDS then
+		return false
+	end
+
+	local counts = challenge.GetEnemyForcesCounts(run)
+	local changed = false
+
+	for key, value in pairs(payload) do
+		local classification = string.match(key, "^" .. ENEMY_FORCES_SYNC_FIELD_PREFIX .. "(.+)$")
+		local remoteCount = math.max(0, tonumber(value) or 0)
+		if classification and remoteCount > 0 then
+			local localCount = math.max(0, tonumber(counts[classification]) or 0)
+			if remoteCount > localCount then
+				counts[classification] = remoteCount
+				changed = true
+			end
+		end
+	end
+
+	return changed
 end
 
 function challenge.GetEnemyForcesScore(run, criteriaList)

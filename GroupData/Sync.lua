@@ -68,6 +68,10 @@ function groupData.HandleMessage(prefix, message, _, sender)
 
 	groupData.StorePlayerData(sender, payload)
 	groupData.RefreshWindow()
+
+	if addon.DungeonChallenge and addon.DungeonChallenge.ApplyEnemyForcesSyncPayload and addon.DungeonChallenge.ApplyEnemyForcesSyncPayload(payload) then
+		addon.DungeonChallenge.refresh()
+	end
 end
 
 function groupData.Initialize()
