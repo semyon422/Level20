@@ -95,6 +95,39 @@ function Level20GroupDataIconCellMixin:Populate(rowData)
 end
 
 
+Level20GroupDataBooleanCellMixin = CreateFromMixins(TableBuilderCellMixin)
+
+function Level20GroupDataBooleanCellMixin:Init(field)
+	self.field = field
+end
+
+function Level20GroupDataBooleanCellMixin:Populate(rowData)
+	local value = rowData and rowData[self.field] or nil
+	if not self.Icon or not self.Text then
+		return
+	end
+
+	if rowData and rowData.isOffline then
+		self.Icon:SetVertexColor(OFFLINE_COLOR.r, OFFLINE_COLOR.g, OFFLINE_COLOR.b)
+		SetTextColor(self.Text, OFFLINE_COLOR)
+	else
+		self.Icon:SetVertexColor(1, 1, 1)
+		SetTextColor(self.Text, ONLINE_COLOR)
+	end
+
+	if value and value.atlas then
+		self.Text:SetText("")
+		self.Icon:SetAtlas(value.atlas, TextureKitConstants.IgnoreAtlasSize)
+		self.Icon:Show()
+		return
+	end
+
+	self.Icon:Hide()
+	self.Icon:SetAtlas(nil)
+	self.Text:SetText(value ~= nil and tostring(value) or "")
+end
+
+
 Level20GroupDataRowMixin = CreateFromMixins(TableBuilderRowMixin)
 
 function Level20GroupDataRowMixin:Populate(rowData)

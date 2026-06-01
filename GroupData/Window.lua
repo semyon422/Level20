@@ -31,6 +31,12 @@ local OFFLINE_COLOR_FALLBACK = "ff8a8a8a"
 
 local frame
 
+local function GetBooleanIconData(value)
+	return {
+		atlas = value and "common-icon-checkmark" or "common-icon-redx",
+	}
+end
+
 local function GetOfflineColorString()
 	return GRAY_FONT_COLOR and GRAY_FONT_COLOR.colorStr or OFFLINE_COLOR_FALLBACK
 end
@@ -160,6 +166,18 @@ local function AddStatusColumn(tableBuilder, width, headerText, field)
 	)
 end
 
+local function AddBooleanStatusColumn(tableBuilder, width, headerText, field)
+	tableBuilder:AddUnsortableFixedWidthColumn(
+		0,
+		width,
+		0,
+		0,
+		headerText,
+		"Level20GroupDataBooleanCellTemplate",
+		field
+	)
+end
+
 local function ArrangeTable()
 	if not frame or not frame.tableBuilder or not frame.headerRow then
 		return
@@ -200,14 +218,14 @@ local function BuildRows()
 			addonVersion = GetDisplayValue(data, "addonVersion", function(value)
 				return value or "v?"
 			end),
-			inInstance = GetDisplayValue(data, "inInstance", GetBooleanDisplay),
+			inInstance = GetDisplayValue(data, "inInstance", GetBooleanIconData),
 			timeText = timeText,
-			oozeEquipped = GetDisplayValue(data, "oozeEquipped", GetBooleanDisplay),
-			dragonlingEquipped = GetDisplayValue(data, "dragonlingEquipped", GetBooleanDisplay),
+			oozeEquipped = GetDisplayValue(data, "oozeEquipped", GetBooleanIconData),
+			dragonlingEquipped = GetDisplayValue(data, "dragonlingEquipped", GetBooleanIconData),
 			uttsCount = GetDisplayValue(data, "uttsCount", function(value)
 				return tostring(value or 0)
 			end),
-			amberOwned = GetDisplayValue(data, "amberOwned", GetBooleanDisplay),
+			amberOwned = GetDisplayValue(data, "amberOwned", GetBooleanIconData),
 			isPlayer = data.name == playerKey,
 			isOffline = isOffline,
 		}
@@ -268,12 +286,12 @@ local function InitializeTable(window)
 		"GameFontNormal"
 	)
 	AddStatusColumn(tableBuilder, ADDON_COLUMN_WIDTH, L.GROUP_DATA_HEADER_ADDON, "addonVersion")
-	AddStatusColumn(tableBuilder, INSTANCE_COLUMN_WIDTH, L.GROUP_DATA_HEADER_INSTANCE, "inInstance")
+	AddBooleanStatusColumn(tableBuilder, INSTANCE_COLUMN_WIDTH, L.GROUP_DATA_HEADER_INSTANCE, "inInstance")
 	AddStatusColumn(tableBuilder, TIME_COLUMN_WIDTH, L.GROUP_DATA_HEADER_TIME, "timeText")
-	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
-	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_DRAGONLING, "dragonlingEquipped")
+	AddBooleanStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
+	AddBooleanStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_DRAGONLING, "dragonlingEquipped")
 	AddStatusColumn(tableBuilder, COUNT_COLUMN_WIDTH, L.GROUP_DATA_HEADER_UTTS, "uttsCount")
-	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_AMBER, "amberOwned")
+	AddBooleanStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_AMBER, "amberOwned")
 
 	ScrollUtil.RegisterTableBuilder(window.ScrollBox, tableBuilder, IdentityDataProvider)
 	window.tableBuilder = tableBuilder

@@ -43,6 +43,21 @@
 		</Layers>
 	</Frame>
 
+	<Frame name="Level20GroupDataBooleanCellTemplate" mixin="Level20GroupDataBooleanCellMixin" virtual="true">
+		<Size x="0" y="16"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Icon" hidden="true">
+					<Size x="16" y="16"/>
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+				<FontString parentKey="Text" inherits="GameFontHighlightSmall" justifyH="CENTER" maxLines="1" setAllPoints="true"/>
+			</Layer>
+		</Layers>
+	</Frame>
+
 	<Button name="Level20GroupDataHeaderTemplate" mixin="Level20GroupDataHeaderMixin" inherits="ColumnDisplayButtonShortTemplate" virtual="true">
 		<Size x="0" y="19"/>
 	</Button>
