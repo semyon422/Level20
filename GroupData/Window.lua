@@ -26,8 +26,13 @@ local SCROLLBAR_BOTTOM_OFFSET = 4
 local PLAYER_LEFT_CELL_PADDING = 12
 local UNKNOWN_VALUE = "?"
 local CLASS_ICON_TEXTURE = "Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES"
+local OFFLINE_COLOR_FALLBACK = "ff8a8a8a"
 
 local frame
+
+local function GetOfflineColorString()
+	return GRAY_FONT_COLOR and GRAY_FONT_COLOR.colorStr or OFFLINE_COLOR_FALLBACK
+end
 
 local function GetBooleanDisplay(value)
 	return value and "+" or "-"
@@ -172,13 +177,20 @@ local function BuildRows()
 	local playerKey = groupData.GetPlayerKey(GetUnitName("player", true))
 	local rows = {}
 	for index, data in ipairs(players) do
+		local isOffline = data.unit and UnitExists(data.unit) and not UnitIsConnected(data.unit) or false
 		local chromieTimeID = data.unit and UnitChromieTimeID(data.unit) or nil
 		local baseChromieText = data.unit and groupData.GetChromieTimeTextFromID(chromieTimeID or 0) or UNKNOWN_VALUE
+		local timeText = groupData.FormatChromieStatusText(baseChromieText, data.warModeEnabled, data.lorewalkingActive)
+		if not data.hasSync then
+			timeText = timeText .. " (?)"
+		end
+
 		local playerName = data.displayName or data.name or L.UNKNOWN
+		local playerNameColor = isOffline and GetOfflineColorString() or GetUnitClassColorString(data.unit)
 		rows[index] = {
 			index = index,
 			name = playerName,
-			nameColored = WrapTextInColorCode(playerName, GetUnitClassColorString(data.unit)),
+			nameColored = WrapTextInColorCode(playerName, playerNameColor),
 			level = GetUnitLevelDisplay(data.unit),
 			class = GetUnitClassDisplay(data.unit),
 			role = GetUnitRoleDisplay(data.unit),
@@ -187,7 +199,7 @@ local function BuildRows()
 			addonVersion = GetDisplayValue(data, "addonVersion", function(value)
 				return value or "v?"
 			end),
-			timeText = groupData.FormatChromieStatusText(baseChromieText, data.warModeEnabled, data.lorewalkingActive),
+			timeText = timeText,
 			oozeEquipped = GetDisplayValue(data, "oozeEquipped", GetBooleanDisplay),
 			dragonlingEquipped = GetDisplayValue(data, "dragonlingEquipped", GetBooleanDisplay),
 			uttsCount = GetDisplayValue(data, "uttsCount", function(value)
@@ -195,6 +207,7 @@ local function BuildRows()
 			end),
 			amberOwned = GetDisplayValue(data, "amberOwned", GetBooleanDisplay),
 			isPlayer = data.name == playerKey,
+			isOffline = isOffline,
 		}
 	end
 
