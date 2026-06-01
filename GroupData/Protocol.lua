@@ -81,6 +81,10 @@ local function IsLorewalkingEnabled()
 	return addon.IsLorewalkingActive and addon.IsLorewalkingActive() or false
 end
 
+local function IsPlayerInInstance()
+	return IsInInstance()
+end
+
 function groupData.FormatChromieStatusText(chromieText, warModeEnabled, lorewalkingActive)
 	local text = chromieText or L.UNKNOWN
 
@@ -105,6 +109,7 @@ function groupData.BuildLocalPayload()
 
 	local payload = {
 		addon = GetAddonVersionText(),
+		inst = IsPlayerInInstance(),
 		wm = IsWarModeEnabled(),
 		lw = IsLorewalkingEnabled(),
 		ooze = IsTrackedTrinketEquipped(OOZE_TRINKET_ITEM_ID),

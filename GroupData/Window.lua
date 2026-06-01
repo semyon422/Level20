@@ -13,6 +13,7 @@ local ROLE_COLUMN_WIDTH = 40
 local TRINKET_COLUMN_WIDTH = 72
 local COUNT_COLUMN_WIDTH = 72
 local ADDON_COLUMN_WIDTH = 72
+local INSTANCE_COLUMN_WIDTH = 52
 local TIME_COLUMN_WIDTH = 172
 local HEADER_LEFT_INSET = 4
 local HEADER_RIGHT_INSET = 26
@@ -199,6 +200,7 @@ local function BuildRows()
 			addonVersion = GetDisplayValue(data, "addonVersion", function(value)
 				return value or "v?"
 			end),
+			inInstance = GetDisplayValue(data, "inInstance", GetBooleanDisplay),
 			timeText = timeText,
 			oozeEquipped = GetDisplayValue(data, "oozeEquipped", GetBooleanDisplay),
 			dragonlingEquipped = GetDisplayValue(data, "dragonlingEquipped", GetBooleanDisplay),
@@ -266,6 +268,7 @@ local function InitializeTable(window)
 		"GameFontNormal"
 	)
 	AddStatusColumn(tableBuilder, ADDON_COLUMN_WIDTH, L.GROUP_DATA_HEADER_ADDON, "addonVersion")
+	AddStatusColumn(tableBuilder, INSTANCE_COLUMN_WIDTH, L.GROUP_DATA_HEADER_INSTANCE, "inInstance")
 	AddStatusColumn(tableBuilder, TIME_COLUMN_WIDTH, L.GROUP_DATA_HEADER_TIME, "timeText")
 	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
 	AddStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_DRAGONLING, "dragonlingEquipped")
