@@ -322,11 +322,13 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		RefreshAndBroadcastGroupData(true)
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 		local unit, _, spellID = ...
-		if addon.DungeonChallenge.RecordBattleResCast(unit, spellID) then
-			if unit == "player" then
-				addon.GroupData.RefreshAndBroadcast(true)
+		if not issecretvalue(spellID) then
+			if addon.DungeonChallenge.RecordBattleResCast(unit, spellID) then
+				if unit == "player" then
+					addon.GroupData.RefreshAndBroadcast(true)
+				end
+				addon.DungeonChallenge.RefreshBattleResDisplay()
 			end
-			addon.DungeonChallenge.RefreshBattleResDisplay()
 		end
 	elseif event == "PLAYER_EQUIPMENT_CHANGED"
 		or event == "BAG_UPDATE_DELAYED"
