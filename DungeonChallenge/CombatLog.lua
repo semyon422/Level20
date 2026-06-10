@@ -1,6 +1,7 @@
 local addonName, addon = ...
 
 local challenge = addon.DungeonChallenge
+local constants = challenge.constants
 local state = challenge.state
 
 local function CanInspectCombatLog()
@@ -56,6 +57,61 @@ function challenge.SetCombatLogEnabled(enabled)
 	return isEnabled == (enabled and true or false)
 end
 
+local function RefreshCombatLogWarning()
+	if addon.RefreshCombatLogWarning then
+		addon.RefreshCombatLogWarning()
+	end
+end
+
+local function CancelManagedCombatLogStop()
+	if state.combatLogStopTimer then
+		state.combatLogStopTimer:Cancel()
+		state.combatLogStopTimer = nil
+	end
+
+	state.combatLogStopPending = false
+end
+
+local function StopManagedCombatLog()
+	CancelManagedCombatLogStop()
+	state.combatLogManagedRunActive = false
+	local updated = challenge.SetCombatLogEnabled(false)
+	RefreshCombatLogWarning()
+	return updated
+end
+
+local function ScheduleManagedCombatLogStop()
+	if not state.combatLogManagedRunActive then
+		RefreshCombatLogWarning()
+		return false
+	end
+
+	state.combatLogStopPending = true
+	if InCombatLockdown and InCombatLockdown() then
+		RefreshCombatLogWarning()
+		return false
+	end
+
+	if state.combatLogStopTimer then
+		RefreshCombatLogWarning()
+		return false
+	end
+
+	state.combatLogStopTimer = C_Timer.NewTimer(constants.COMBAT_LOG_STOP_DELAY_SECONDS, function()
+		state.combatLogStopTimer = nil
+		if state.combatLogStopPending and not challenge.IsCombatLogRunActive() then
+			if InCombatLockdown and InCombatLockdown() then
+				return
+			end
+
+			StopManagedCombatLog()
+		end
+	end)
+
+	RefreshCombatLogWarning()
+	return false
+end
+
 function challenge.IsAdvancedCombatLogEnabled()
 	if not CanInspectAdvancedCombatLog() then
 		return false
@@ -89,13 +145,12 @@ end
 function challenge.UpdateManagedCombatLog()
 	if not challenge.IsCombatLogManagementEnabled() then
 		if state.combatLogManagedRunActive then
-			state.combatLogManagedRunActive = false
-			challenge.SetCombatLogEnabled(false)
+			StopManagedCombatLog()
+		else
+			CancelManagedCombatLogStop()
 		end
 
-		if addon.RefreshCombatLogWarning then
-			addon.RefreshCombatLogWarning()
-		end
+		RefreshCombatLogWarning()
 
 		state.combatLogManagedRunActive = false
 		return false
@@ -106,26 +161,18 @@ function challenge.UpdateManagedCombatLog()
 	end
 
 	if challenge.IsCombatLogRunActive() then
+		CancelManagedCombatLogStop()
 		state.combatLogManagedRunActive = true
 		local updated = challenge.SetCombatLogEnabled(true)
-		if addon.RefreshCombatLogWarning then
-			addon.RefreshCombatLogWarning()
-		end
+		RefreshCombatLogWarning()
 		return updated
 	end
 
 	if state.combatLogManagedRunActive then
-		state.combatLogManagedRunActive = false
-		local updated = challenge.SetCombatLogEnabled(false)
-		if addon.RefreshCombatLogWarning then
-			addon.RefreshCombatLogWarning()
-		end
-		return updated
+		return ScheduleManagedCombatLogStop()
 	end
 
-	if addon.RefreshCombatLogWarning then
-		addon.RefreshCombatLogWarning()
-	end
+	RefreshCombatLogWarning()
 
 	return false
 end

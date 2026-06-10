@@ -223,6 +223,7 @@ eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_CRITERIA_UPDATE")
 eventFrame:RegisterEvent("SCENARIO_UPDATE")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 eventFrame:RegisterEvent("PLAYER_ALIVE")
 eventFrame:RegisterEvent("ENCOUNTER_END")
 eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -362,6 +363,8 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 
 	if event == "PLAYER_REGEN_DISABLED" then
 		addon.DungeonChallenge.startTimer()
+	elseif event == "PLAYER_REGEN_ENABLED" then
+		addon.DungeonChallenge.UpdateManagedCombatLog()
 	elseif event == "UNIT_FLAGS" then
 		local unit = ...
 		CheckGroupCombatState(unit)
