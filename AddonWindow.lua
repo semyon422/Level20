@@ -328,6 +328,20 @@ resetDungeonTimerButton:SetScript("OnClick", function()
 	addon.RefreshDungeonPanel()
 end)
 
+local guildStartDungeonTimerButton = CreateFrame("Button", nil, dungeonRunSection, "UIPanelButtonTemplate")
+guildStartDungeonTimerButton:SetSize(170, 24)
+guildStartDungeonTimerButton:SetPoint("TOPLEFT", resetDungeonTimerButton, "BOTTOMLEFT", 0, -8)
+guildStartDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_GUILD_START_SEND)
+guildStartDungeonTimerButton:SetScript("OnClick", function()
+	if addon.DungeonChallenge.SendGuildStartCommand() then
+		print(L.DUNGEON_CHALLENGE_GUILD_START_SENT)
+	else
+		print(L.DUNGEON_CHALLENGE_GUILD_START_FAILED)
+	end
+
+	addon.RefreshDungeonPanel()
+end)
+
 local toggleCombatLogButton = CreateFrame("Button", nil, dungeonLoggingSection, "UIPanelButtonTemplate")
 toggleCombatLogButton:SetSize(220, 24)
 toggleCombatLogButton:SetPoint("TOPLEFT", dungeonAdvancedCombatLogRow, "BOTTOMLEFT", 0, -12)
@@ -359,6 +373,7 @@ function addon.RefreshDungeonPanel()
 		resetDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_COMPLETE_RUN)
 	end
 	resetDungeonTimerButton:SetEnabled(isActive and not InCombatLockdown())
+	guildStartDungeonTimerButton:SetEnabled(isActive and not InCombatLockdown() and IsInGuild())
 	toggleCombatLogButton:SetText(challenge and challenge.GetCombatLogToggleLabel and challenge.GetCombatLogToggleLabel() or L.DUNGEON_CHALLENGE_COMBAT_LOG_START)
 	toggleCombatLogButton:SetEnabled(challenge and challenge.CanControlCombatLog and challenge.CanControlCombatLog())
 	toggleAdvancedCombatLogButton:SetText(challenge and challenge.GetAdvancedCombatLogToggleLabel and challenge.GetAdvancedCombatLogToggleLabel() or L.DUNGEON_CHALLENGE_ADVANCED_COMBAT_LOG_START)
@@ -566,6 +581,16 @@ local combatLogManagementCheckbox = CreateCheckbox(
 )
 combatLogManagementCheckbox:SetPoint("TOPLEFT", enemyForcesEstimateCheckbox, "BOTTOMLEFT", 0, -8)
 
+local guildChallengeStartCheckbox = CreateCheckbox(
+	settingsContent,
+	L.DUNGEON_CHALLENGE_GUILD_START_LABEL,
+	L.DUNGEON_CHALLENGE_GUILD_START_TOOLTIP,
+	function(checked)
+		addon.DungeonChallenge.SetGuildStartEnabled(checked)
+	end
+)
+guildChallengeStartCheckbox:SetPoint("TOPLEFT", combatLogManagementCheckbox, "BOTTOMLEFT", 0, -8)
+
 local bagFoldersCheckbox = CreateCheckbox(
 	settingsContent,
 	L.BAG_FOLDERS_SETTING_LABEL,
@@ -574,10 +599,10 @@ local bagFoldersCheckbox = CreateCheckbox(
 		addon.SetBagFoldersEnabled(checked)
 	end
 )
-bagFoldersCheckbox:SetPoint("TOPLEFT", combatLogManagementCheckbox, "BOTTOMLEFT", 0, -8)
+bagFoldersCheckbox:SetPoint("TOPLEFT", guildChallengeStartCheckbox, "BOTTOMLEFT", 0, -8)
 
 settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
-settingsContent:SetHeight(318)
+settingsContent:SetHeight(350)
 settingsScrollFrame.ScrollBar:Update()
 
 local debugXPWarningCheckbox = CreateCheckbox(
@@ -684,6 +709,7 @@ function addon.RefreshWindow()
 	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)
 	enemyForcesEstimateCheckbox:SetChecked(Level20DB.enableEnemyForces)
 	combatLogManagementCheckbox:SetChecked(Level20DB.manageCombatLog)
+	guildChallengeStartCheckbox:SetChecked(Level20DB.allowGuildChallengeStart)
 	bagFoldersCheckbox:SetChecked(Level20DB.bagFolders and Level20DB.bagFolders.enabled)
 	debugXPWarningCheckbox:SetChecked(Level20DB.debugXPWarning)
 	debugCovenantWarningCheckbox:SetChecked(Level20DB.debugCovenantWarning)

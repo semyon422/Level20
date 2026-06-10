@@ -260,6 +260,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.InitializeVersionCheck()
 		addon.BroadcastVersionCheck(true)
 		addon.GroupData.Initialize()
+		addon.DungeonChallenge.InitializeGuildStartComm()
 		addon.GroupData.RefreshAndBroadcast(true)
 		addon.RefreshShadowlandsProtection()
 		addon.InstallShadowlandsProtection()
@@ -293,6 +294,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 	elseif event == "CHAT_MSG_ADDON" then
 		addon.OnVersionCheckMessage(...)
 		addon.GroupData.HandleMessage(...)
+		addon.DungeonChallenge.HandleGuildStartMessage(...)
 		addon.DungeonChallenge.RefreshBattleResDisplay()
 	elseif event == "TRAIT_CONFIG_UPDATED"
 		or event == "PLAYER_LEVEL_UP"

@@ -32,6 +32,7 @@ DungeonChallenge/Namespace.lua
 DungeonChallenge/Status.lua
 DungeonChallenge/EnemyForces.lua
 DungeonChallenge/Run.lua
+DungeonChallenge/Comm.lua
 DungeonChallenge/CombatLog.lua
 DungeonChallenge/Criteria.lua
 DungeonChallenge/BattleRes.lua

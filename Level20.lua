@@ -55,6 +55,7 @@ addon.LEVEL_CAP = 20
 ---@field shadowlandsProtection boolean
 ---@field showDungeonChallengeFrame boolean
 ---@field enableEnemyForces boolean
+---@field allowGuildChallengeStart boolean
 ---@field manageCombatLog boolean
 ---@field debugXPWarning boolean
 ---@field debugCovenantWarning boolean
@@ -87,6 +88,7 @@ local defaultSettings = {
 	shadowlandsProtection = true,
 	showDungeonChallengeFrame = true,
 	enableEnemyForces = false,
+	allowGuildChallengeStart = false,
 	manageCombatLog = false,
 	debugXPWarning = false,
 	debugCovenantWarning = false,
