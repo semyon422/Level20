@@ -485,6 +485,112 @@ local function CreateCheckbox(parent, label, tooltip, onClick)
 	return checkbox
 end
 
+local enemyForcesModeOptions = {
+	{
+		mode = addon.ENEMY_FORCES_MODE_DISABLED,
+		label = L.DUNGEON_CHALLENGE_ENEMY_FORCES_MODE_DISABLED,
+	},
+	{
+		mode = addon.ENEMY_FORCES_MODE_REQUIRED,
+		label = L.DUNGEON_CHALLENGE_ENEMY_FORCES_MODE_REQUIRED,
+	},
+	{
+		mode = addon.ENEMY_FORCES_MODE_UNLIMITED,
+		label = L.DUNGEON_CHALLENGE_ENEMY_FORCES_MODE_UNLIMITED,
+	},
+}
+
+local function GetEnemyForcesModeLabel(mode)
+	for _, option in ipairs(enemyForcesModeOptions) do
+		if option.mode == mode then
+			return option.label
+		end
+	end
+
+	return L.DUNGEON_CHALLENGE_ENEMY_FORCES_MODE_DISABLED
+end
+
+local function NormalizeEnemyForcesMode(mode)
+	if mode == addon.ENEMY_FORCES_MODE_REQUIRED or mode == addon.ENEMY_FORCES_MODE_UNLIMITED then
+		return mode
+	end
+
+	return addon.ENEMY_FORCES_MODE_DISABLED
+end
+
+local function GetSelectedEnemyForcesMode()
+	return NormalizeEnemyForcesMode(Level20DB.enemyForcesMode)
+end
+
+local function SetSelectedEnemyForcesMode(mode)
+	Level20DB.enemyForcesMode = NormalizeEnemyForcesMode(mode)
+	if addon.DungeonChallenge and addon.DungeonChallenge.refresh then
+		addon.DungeonChallenge.refresh(Level20DB.showDungeonChallengeFrame)
+	end
+end
+
+local function CreateEnemyForcesModeDropdown(parent)
+	local row = CreateFrame("Frame", nil, parent)
+	row:SetSize(430, 26)
+
+	row.Text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	row.Text:SetPoint("LEFT", row, "LEFT", 0, 0)
+	row.Text:SetWidth(170)
+	row.Text:SetJustifyH("LEFT")
+	row.Text:SetText(L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_LABEL)
+
+	row.Dropdown = CreateFrame("DropdownButton", nil, row, "WowStyle1DropdownTemplate")
+	row.Dropdown:SetPoint("LEFT", row.Text, "RIGHT", 8, 0)
+	row.Dropdown:SetWidth(180)
+
+	if row.Dropdown.SetSelectionText then
+		row.Dropdown:SetSelectionText(function()
+			return GetEnemyForcesModeLabel(GetSelectedEnemyForcesMode())
+		end)
+	end
+
+	local function IsSelected(mode)
+		return GetSelectedEnemyForcesMode() == mode
+	end
+
+	local function SetSelected(mode)
+		SetSelectedEnemyForcesMode(mode)
+		addon.RefreshWindow()
+	end
+
+	row.Dropdown:SetupMenu(function(dropdown, rootDescription)
+		rootDescription:SetTag("LEVEL20_ENEMY_FORCES_MODE")
+
+		for _, option in ipairs(enemyForcesModeOptions) do
+			rootDescription:CreateRadio(option.label, IsSelected, SetSelected, option.mode)
+		end
+	end)
+
+	row:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:SetText(L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_LABEL, 1, 1, 1)
+		GameTooltip_AddNormalLine(GameTooltip, L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_TOOLTIP)
+		GameTooltip:Show()
+	end)
+	row:SetScript("OnLeave", GameTooltip_Hide)
+	row.Dropdown:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:SetText(L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_LABEL, 1, 1, 1)
+		GameTooltip_AddNormalLine(GameTooltip, L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_TOOLTIP)
+		GameTooltip:Show()
+	end)
+	row.Dropdown:SetScript("OnLeave", GameTooltip_Hide)
+
+	function row:Refresh()
+		local label = GetEnemyForcesModeLabel(GetSelectedEnemyForcesMode())
+		if self.Dropdown.SetDefaultText then
+			self.Dropdown:SetDefaultText(label)
+		end
+	end
+
+	return row
+end
+
 toggleCombatLogButton:SetScript("OnClick", function()
 	addon.DungeonChallenge.ToggleCombatLog()
 	addon.RefreshDungeonPanel()
@@ -584,15 +690,8 @@ local dungeonChallengeFrameCheckbox = CreateCheckbox(
 )
 dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
 
-local enemyForcesEstimateCheckbox = CreateCheckbox(
-	settingsContent,
-	L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_LABEL,
-	L.DUNGEON_CHALLENGE_ENEMY_FORCES_SETTING_TOOLTIP,
-	function(checked)
-		addon.DungeonChallenge.setEnemyForcesEnabled(checked)
-	end
-)
-enemyForcesEstimateCheckbox:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
+local enemyForcesModeDropdown = CreateEnemyForcesModeDropdown(settingsContent)
+enemyForcesModeDropdown:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
 
 local combatLogManagementCheckbox = CreateCheckbox(
 	settingsContent,
@@ -602,7 +701,7 @@ local combatLogManagementCheckbox = CreateCheckbox(
 		addon.DungeonChallenge.SetCombatLogManagementEnabled(checked)
 	end
 )
-combatLogManagementCheckbox:SetPoint("TOPLEFT", enemyForcesEstimateCheckbox, "BOTTOMLEFT", 0, -8)
+combatLogManagementCheckbox:SetPoint("TOPLEFT", enemyForcesModeDropdown, "BOTTOMLEFT", 0, -8)
 
 local guildChallengeStartCheckbox = CreateCheckbox(
 	settingsContent,
@@ -730,7 +829,7 @@ function addon.RefreshWindow()
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
 	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)
-	enemyForcesEstimateCheckbox:SetChecked(Level20DB.enableEnemyForces)
+	enemyForcesModeDropdown:Refresh()
 	combatLogManagementCheckbox:SetChecked(Level20DB.manageCombatLog)
 	guildChallengeStartCheckbox:SetChecked(Level20DB.allowGuildChallengeStart)
 	bagFoldersCheckbox:SetChecked(Level20DB.bagFolders and Level20DB.bagFolders.enabled)

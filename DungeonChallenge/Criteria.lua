@@ -4,7 +4,11 @@ local challenge = addon.DungeonChallenge
 local state = challenge.state
 
 function challenge.IsEnemyForcesEnabled()
-	return Level20DB.enableEnemyForces and true or false
+	return challenge.GetEnemyForcesMode() ~= addon.ENEMY_FORCES_MODE_DISABLED
+end
+
+function challenge.IsEnemyForcesRequired()
+	return challenge.GetEnemyForcesMode() == addon.ENEMY_FORCES_MODE_REQUIRED
 end
 
 function challenge.BuildEnemyForcesCriteria(run)
@@ -18,12 +22,14 @@ function challenge.BuildEnemyForcesCriteria(run)
 	if run and run.startedAt and challenge.GetEnemyForcesScore then
 		quantity = challenge.GetEnemyForcesScore(run, state.encounterCriteria)
 	end
+	local isRequired = challenge.IsEnemyForcesRequired()
+	local isCompleted = isRequired and quantity >= totalQuantity
 
 	return {
 		description = challenge.L.DUNGEON_CHALLENGE_ENEMY_FORCES,
 		quantity = quantity,
 		totalQuantity = totalQuantity,
-		completed = quantity >= totalQuantity,
+		completed = isCompleted,
 		enemyForcesConfig = config,
 		duration = 0,
 		elapsed = 0,
@@ -36,6 +42,7 @@ function challenge.BuildEnemyForcesCriteria(run)
 		assetID = challenge.constants.FAKE_AFFIX_ID,
 		criteriaID = challenge.constants.FAKE_AFFIX_ID,
 		excludeFromSnapshot = true,
+		excludeFromCompletion = not isRequired,
 		syntheticEnemyForces = true,
 	}
 end

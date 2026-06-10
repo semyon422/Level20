@@ -37,6 +37,17 @@ challenge.enemyForcesConfig = {
 	},
 }
 
+function challenge.GetEnemyForcesMode()
+	local mode = Level20DB.enemyForcesMode
+	if mode == addon.ENEMY_FORCES_MODE_DISABLED
+		or mode == addon.ENEMY_FORCES_MODE_REQUIRED
+		or mode == addon.ENEMY_FORCES_MODE_UNLIMITED then
+		return mode
+	end
+
+	return addon.ENEMY_FORCES_MODE_DISABLED
+end
+
 local function CopyWeights(weights)
 	local copy = {}
 	for classification, amount in pairs(weights) do
@@ -227,5 +238,5 @@ function challenge.GetEnemyForcesScore(run, criteriaList)
 		score = score + (math.max(0, tonumber(count) or 0) * amount)
 	end
 
-	return math.max(0, math.min(config.requiredScore, score))
+	return math.max(0, score)
 end

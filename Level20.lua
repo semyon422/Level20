@@ -2,6 +2,9 @@ local addonName, addon = ...
 
 addon.addonName = addonName
 addon.LEVEL_CAP = 20
+addon.ENEMY_FORCES_MODE_DISABLED = "disabled"
+addon.ENEMY_FORCES_MODE_REQUIRED = "required"
+addon.ENEMY_FORCES_MODE_UNLIMITED = "unlimited"
 
 ---@alias Level20BagFolderID string
 ---@alias Level20ItemGUID string
@@ -54,7 +57,7 @@ addon.LEVEL_CAP = 20
 ---@field showPlayerMarks boolean
 ---@field shadowlandsProtection boolean
 ---@field showDungeonChallengeFrame boolean
----@field enableEnemyForces boolean
+---@field enemyForcesMode string
 ---@field allowGuildChallengeStart boolean
 ---@field manageCombatLog boolean
 ---@field debugXPWarning boolean
@@ -87,7 +90,7 @@ local defaultSettings = {
 	showPlayerMarks = true,
 	shadowlandsProtection = true,
 	showDungeonChallengeFrame = true,
-	enableEnemyForces = false,
+	enemyForcesMode = addon.ENEMY_FORCES_MODE_DISABLED,
 	allowGuildChallengeStart = false,
 	manageCombatLog = false,
 	debugXPWarning = false,

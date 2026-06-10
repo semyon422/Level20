@@ -19,8 +19,12 @@ function challenge.refresh(forceShow)
 	challenge.ActivateBlizzardBlock()
 end
 
-function challenge.setEnemyForcesEnabled(enabled)
-	Level20DB.enableEnemyForces = enabled and true or false
+function challenge.SetEnemyForcesMode(mode)
+	if mode ~= addon.ENEMY_FORCES_MODE_REQUIRED and mode ~= addon.ENEMY_FORCES_MODE_UNLIMITED then
+		mode = addon.ENEMY_FORCES_MODE_DISABLED
+	end
+
+	Level20DB.enemyForcesMode = mode
 	challenge.refresh(Level20DB.showDungeonChallengeFrame)
 end
 

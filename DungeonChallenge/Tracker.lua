@@ -159,7 +159,7 @@ local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, prog
 			line.Icon:SetAtlas("ui-questtracker-objective-nub", false)
 			local totalQuantity = tonumber(criteriaInfo.totalQuantity) or 0
 			local quantity = tonumber(criteriaInfo.quantity) or 0
-			local percent = totalQuantity > 0 and math.min(100, math.max(0, (quantity / totalQuantity) * 100)) or 0
+			local percent = totalQuantity > 0 and math.floor(math.max(0, (quantity / totalQuantity) * 100) + 0.5) or 0
 			local progressBar = AddScenarioStyleProgressBar(objectivesBlock, line, progressBarLineSpacing, percent)
 			SetEnemyForcesTooltip(line, criteriaInfo)
 			SetEnemyForcesTooltip(progressBar, criteriaInfo)
