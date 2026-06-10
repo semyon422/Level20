@@ -210,6 +210,7 @@ end
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ADDON_LOADED")
+eventFrame:RegisterEvent("SHOW_SUBSCRIPTION_INTERSTITIAL")
 eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
 eventFrame:RegisterEvent("PLAYER_LEVEL_UP")
 eventFrame:RegisterEvent("PLAYER_LEVEL_CHANGED")
@@ -266,6 +267,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		addon.InstallPvPTalentFilter()
 		addon.InstallSpellBookFilter()
 		addon.InstallCharacterInfoFilter()
+		addon.InitializeTrialFeatures()
 		print(L.LOADED_MESSAGE)
 	elseif event == "ADDON_LOADED" then
 		local loadedAddonName = ...
@@ -277,9 +279,17 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 			addon.InstallCharacterInfoFilter()
 		elseif loadedAddonName == "Blizzard_ObjectiveTracker" then
 			addon.DungeonChallenge.refresh()
+		elseif loadedAddonName == "Blizzard_EncounterJournal" then
+			addon.PatchTravelersLogRestrictions()
+		elseif loadedAddonName == "Blizzard_SubscriptionInterstitialUI"
+			or loadedAddonName == "Blizzard_ExpansionTrial" then
+			addon.SuppressTrialPopups()
 		end
 
 		addon.InstallShadowlandsProtection()
+	elseif event == "SHOW_SUBSCRIPTION_INTERSTITIAL" then
+		addon.SuppressSubscriptionInterstitial()
+		C_Timer.After(0, addon.SuppressSubscriptionInterstitial)
 	elseif event == "CHAT_MSG_ADDON" then
 		addon.OnVersionCheckMessage(...)
 		addon.GroupData.HandleMessage(...)
