@@ -24,8 +24,10 @@ frame:SetTitle(L.ADDON_TITLE)
 frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefaultAnchors")
 
 local activeTab
+local debugTabUnlocked = false
 local tabs = {}
 local tabOrder = { "info", "settings", "waypoints", "dungeon", "debug" }
+local defaultTabCount = 4
 
 frame.tabPadding = 0
 frame.minTabWidth = 64
@@ -50,9 +52,10 @@ infoTab:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 18, -30)
 CreateTab(frame, 2, L.TAB_SETTINGS, "settings")
 CreateTab(frame, 3, L.TAB_WAYPOINTS, "waypoints")
 CreateTab(frame, 4, L.TAB_DUNGEON, "dungeon")
-CreateTab(frame, 5, L.TAB_DEBUG, "debug")
+local debugTab = CreateTab(frame, 5, L.TAB_DEBUG, "debug")
+debugTab:Hide()
 
-PanelTemplates_SetNumTabs(frame, #tabOrder)
+PanelTemplates_SetNumTabs(frame, defaultTabCount)
 
 local infoPanel = CreateFrame("Frame", nil, frame)
 infoPanel:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -40)
@@ -394,7 +397,7 @@ dungeonPanel:SetScript("OnUpdate", function(_, elapsed)
 end)
 
 local function ShowTab(tab)
-	if tabs[tab] then
+	if tabs[tab] and (tab ~= "debug" or debugTabUnlocked) then
 		activeTab = tab
 	else
 		activeTab = "info"
@@ -420,6 +423,26 @@ local function ShowTab(tab)
 		addon.RefreshWindow()
 	end
 end
+
+local function LockDebugTab()
+	debugTabUnlocked = false
+	debugTab:Hide()
+	PanelTemplates_SetNumTabs(frame, defaultTabCount)
+end
+
+function addon.UnlockDebugTab()
+	if not debugTabUnlocked then
+		debugTabUnlocked = true
+		debugTab:Show()
+		PanelTemplates_SetNumTabs(frame, #tabOrder)
+	end
+
+	addon.RefreshWindow()
+	ShowTab("debug")
+	frame:Show()
+end
+
+frame:HookScript("OnHide", LockDebugTab)
 
 for _, tabKey in ipairs(tabOrder) do
 	tabs[tabKey]:SetScript("OnClick", function(self)
@@ -721,9 +744,14 @@ function addon.RefreshWindow()
 end
 
 function addon.ShowWindow()
+	LockDebugTab()
 	addon.RefreshWindow()
 	ShowTab("info")
 	frame:Show()
+end
+
+function addon.ShowDebugWindow()
+	addon.UnlockDebugTab()
 end
 
 function addon.ToggleWindow()

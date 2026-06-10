@@ -61,7 +61,11 @@ local function UpdateButtonAngle()
 end
 
 button:SetScript("OnClick", function()
-	addon.ToggleWindow()
+	if IsControlKeyDown() and IsShiftKeyDown() then
+		addon.UnlockDebugTab()
+	else
+		addon.ToggleWindow()
+	end
 end)
 
 button:SetScript("OnEnter", function(self)
