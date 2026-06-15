@@ -62,7 +62,7 @@ end
 
 button:SetScript("OnClick", function()
 	if IsControlKeyDown() and IsShiftKeyDown() then
-		addon.UnlockDebugTab()
+		addon.ShowHiddenTabsWindow()
 	else
 		addon.ToggleWindow()
 	end

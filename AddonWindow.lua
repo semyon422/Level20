@@ -25,8 +25,9 @@ frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefault
 
 local activeTab
 local debugTabUnlocked = false
+local spectatorWarGameTabUnlocked = false
 local tabs = {}
-local tabOrder = { "info", "settings", "waypoints", "dungeon", "debug" }
+local tabOrder = { "info", "settings", "waypoints", "dungeon", "spectatorWarGame", "debug" }
 local defaultTabCount = 4
 
 frame.tabPadding = 0
@@ -52,7 +53,9 @@ infoTab:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 18, -30)
 CreateTab(frame, 2, L.TAB_SETTINGS, "settings")
 CreateTab(frame, 3, L.TAB_WAYPOINTS, "waypoints")
 CreateTab(frame, 4, L.TAB_DUNGEON, "dungeon")
-local debugTab = CreateTab(frame, 5, L.TAB_DEBUG, "debug")
+local spectatorWarGameTab = CreateTab(frame, 5, L.TAB_SPECTATOR_WARGAME, "spectatorWarGame")
+local debugTab = CreateTab(frame, 6, L.TAB_DEBUG, "debug")
+spectatorWarGameTab:Hide()
 debugTab:Hide()
 
 PanelTemplates_SetNumTabs(frame, defaultTabCount)
@@ -84,6 +87,10 @@ waypointsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 local dungeonPanel = CreateFrame("Frame", nil, frame)
 dungeonPanel:SetPoint("TOPLEFT", infoPanel)
 dungeonPanel:SetPoint("BOTTOMRIGHT", infoPanel)
+
+local spectatorWarGamePanel = CreateFrame("Frame", nil, frame)
+spectatorWarGamePanel:SetPoint("TOPLEFT", infoPanel)
+spectatorWarGamePanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
 local debugPanel = CreateFrame("Frame", nil, frame)
 debugPanel:SetPoint("TOPLEFT", infoPanel)
@@ -239,6 +246,229 @@ clearWaypointButton:SetScript("OnClick", function()
 	print(L.WAYPOINT_CLEARED)
 end)
 
+local spectatorWarGameControls = {}
+local spectatorWarGameDropdownWidth = 330
+
+local function CreateSpectatorWarGameRadio(rootDescription, option, isSelected, setSelected)
+	local radio = rootDescription:CreateRadio(option.label, isSelected, setSelected, option.value)
+	radio:AddInitializer(function(button)
+		local fontString = button.fontString or button.Text
+		if fontString then
+			fontString:SetWidth(spectatorWarGameDropdownWidth - 32)
+			fontString:SetWordWrap(false)
+			fontString:SetText(option.label)
+		end
+	end)
+	return radio
+end
+
+local function GetSpectatorWarGameLeaderLabel(value)
+	return value and value ~= "" and value or L.SPECTATOR_WARGAME_SELECT_FRIEND
+end
+
+local function GetSpectatorWarGameArenaLabel(value)
+	if not value or not addon.GetSpectatorWarGameArenaOptions then
+		return nil
+	end
+
+	for _, option in ipairs(addon.GetSpectatorWarGameArenaOptions()) do
+		if option.value == value then
+			return option.label
+		end
+	end
+
+	return nil
+end
+
+local function CreateSpectatorWarGameFriendDropdown(parent, label, dbKey, previous)
+	local row = CreateFrame("Frame", nil, parent)
+	row:SetSize(430, 30)
+	if previous then
+		row:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -10)
+	else
+		row:SetPoint("TOPLEFT", parent, "TOPLEFT", 22, -18)
+	end
+
+	row.Text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	row.Text:SetPoint("LEFT", row, "LEFT", 0, 0)
+	row.Text:SetWidth(90)
+	row.Text:SetJustifyH("LEFT")
+	row.Text:SetText(label)
+
+	row.Dropdown = CreateFrame("DropdownButton", nil, row, "WowStyle1DropdownTemplate")
+	row.Dropdown:SetPoint("LEFT", row.Text, "RIGHT", 8, 0)
+	row.Dropdown:SetWidth(spectatorWarGameDropdownWidth)
+
+	if row.Dropdown.SetSelectionText then
+		row.Dropdown:SetSelectionText(function()
+			return GetSpectatorWarGameLeaderLabel(Level20DB[dbKey])
+		end)
+	end
+
+	local function IsSelected(value)
+		return Level20DB[dbKey] == value
+	end
+
+	local function SetSelected(value)
+		Level20DB[dbKey] = value
+		addon.RefreshSpectatorWarGamePanel()
+	end
+
+	row.Dropdown:SetupMenu(function(dropdown, rootDescription)
+		rootDescription:SetTag("LEVEL20_SPECTATOR_WARGAME_" .. dbKey)
+		rootDescription:SetMinimumWidth(spectatorWarGameDropdownWidth)
+
+		local options = addon.GetSpectatorWarGameBNetFriendOptions and addon.GetSpectatorWarGameBNetFriendOptions() or {}
+		if #options == 0 then
+			rootDescription:CreateTitle(L.SPECTATOR_WARGAME_NO_BNET_FRIENDS)
+			return
+		end
+
+		for _, option in ipairs(options) do
+			CreateSpectatorWarGameRadio(rootDescription, option, IsSelected, SetSelected)
+		end
+	end)
+
+	function row:Refresh()
+		local value = GetSpectatorWarGameLeaderLabel(Level20DB[dbKey])
+		if self.Dropdown.SetDefaultText then
+			self.Dropdown:SetDefaultText(value)
+		end
+	end
+
+	table.insert(spectatorWarGameControls, row)
+	return row
+end
+
+local function CreateSpectatorWarGameArenaDropdown(parent, previous)
+	local row = CreateFrame("Frame", nil, parent)
+	row:SetSize(430, 30)
+	row:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -10)
+
+	row.Text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	row.Text:SetPoint("LEFT", row, "LEFT", 0, 0)
+	row.Text:SetWidth(90)
+	row.Text:SetJustifyH("LEFT")
+	row.Text:SetText(L.SPECTATOR_WARGAME_ARENA)
+
+	row.Dropdown = CreateFrame("DropdownButton", nil, row, "WowStyle1DropdownTemplate")
+	row.Dropdown:SetPoint("LEFT", row.Text, "RIGHT", 8, 0)
+	row.Dropdown:SetWidth(spectatorWarGameDropdownWidth)
+
+	if row.Dropdown.SetSelectionText then
+		row.Dropdown:SetSelectionText(function()
+			return GetSpectatorWarGameArenaLabel(Level20DB.spectatorWarGameArenaID) or L.SPECTATOR_WARGAME_SELECT_ARENA
+		end)
+	end
+
+	local function IsSelected(value)
+		return Level20DB.spectatorWarGameArenaID == value
+	end
+
+	local function SetSelected(value)
+		Level20DB.spectatorWarGameArenaID = value
+		addon.RefreshSpectatorWarGamePanel()
+	end
+
+	row.Dropdown:SetupMenu(function(dropdown, rootDescription)
+		rootDescription:SetTag("LEVEL20_SPECTATOR_WARGAME_ARENA")
+		rootDescription:SetMinimumWidth(spectatorWarGameDropdownWidth)
+
+		local options = addon.GetSpectatorWarGameArenaOptions and addon.GetSpectatorWarGameArenaOptions() or {}
+		if #options == 0 then
+			rootDescription:CreateTitle(L.SPECTATOR_WARGAME_NO_ARENAS)
+			return
+		end
+
+		for _, option in ipairs(options) do
+			CreateSpectatorWarGameRadio(rootDescription, option, IsSelected, SetSelected)
+		end
+	end)
+
+	function row:Refresh()
+		local value = GetSpectatorWarGameArenaLabel(Level20DB.spectatorWarGameArenaID) or L.SPECTATOR_WARGAME_SELECT_ARENA
+		if self.Dropdown.Text then
+			self.Dropdown.Text:SetWidth(spectatorWarGameDropdownWidth - 38)
+		end
+		if self.Dropdown.OverrideText then
+			self.Dropdown:OverrideText(value)
+		elseif self.Dropdown.SetDefaultText then
+			self.Dropdown:SetDefaultText(value)
+		end
+	end
+
+	table.insert(spectatorWarGameControls, row)
+	return row
+end
+
+local spectatorWarGameLeaderARow = CreateSpectatorWarGameFriendDropdown(spectatorWarGamePanel, L.SPECTATOR_WARGAME_LEADER_A, "spectatorWarGameLeaderA")
+local spectatorWarGameLeaderBRow = CreateSpectatorWarGameFriendDropdown(spectatorWarGamePanel, L.SPECTATOR_WARGAME_LEADER_B, "spectatorWarGameLeaderB", spectatorWarGameLeaderARow)
+local spectatorWarGameArenaRow = CreateSpectatorWarGameArenaDropdown(spectatorWarGamePanel, spectatorWarGameLeaderBRow)
+
+local spectatorWarGameStartButton = CreateFrame("Button", nil, spectatorWarGamePanel, "UIPanelButtonTemplate")
+spectatorWarGameStartButton:SetSize(180, 24)
+spectatorWarGameStartButton:SetPoint("TOPLEFT", spectatorWarGameArenaRow, "BOTTOMLEFT", 98, -14)
+spectatorWarGameStartButton:SetText(L.SPECTATOR_WARGAME_START_MATCH)
+spectatorWarGameStartButton:SetScript("OnClick", function()
+	if not Level20DB.spectatorWarGameLeaderA or not Level20DB.spectatorWarGameLeaderB or not Level20DB.spectatorWarGameArenaID then
+		print(L.SPECTATOR_WARGAME_SELECT_REQUIRED)
+		return
+	end
+
+	addon.OpenSpectatorWarGameCommand(Level20DB.spectatorWarGameLeaderA, Level20DB.spectatorWarGameLeaderB, Level20DB.spectatorWarGameArenaID)
+end)
+
+local spectatorWarGameRefreshButton = CreateFrame("Button", nil, spectatorWarGamePanel, "UIPanelButtonTemplate")
+spectatorWarGameRefreshButton:SetSize(180, 24)
+spectatorWarGameRefreshButton:SetPoint("LEFT", spectatorWarGameStartButton, "RIGHT", 8, 0)
+spectatorWarGameRefreshButton:SetText(L.SPECTATOR_WARGAME_REFRESH_FRIENDS)
+spectatorWarGameRefreshButton:SetScript("OnClick", function()
+	addon.RefreshSpectatorWarGamePanel()
+end)
+
+function addon.RefreshSpectatorWarGamePanel()
+	local availableLeaders = {}
+	local options = addon.GetSpectatorWarGameBNetFriendOptions and addon.GetSpectatorWarGameBNetFriendOptions() or {}
+	for _, option in ipairs(options) do
+		availableLeaders[option.value] = true
+	end
+
+	local availableArenas = {}
+	local arenaOptions = addon.GetSpectatorWarGameArenaOptions and addon.GetSpectatorWarGameArenaOptions() or {}
+	for _, option in ipairs(arenaOptions) do
+		availableArenas[option.value] = true
+	end
+	if Level20DB.spectatorWarGameArenaID and not availableArenas[Level20DB.spectatorWarGameArenaID] then
+		Level20DB.spectatorWarGameArenaID = nil
+	end
+	if not Level20DB.spectatorWarGameArenaID and arenaOptions[1] then
+		Level20DB.spectatorWarGameArenaID = arenaOptions[1].value
+	end
+
+	for _, control in ipairs(spectatorWarGameControls) do
+		if control.Refresh then
+			control:Refresh()
+		end
+	end
+
+	local hasBothLeaders = availableLeaders[Level20DB.spectatorWarGameLeaderA]
+		and availableLeaders[Level20DB.spectatorWarGameLeaderB]
+		and Level20DB.spectatorWarGameLeaderA ~= Level20DB.spectatorWarGameLeaderB
+	local hasArena = Level20DB.spectatorWarGameArenaID and availableArenas[Level20DB.spectatorWarGameArenaID]
+	spectatorWarGameStartButton:SetEnabled(hasBothLeaders and hasArena and true or false)
+end
+
+local spectatorWarGameEventFrame = CreateFrame("Frame")
+spectatorWarGameEventFrame:RegisterEvent("BN_FRIEND_LIST_SIZE_CHANGED")
+spectatorWarGameEventFrame:RegisterEvent("BN_FRIEND_INFO_CHANGED")
+spectatorWarGameEventFrame:RegisterEvent("BN_FRIEND_ACCOUNT_ONLINE")
+spectatorWarGameEventFrame:RegisterEvent("BN_FRIEND_ACCOUNT_OFFLINE")
+spectatorWarGameEventFrame:SetScript("OnEvent", function()
+	if spectatorWarGamePanel:IsShown() then
+		addon.RefreshSpectatorWarGamePanel()
+	end
+end)
+
 local function GetAccountTypeText()
 	if IsTrialAccount() then
 		return L.ACCOUNT_TRIAL
@@ -376,7 +606,7 @@ function addon.RefreshDungeonPanel()
 		resetDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_COMPLETE_RUN)
 	end
 	resetDungeonTimerButton:SetEnabled(isActive and not InCombatLockdown())
-	guildStartDungeonTimerButton:SetEnabled(isActive and not InCombatLockdown() and IsInGuild())
+	guildStartDungeonTimerButton:SetEnabled(not InCombatLockdown() and IsInGuild())
 	toggleCombatLogButton:SetText(challenge and challenge.GetCombatLogToggleLabel and challenge.GetCombatLogToggleLabel() or L.DUNGEON_CHALLENGE_COMBAT_LOG_START)
 	toggleCombatLogButton:SetEnabled(challenge and challenge.CanControlCombatLog and challenge.CanControlCombatLog())
 	toggleAdvancedCombatLogButton:SetText(challenge and challenge.GetAdvancedCombatLogToggleLabel and challenge.GetAdvancedCombatLogToggleLabel() or L.DUNGEON_CHALLENGE_ADVANCED_COMBAT_LOG_START)
@@ -397,7 +627,10 @@ dungeonPanel:SetScript("OnUpdate", function(_, elapsed)
 end)
 
 local function ShowTab(tab)
-	if tabs[tab] and (tab ~= "debug" or debugTabUnlocked) then
+	if tabs[tab]
+		and (tab ~= "debug" or debugTabUnlocked)
+		and (tab ~= "spectatorWarGame" or spectatorWarGameTabUnlocked)
+	then
 		activeTab = tab
 	else
 		activeTab = "info"
@@ -409,6 +642,7 @@ local function ShowTab(tab)
 	settingsPanel:SetShown(activeTab == "settings")
 	waypointsPanel:SetShown(activeTab == "waypoints")
 	dungeonPanel:SetShown(activeTab == "dungeon")
+	spectatorWarGamePanel:SetShown(activeTab == "spectatorWarGame")
 	debugPanel:SetShown(activeTab == "debug")
 
 	if activeTab == "info" then
@@ -419,30 +653,39 @@ local function ShowTab(tab)
 		RefreshWaypointButtons()
 	elseif activeTab == "dungeon" then
 		addon.RefreshDungeonPanel()
+	elseif activeTab == "spectatorWarGame" then
+		addon.RefreshSpectatorWarGamePanel()
 	elseif activeTab == "debug" then
 		addon.RefreshWindow()
 	end
 end
 
+local function RefreshHiddenTabCount()
+	local count = defaultTabCount
+	if debugTabUnlocked then
+		count = 6
+	elseif spectatorWarGameTabUnlocked then
+		count = 5
+	end
+	PanelTemplates_SetNumTabs(frame, count)
+end
+
 local function LockDebugTab()
 	debugTabUnlocked = false
 	debugTab:Hide()
-	PanelTemplates_SetNumTabs(frame, defaultTabCount)
+	RefreshHiddenTabCount()
 end
 
-function addon.UnlockDebugTab()
-	if not debugTabUnlocked then
-		debugTabUnlocked = true
-		debugTab:Show()
-		PanelTemplates_SetNumTabs(frame, #tabOrder)
-	end
-
-	addon.RefreshWindow()
-	ShowTab("debug")
-	frame:Show()
+local function LockSpectatorWarGameTab()
+	spectatorWarGameTabUnlocked = false
+	spectatorWarGameTab:Hide()
+	RefreshHiddenTabCount()
 end
 
-frame:HookScript("OnHide", LockDebugTab)
+frame:HookScript("OnHide", function()
+	LockDebugTab()
+	LockSpectatorWarGameTab()
+end)
 
 for _, tabKey in ipairs(tabOrder) do
 	tabs[tabKey]:SetScript("OnClick", function(self)
@@ -840,17 +1083,32 @@ function addon.RefreshWindow()
 	completionBannerPlayerCountSlider:SetValue(Level20DB.debugCompletionBannerPlayerCount or 5)
 	addon.RefreshInfoPanel()
 	addon.RefreshDungeonPanel()
+	addon.RefreshSpectatorWarGamePanel()
 end
 
 function addon.ShowWindow()
 	LockDebugTab()
+	LockSpectatorWarGameTab()
 	addon.RefreshWindow()
 	ShowTab("info")
 	frame:Show()
 end
 
-function addon.ShowDebugWindow()
-	addon.UnlockDebugTab()
+function addon.ShowHiddenTabsWindow()
+	if not spectatorWarGameTabUnlocked then
+		spectatorWarGameTabUnlocked = true
+		spectatorWarGameTab:Show()
+	end
+
+	if not debugTabUnlocked then
+		debugTabUnlocked = true
+		debugTab:Show()
+	end
+
+	RefreshHiddenTabCount()
+	addon.RefreshWindow()
+	ShowTab("spectatorWarGame")
+	frame:Show()
 end
 
 function addon.ToggleWindow()

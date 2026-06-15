@@ -79,6 +79,9 @@ addon.ENEMY_FORCES_MODE_UNLIMITED = "unlimited"
 ---@field groupDataWindowXOfs number?
 ---@field groupDataWindowYOfs number?
 ---@field groupDataPlayers table<string, table>?
+---@field spectatorWarGameLeaderA string?
+---@field spectatorWarGameLeaderB string?
+---@field spectatorWarGameArenaID integer|string?
 
 ---@type Level20DB
 Level20DB = Level20DB or {}

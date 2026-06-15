@@ -48,5 +48,6 @@ BagFolders/Items.lua
 BagFolders/Widgets.lua
 BagFolders/Layout.lua
 BagFolders/Hooks.lua
+SpectatorWarGame.lua
 SlashCommands.lua
 Events.lua
