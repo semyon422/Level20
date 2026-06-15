@@ -26,14 +26,13 @@ challenge.enemyForcesConfig = {
 		},
 	},
 	instances = {
-		-- Example:
-		-- [2648] = {
-		-- 	requiredScore = 100,
-		-- 	weights = {
-		-- 		normal = 0.5,
-		-- 		elite = 1,
-		-- 	},
-		-- },
+		[34] = {
+			requiredScore = 185,
+			enemies = {
+				normal = 26,
+				elite = 65,
+			},
+		},
 	},
 }
 
@@ -51,6 +50,19 @@ end
 local function CopyWeights(weights)
 	local copy = {}
 	for classification, amount in pairs(weights) do
+		copy[classification] = amount
+	end
+
+	return copy
+end
+
+local function CopyEnemyTotals(enemies)
+	if type(enemies) ~= "table" then
+		return nil
+	end
+
+	local copy = {}
+	for classification, amount in pairs(enemies) do
 		copy[classification] = amount
 	end
 
@@ -115,6 +127,7 @@ function challenge.GetEnemyForcesConfig(run, criteriaList)
 		instanceID = instanceID,
 		requiredScore = requiredScore,
 		weights = weights,
+		enemies = CopyEnemyTotals(instanceConfig and instanceConfig.enemies),
 	}
 end
 
@@ -157,12 +170,19 @@ function challenge.GetEnemyForcesTrackedClassifications(run, criteriaList)
 		end
 	end
 
+	for classification in pairs(config.enemies or {}) do
+		if not seen[classification] then
+			seen[classification] = true
+			classifications[#classifications + 1] = classification
+		end
+	end
+
 	return classifications
 end
 
 function challenge.GetEnemyForcesSyncPayload(run)
 	run = run or challenge.GetRunRecord()
-	if not run or not run.startedAt or run.completedAt then
+	if not run then
 		return {
 			efa = false,
 		}
@@ -191,7 +211,7 @@ function challenge.ApplyEnemyForcesSyncPayload(payload, run)
 	end
 
 	run = run or challenge.GetRunRecord()
-	if not run or not run.startedAt or run.completedAt then
+	if not run then
 		return false
 	end
 
@@ -202,11 +222,9 @@ function challenge.ApplyEnemyForcesSyncPayload(payload, run)
 
 	local localStartedAt = math.floor(tonumber(run.startedAt) or 0)
 	local remoteStartedAt = math.floor(tonumber(payload.efst) or 0)
-	if localStartedAt <= 0 or remoteStartedAt <= 0 then
-		return false
-	end
-
-	if math.abs(localStartedAt - remoteStartedAt) > ENEMY_FORCES_SYNC_START_TIME_TOLERANCE_SECONDS then
+	if localStartedAt > 0
+		and remoteStartedAt > 0
+		and math.abs(localStartedAt - remoteStartedAt) > ENEMY_FORCES_SYNC_START_TIME_TOLERANCE_SECONDS then
 		return false
 	end
 

@@ -25,12 +25,80 @@ local function ClearObjectiveTooltip(target)
 	target:SetScript("OnLeave", nil)
 end
 
+local function AddDungeonKeyTooltipLines(tooltip)
+	if not tooltip then
+		return
+	end
+
+	local status = challenge.GetStatus and challenge.GetStatus() or {}
+	tooltip:AddLine("Instance Info", 1, 1, 1)
+	tooltip:AddLine(("isInInstance: %s"):format(tostring(status.isInInstance)), 1, 1, 1)
+	tooltip:AddLine(("instanceType: %s"):format(tostring(status.instanceType)), 1, 1, 1)
+	tooltip:AddLine(("name: %s"):format(tostring(status.name)), 1, 1, 1)
+	tooltip:AddLine(("difficultyID: %s"):format(tostring(status.difficultyID)), 1, 1, 1)
+	tooltip:AddLine(("difficultyName: %s"):format(tostring(status.difficultyName)), 1, 1, 1)
+	tooltip:AddLine(("maxPlayers: %s"):format(tostring(status.maxPlayers)), 1, 1, 1)
+	tooltip:AddLine(("instanceID: %s"):format(tostring(status.instanceID)), 1, 1, 1)
+	tooltip:AddLine(("instanceGroupSize: %s"):format(tostring(status.instanceGroupSize)), 1, 1, 1)
+	tooltip:AddLine(("lfgDungeonID: %s"):format(tostring(status.lfgDungeonID)), 1, 1, 1)
+end
+
+local function ShowDungeonLevelTooltip(self)
+	GameTooltip:SetOwner(self, "ANCHOR_NONE")
+	GameTooltip:ClearAllPoints()
+	GameTooltip:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
+	AddDungeonKeyTooltipLines(GameTooltip)
+	GameTooltip:Show()
+end
+
+local function EnsureDungeonLevelTooltip(block)
+	if not block or not block.Level then
+		return
+	end
+
+	local tooltipFrame = block.Level20DungeonLevelTooltipFrame
+	if not tooltipFrame then
+		tooltipFrame = CreateFrame("Frame", nil, block)
+		tooltipFrame:EnableMouse(true)
+		tooltipFrame:SetScript("OnEnter", ShowDungeonLevelTooltip)
+		tooltipFrame:SetScript("OnLeave", GameTooltip_Hide)
+		block.Level20DungeonLevelTooltipFrame = tooltipFrame
+	end
+
+	tooltipFrame:ClearAllPoints()
+	tooltipFrame:SetPoint("CENTER", block.Level, "CENTER", 0, 0)
+	tooltipFrame:SetSize(math.max(24, block.Level:GetStringWidth() + 8), math.max(16, block.Level:GetStringHeight() + 4))
+	tooltipFrame:Show()
+end
+
+local function AddEnemyForcesKilledMobCounts(tooltip, run, criteriaList, config)
+	if not tooltip then
+		return
+	end
+
+	local counts = challenge.GetEnemyForcesCounts and challenge.GetEnemyForcesCounts(run) or {}
+	local enemyTotals = config and config.enemies or nil
+	tooltip:AddLine("Killed Mobs", 0.25, 1, 0.6)
+
+	for _, classification in ipairs(challenge.GetEnemyForcesTrackedClassifications(run, criteriaList)) do
+		local count = math.max(0, tonumber(counts[classification]) or 0)
+		local total = enemyTotals and tonumber(enemyTotals[classification]) or nil
+		if total then
+			tooltip:AddLine(("%s: %d/%d"):format(classification, count, total), 1, 1, 1)
+		else
+			tooltip:AddLine(("%s: %d"):format(classification, count), 1, 1, 1)
+		end
+	end
+end
+
 local function SetEnemyForcesTooltip(target, criteriaInfo)
 	if not target or not criteriaInfo or not criteriaInfo.enemyForcesConfig then
 		return
 	end
 
 	target:SetScript("OnEnter", function(self)
+		local run = challenge.GetRunRecord and challenge.GetRunRecord() or nil
+		local currentScore = challenge.GetEnemyForcesScore and challenge.GetEnemyForcesScore(run, state.encounterCriteria) or 0
 		local config = criteriaInfo.enemyForcesConfig
 		local weights = config.weights
 		local instanceID = config.instanceID and tostring(config.instanceID) or "nil"
@@ -39,10 +107,13 @@ local function SetEnemyForcesTooltip(target, criteriaInfo)
 		GameTooltip:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
 		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_ENEMY_FORCES, 1, 1, 1)
 		GameTooltip:AddLine(("Instance ID: %s"):format(instanceID), 1, 1, 1)
+		GameTooltip:AddLine(("Current Score: %s / %s"):format(tostring(currentScore), tostring(config.requiredScore)), 1, 1, 1)
 		GameTooltip:AddLine(("Total Score: %s"):format(tostring(config.requiredScore)), 1, 1, 1)
 		GameTooltip:AddLine(" ")
+		AddEnemyForcesKilledMobCounts(GameTooltip, run, state.encounterCriteria, config)
+		GameTooltip:AddLine(" ")
 		GameTooltip:AddLine("Weights", 0.25, 1, 0.6)
-		for _, classification in ipairs({ "normal", "minus", "elite", "rare", "rareelite", "worldboss" }) do
+		for _, classification in ipairs(challenge.GetEnemyForcesTrackedClassifications(run, state.encounterCriteria)) do
 			local amount = weights[classification]
 			if amount ~= nil then
 				GameTooltip:AddLine(("%s: %s"):format(classification, tostring(amount)), 1, 1, 1)
@@ -215,6 +286,7 @@ local function ApplyFakeChallengeModeState(challengeBlock, elapsedTime, timeLimi
 	challengeBlock.timeLimit = timeLimit
 	challengeBlock.lastMedalShown = nil
 	challengeBlock.Level:SetText(challenge.GetChallengeLevelDisplayText())
+	EnsureDungeonLevelTooltip(challengeBlock)
 	challengeBlock.wasDepleted = false
 	challengeBlock.StartedDepleted:Hide()
 	challengeBlock.TimesUpLootStatus:Hide()
@@ -631,6 +703,7 @@ function challenge.ActivateBlizzardBlock()
 
 	if block.Level then
 		block.Level:SetText(challenge.GetChallengeLevelDisplayText())
+		EnsureDungeonLevelTooltip(block)
 	end
 
 	challenge.UpdateDeathCountFrame(block)

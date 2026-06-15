@@ -272,7 +272,7 @@ function challenge.StartRun(run)
 
 	run.startedAt = challenge.GetCurrentServerTime()
 	run.deathCount = math.max(0, tonumber(run.deathCount) or 0)
-	run.enemyForcesCounts = {}
+	run.enemyForcesCounts = run.enemyForcesCounts or {}
 	if challenge.UpdateManagedCombatLog then
 		challenge.UpdateManagedCombatLog()
 	end
@@ -292,7 +292,7 @@ end
 function challenge.RecordEnemyForcesProgress(classification, run)
 	run = run or challenge.GetRunRecord()
 	classification = classification or "normal"
-	if not run or not run.startedAt or run.completedAt then
+	if not run then
 		return false
 	end
 
