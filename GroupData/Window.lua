@@ -331,7 +331,7 @@ local function CreateWindow()
 
 	local bodyFrame = CreateFrame("Frame", nil, tableFrame, "InsetFrameTemplate")
 	bodyFrame:SetPoint("TOPLEFT", headerRow, "BOTTOMLEFT", -1, BODY_TOP_OFFSET)
-	bodyFrame:SetPoint("BOTTOMRIGHT", tableFrame, "BOTTOMRIGHT", -22, 0)
+	bodyFrame:SetPoint("BOTTOMRIGHT", tableFrame, "BOTTOMRIGHT", -12, 0)
 
 	local scrollBox = CreateFrame("Frame", nil, bodyFrame, "WowScrollBoxList")
 	scrollBox:SetPoint("TOPLEFT", bodyFrame, "TOPLEFT", SCROLLBOX_SIDE_INSET, -SCROLLBOX_TOP_INSET)

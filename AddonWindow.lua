@@ -78,7 +78,7 @@ settingsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
 local settingsScrollFrame = CreateFrame("ScrollFrame", nil, settingsPanel, "ScrollFrameTemplate")
 settingsScrollFrame:SetPoint("TOPLEFT", settingsPanel, "TOPLEFT", 4, -4)
-settingsScrollFrame:SetPoint("BOTTOMRIGHT", settingsPanel, "BOTTOMRIGHT", -28, 4)
+settingsScrollFrame:SetPoint("BOTTOMRIGHT", settingsPanel, "BOTTOMRIGHT", -12, 4)
 
 local settingsContent = CreateFrame("Frame", nil, settingsScrollFrame)
 settingsContent:SetSize(1, 1)
@@ -106,7 +106,7 @@ debugPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
 local debugScrollFrame = CreateFrame("ScrollFrame", nil, debugPanel, "ScrollFrameTemplate")
 debugScrollFrame:SetPoint("TOPLEFT", debugPanel, "TOPLEFT", 4, -4)
-debugScrollFrame:SetPoint("BOTTOMRIGHT", debugPanel, "BOTTOMRIGHT", -28, 4)
+debugScrollFrame:SetPoint("BOTTOMRIGHT", debugPanel, "BOTTOMRIGHT", -12, 4)
 
 local debugContent = CreateFrame("Frame", nil, debugScrollFrame)
 debugContent:SetSize(1, 1)
@@ -114,6 +114,35 @@ debugScrollFrame:SetScrollChild(debugContent)
 debugScrollFrame:SetScript("OnSizeChanged", function(self, width)
 	debugContent:SetWidth(math.max(1, width))
 end)
+
+local function ResizeScrollContentToChildren(content, bottomPadding)
+	local contentTop = content:GetTop()
+	if not contentTop then
+		return
+	end
+
+	local height = 1
+	for _, child in ipairs({ content:GetChildren() }) do
+		if child:IsShown() then
+			local childBottom = child:GetBottom()
+			if childBottom then
+				height = math.max(height, contentTop - childBottom + (bottomPadding or 0))
+			end
+		end
+	end
+
+	content:SetHeight(math.ceil(height))
+end
+
+local function UpdateSettingsContentHeight()
+	ResizeScrollContentToChildren(settingsContent, 6)
+	settingsScrollFrame.ScrollBar:Update()
+end
+
+local function UpdateDebugContentHeight()
+	ResizeScrollContentToChildren(debugContent, 6)
+	debugScrollFrame.ScrollBar:Update()
+end
 
 local function CreateInfoRow(parent, label, previous)
 	local row = CreateFrame("Frame", nil, parent)
@@ -524,35 +553,45 @@ function addon.RefreshInfoPanel()
 	versionStatusLabel:SetTextColor(red, green, blue)
 end
 
-local dungeonRunSection = CreateSectionFrame(dungeonPanel, L.DUNGEON_CHALLENGE_RUN_SECTION, 236, 196)
+local DUNGEON_SECTION_WIDTH = 244
+local DUNGEON_SECTION_HEIGHT = 196
+local DUNGEON_SECTION_GAP = 12
+local DUNGEON_SECTION_INSET = 12
+local DUNGEON_ROW_WIDTH = 220
+local DUNGEON_BUTTON_WIDTH = 220
+local DUNGEON_BUTTON_HEIGHT = 24
+local DUNGEON_ROW_BUTTON_GAP = 12
+local DUNGEON_BUTTON_GAP = 8
+
+local dungeonRunSection = CreateSectionFrame(dungeonPanel, L.DUNGEON_CHALLENGE_RUN_SECTION, DUNGEON_SECTION_WIDTH, DUNGEON_SECTION_HEIGHT)
 dungeonRunSection:SetPoint("TOPLEFT", dungeonPanel, "TOPLEFT", 0, 0)
 
-local dungeonLoggingSection = CreateSectionFrame(dungeonPanel, L.DUNGEON_CHALLENGE_LOGGING_SECTION, 252, 196)
-dungeonLoggingSection:SetPoint("TOPLEFT", dungeonRunSection, "TOPRIGHT", 12, 0)
+local dungeonLoggingSection = CreateSectionFrame(dungeonPanel, L.DUNGEON_CHALLENGE_LOGGING_SECTION, DUNGEON_SECTION_WIDTH, DUNGEON_SECTION_HEIGHT)
+dungeonLoggingSection:SetPoint("TOPLEFT", dungeonRunSection, "TOPRIGHT", DUNGEON_SECTION_GAP, 0)
 
 local dungeonStatusRow = CreateInfoRow(dungeonRunSection, L.DUNGEON_CHALLENGE_STATUS_LABEL)
-dungeonStatusRow:SetPoint("TOPLEFT", dungeonRunSection, "TOPLEFT", 12, -34)
-dungeonStatusRow:SetWidth(212)
+dungeonStatusRow:SetPoint("TOPLEFT", dungeonRunSection, "TOPLEFT", DUNGEON_SECTION_INSET, -34)
+dungeonStatusRow:SetWidth(DUNGEON_ROW_WIDTH)
 dungeonStatusRow.value:SetPoint("RIGHT", dungeonStatusRow, "RIGHT", 0, 0)
 
 local dungeonTimerRow = CreateInfoRow(dungeonRunSection, L.DUNGEON_CHALLENGE_TIMER_LABEL, dungeonStatusRow)
-dungeonTimerRow:SetWidth(212)
+dungeonTimerRow:SetWidth(DUNGEON_ROW_WIDTH)
 dungeonTimerRow.value:SetPoint("RIGHT", dungeonTimerRow, "RIGHT", 0, 0)
 
 local dungeonCombatLogRow = CreateInfoRow(dungeonLoggingSection, L.DUNGEON_CHALLENGE_COMBAT_LOG_LABEL)
-dungeonCombatLogRow:SetPoint("TOPLEFT", dungeonLoggingSection, "TOPLEFT", 12, -34)
-dungeonCombatLogRow:SetWidth(228)
+dungeonCombatLogRow:SetPoint("TOPLEFT", dungeonLoggingSection, "TOPLEFT", DUNGEON_SECTION_INSET, -34)
+dungeonCombatLogRow:SetWidth(DUNGEON_ROW_WIDTH)
 dungeonCombatLogRow.label:SetWidth(128)
 dungeonCombatLogRow.value:SetPoint("RIGHT", dungeonCombatLogRow, "RIGHT", 0, 0)
 
 local dungeonAdvancedCombatLogRow = CreateInfoRow(dungeonLoggingSection, L.DUNGEON_CHALLENGE_ADVANCED_COMBAT_LOG_LABEL, dungeonCombatLogRow)
-dungeonAdvancedCombatLogRow:SetWidth(228)
+dungeonAdvancedCombatLogRow:SetWidth(DUNGEON_ROW_WIDTH)
 dungeonAdvancedCombatLogRow.label:SetWidth(128)
 dungeonAdvancedCombatLogRow.value:SetPoint("RIGHT", dungeonAdvancedCombatLogRow, "RIGHT", 0, 0)
 
 local resetDungeonTimerButton = CreateFrame("Button", nil, dungeonRunSection, "UIPanelButtonTemplate")
-resetDungeonTimerButton:SetSize(170, 24)
-resetDungeonTimerButton:SetPoint("TOPLEFT", dungeonTimerRow, "BOTTOMLEFT", 0, -12)
+resetDungeonTimerButton:SetSize(DUNGEON_BUTTON_WIDTH, DUNGEON_BUTTON_HEIGHT)
+resetDungeonTimerButton:SetPoint("TOPLEFT", dungeonTimerRow, "BOTTOMLEFT", 0, -DUNGEON_ROW_BUTTON_GAP)
 resetDungeonTimerButton:SetScript("OnClick", function()
 	local challenge = addon.DungeonChallenge
 	local isStarted = challenge and challenge.IsTimerStarted and challenge.IsTimerStarted()
@@ -570,8 +609,8 @@ resetDungeonTimerButton:SetScript("OnClick", function()
 end)
 
 local guildStartDungeonTimerButton = CreateFrame("Button", nil, dungeonRunSection, "UIPanelButtonTemplate")
-guildStartDungeonTimerButton:SetSize(170, 24)
-guildStartDungeonTimerButton:SetPoint("TOPLEFT", resetDungeonTimerButton, "BOTTOMLEFT", 0, -8)
+guildStartDungeonTimerButton:SetSize(DUNGEON_BUTTON_WIDTH, DUNGEON_BUTTON_HEIGHT)
+guildStartDungeonTimerButton:SetPoint("TOPLEFT", resetDungeonTimerButton, "BOTTOMLEFT", 0, -DUNGEON_BUTTON_GAP)
 guildStartDungeonTimerButton:SetText(L.DUNGEON_CHALLENGE_GUILD_START_SEND)
 guildStartDungeonTimerButton:SetScript("OnClick", function()
 	if addon.DungeonChallenge.SendGuildStartCommand() then
@@ -584,12 +623,12 @@ guildStartDungeonTimerButton:SetScript("OnClick", function()
 end)
 
 local toggleCombatLogButton = CreateFrame("Button", nil, dungeonLoggingSection, "UIPanelButtonTemplate")
-toggleCombatLogButton:SetSize(220, 24)
-toggleCombatLogButton:SetPoint("TOPLEFT", dungeonAdvancedCombatLogRow, "BOTTOMLEFT", 0, -12)
+toggleCombatLogButton:SetSize(DUNGEON_BUTTON_WIDTH, DUNGEON_BUTTON_HEIGHT)
+toggleCombatLogButton:SetPoint("TOPLEFT", dungeonAdvancedCombatLogRow, "BOTTOMLEFT", 0, -DUNGEON_ROW_BUTTON_GAP)
 
 local toggleAdvancedCombatLogButton = CreateFrame("Button", nil, dungeonLoggingSection, "UIPanelButtonTemplate")
-toggleAdvancedCombatLogButton:SetSize(220, 24)
-toggleAdvancedCombatLogButton:SetPoint("TOPLEFT", toggleCombatLogButton, "BOTTOMLEFT", 0, -8)
+toggleAdvancedCombatLogButton:SetSize(DUNGEON_BUTTON_WIDTH, DUNGEON_BUTTON_HEIGHT)
+toggleAdvancedCombatLogButton:SetPoint("TOPLEFT", toggleCombatLogButton, "BOTTOMLEFT", 0, -DUNGEON_BUTTON_GAP)
 
 local function FormatDuration(seconds)
 	seconds = math.max(0, math.floor(seconds or 0))
@@ -657,6 +696,7 @@ local function ShowTab(tab)
 		addon.RefreshInfoPanel()
 	elseif activeTab == "settings" then
 		addon.RefreshWindow()
+		UpdateSettingsContentHeight()
 	elseif activeTab == "waypoints" then
 		RefreshWaypointButtons()
 	elseif activeTab == "dungeon" then
@@ -665,6 +705,7 @@ local function ShowTab(tab)
 		addon.RefreshSpectatorWarGamePanel()
 	elseif activeTab == "debug" then
 		addon.RefreshWindow()
+		UpdateDebugContentHeight()
 	end
 end
 
@@ -902,7 +943,7 @@ local spellBookFilterCheckbox = CreateCheckbox(
 		addon.SetSpellBookFilterEnabled(checked)
 	end
 )
-spellBookFilterCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -8)
+spellBookFilterCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -4)
 spellBookFilterCheckbox:SetShown(not addon.SPELLBOOK_FILTER_DISABLED)
 
 local playerMarksCheckbox = CreateCheckbox(
@@ -915,9 +956,9 @@ local playerMarksCheckbox = CreateCheckbox(
 	end
 )
 if addon.SPELLBOOK_FILTER_DISABLED then
-	playerMarksCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -8)
+	playerMarksCheckbox:SetPoint("TOPLEFT", talentFilterCheckbox, "BOTTOMLEFT", 0, -4)
 else
-	playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -8)
+	playerMarksCheckbox:SetPoint("TOPLEFT", spellBookFilterCheckbox, "BOTTOMLEFT", 0, -4)
 end
 
 local shadowlandsProtectionCheckbox = CreateCheckbox(
@@ -929,7 +970,7 @@ local shadowlandsProtectionCheckbox = CreateCheckbox(
 		addon.RefreshShadowlandsProtection()
 	end
 )
-shadowlandsProtectionCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -8)
+shadowlandsProtectionCheckbox:SetPoint("TOPLEFT", playerMarksCheckbox, "BOTTOMLEFT", 0, -4)
 
 local dungeonChallengeFrameCheckbox = CreateCheckbox(
 	settingsContent,
@@ -939,10 +980,10 @@ local dungeonChallengeFrameCheckbox = CreateCheckbox(
 		addon.DungeonChallenge.setEnabled(checked)
 	end
 )
-dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -8)
+dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -4)
 
 local enemyForcesModeDropdown = CreateEnemyForcesModeDropdown(settingsContent)
-enemyForcesModeDropdown:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -8)
+enemyForcesModeDropdown:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -4)
 
 local combatLogManagementCheckbox = CreateCheckbox(
 	settingsContent,
@@ -952,7 +993,7 @@ local combatLogManagementCheckbox = CreateCheckbox(
 		addon.DungeonChallenge.SetCombatLogManagementEnabled(checked)
 	end
 )
-combatLogManagementCheckbox:SetPoint("TOPLEFT", enemyForcesModeDropdown, "BOTTOMLEFT", 0, -8)
+combatLogManagementCheckbox:SetPoint("TOPLEFT", enemyForcesModeDropdown, "BOTTOMLEFT", 0, -4)
 
 local guildChallengeStartCheckbox = CreateCheckbox(
 	settingsContent,
@@ -962,7 +1003,7 @@ local guildChallengeStartCheckbox = CreateCheckbox(
 		addon.DungeonChallenge.SetGuildStartEnabled(checked)
 	end
 )
-guildChallengeStartCheckbox:SetPoint("TOPLEFT", combatLogManagementCheckbox, "BOTTOMLEFT", 0, -8)
+guildChallengeStartCheckbox:SetPoint("TOPLEFT", combatLogManagementCheckbox, "BOTTOMLEFT", 0, -4)
 
 local bagFoldersCheckbox = CreateCheckbox(
 	settingsContent,
@@ -972,11 +1013,10 @@ local bagFoldersCheckbox = CreateCheckbox(
 		addon.SetBagFoldersEnabled(checked)
 	end
 )
-bagFoldersCheckbox:SetPoint("TOPLEFT", guildChallengeStartCheckbox, "BOTTOMLEFT", 0, -8)
+bagFoldersCheckbox:SetPoint("TOPLEFT", guildChallengeStartCheckbox, "BOTTOMLEFT", 0, -4)
 
 settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
-settingsContent:SetHeight(350)
-settingsScrollFrame.ScrollBar:Update()
+UpdateSettingsContentHeight()
 
 local debugXPWarningCheckbox = CreateCheckbox(
 	debugContent,
@@ -998,7 +1038,7 @@ local debugCovenantWarningCheckbox = CreateCheckbox(
 		addon.RefreshShadowlandsProtection()
 	end
 )
-debugCovenantWarningCheckbox:SetPoint("TOPLEFT", debugXPWarningCheckbox, "BOTTOMLEFT", 0, -8)
+debugCovenantWarningCheckbox:SetPoint("TOPLEFT", debugXPWarningCheckbox, "BOTTOMLEFT", 0, -4)
 
 local debugPlayerMarksCheckbox = CreateCheckbox(
 	debugContent,
@@ -1009,7 +1049,7 @@ local debugPlayerMarksCheckbox = CreateCheckbox(
 		addon.RefreshPlayerMarks()
 	end
 )
-debugPlayerMarksCheckbox:SetPoint("TOPLEFT", debugCovenantWarningCheckbox, "BOTTOMLEFT", 0, -8)
+debugPlayerMarksCheckbox:SetPoint("TOPLEFT", debugCovenantWarningCheckbox, "BOTTOMLEFT", 0, -4)
 
 local debugUnitTooltipValuesCheckbox = CreateCheckbox(
 	debugContent,
@@ -1019,7 +1059,7 @@ local debugUnitTooltipValuesCheckbox = CreateCheckbox(
 		Level20DB.debugUnitTooltipValues = checked and true or false
 	end
 )
-debugUnitTooltipValuesCheckbox:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, "BOTTOMLEFT", 0, -8)
+debugUnitTooltipValuesCheckbox:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, "BOTTOMLEFT", 0, -4)
 
 local completionBannerPlayerCountSlider = CreateSlider(
 	debugContent,
@@ -1029,7 +1069,7 @@ local completionBannerPlayerCountSlider = CreateSlider(
 	40,
 	1
 )
-completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugUnitTooltipValuesCheckbox, "BOTTOMLEFT", 4, -32)
+completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugUnitTooltipValuesCheckbox, "BOTTOMLEFT", 4, -28)
 
 local completionBannerPlayerCountValue = debugContent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 completionBannerPlayerCountValue:SetPoint("LEFT", completionBannerPlayerCountSlider, "RIGHT", 12, 0)
@@ -1045,8 +1085,8 @@ completionBannerPlayerCountSlider:SetOnValueChanged(function(self, value)
 end)
 
 local showTestCompletionBannerButton = CreateFrame("Button", nil, debugContent, "UIPanelButtonTemplate")
-showTestCompletionBannerButton:SetSize(180, 24)
-showTestCompletionBannerButton:SetPoint("TOPLEFT", completionBannerPlayerCountSlider, "BOTTOMLEFT", -4, -28)
+showTestCompletionBannerButton:SetSize(220, 24)
+showTestCompletionBannerButton:SetPoint("TOPLEFT", completionBannerPlayerCountSlider, "BOTTOMLEFT", -4, -24)
 showTestCompletionBannerButton:SetText(L.DEBUG_SHOW_COMPLETION_BANNER)
 showTestCompletionBannerButton:SetScript("OnClick", function()
 	local playerCount = math.floor(completionBannerPlayerCountSlider:GetValue() + 0.5)
@@ -1054,8 +1094,7 @@ showTestCompletionBannerButton:SetScript("OnClick", function()
 end)
 
 debugContent:SetPoint("TOPLEFT", debugScrollFrame, "TOPLEFT", 0, 0)
-debugContent:SetHeight(302)
-debugScrollFrame.ScrollBar:Update()
+UpdateDebugContentHeight()
 
 function addon.RestoreWindowPosition()
 	if not Level20DB.windowPoint then
@@ -1089,6 +1128,8 @@ function addon.RefreshWindow()
 	debugPlayerMarksCheckbox:SetChecked(Level20DB.debugPlayerMarks)
 	debugUnitTooltipValuesCheckbox:SetChecked(Level20DB.debugUnitTooltipValues)
 	completionBannerPlayerCountSlider:SetValue(Level20DB.debugCompletionBannerPlayerCount or 5)
+	UpdateSettingsContentHeight()
+	UpdateDebugContentHeight()
 	addon.RefreshInfoPanel()
 	addon.RefreshDungeonPanel()
 	addon.RefreshSpectatorWarGamePanel()
