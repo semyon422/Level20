@@ -124,6 +124,34 @@ local function SetEnemyForcesTooltip(target, criteriaInfo)
 	target:SetScript("OnLeave", HideObjectiveTooltip)
 end
 
+local function SetScoreTooltip(target, criteriaInfo)
+	if not target or not criteriaInfo or not criteriaInfo.syntheticScore then
+		return
+	end
+
+	target:SetScript("OnEnter", function(self)
+		local run = challenge.GetRunRecord and challenge.GetRunRecord() or nil
+		local scoreInfo = challenge.GetScoreInfo and challenge.GetScoreInfo(run) or criteriaInfo.scoreInfo or {}
+		GameTooltip:SetOwner(self, "ANCHOR_NONE")
+		GameTooltip:ClearAllPoints()
+		GameTooltip:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
+		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_SCORE_TITLE, 1, 1, 1)
+		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_SCORE_FORMULA, 1, 1, 1)
+		GameTooltip:AddLine(" ")
+		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_SCORE_TIER:format(tostring(scoreInfo.tier or "?")), 1, 1, 1)
+		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_SCORE_BASE:format(tonumber(scoreInfo.baseScore) or 0), 1, 1, 1)
+		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_SCORE_TIME_BONUS:format(tonumber(scoreInfo.timeBonus) or 0, SecondsToClock(tonumber(scoreInfo.elapsed) or 0)), 1, 1, 1)
+		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_SCORE_DEATH_PENALTY:format(tonumber(scoreInfo.deathPenalty) or 0, tonumber(scoreInfo.deathCount) or 0, tonumber(scoreInfo.deathPenaltyPerDeath) or 0), 1, 1, 1)
+		GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_SCORE_WIPE_PENALTY:format(tonumber(scoreInfo.wipePenalty) or 0, tonumber(scoreInfo.wipeCount) or 0, tonumber(scoreInfo.wipePenaltyPerWipe) or 0), 1, 1, 1)
+		if scoreInfo.instanceID == 601 and scoreInfo.tier == 20 then
+			GameTooltip:AddLine(" ")
+			GameTooltip:AddLine(challenge.L.DUNGEON_CHALLENGE_SCORE_AZJOL_EXCEPTION, nil, nil, nil, true)
+		end
+		GameTooltip:Show()
+	end)
+	target:SetScript("OnLeave", HideObjectiveTooltip)
+end
+
 local function AddScenarioStyleProgressBar(objectivesBlock, line, lineSpacing, percent)
 	if not objectivesBlock or not line or not objectivesBlock.parentModule then
 		return nil
@@ -201,6 +229,9 @@ local function BuildCriteriaObjectiveKey(criteriaInfo, index)
 		if criteriaInfo.syntheticEnemyForces then
 			parts[#parts + 1] = "enemyforces"
 		end
+		if criteriaInfo.syntheticScore then
+			parts[#parts + 1] = "score"
+		end
 	end
 
 	return table.concat(parts, ":")
@@ -235,6 +266,15 @@ local function AddCriteriaLine(objectivesBlock, objectiveKey, criteriaInfo, prog
 			SetEnemyForcesTooltip(line, criteriaInfo)
 			SetEnemyForcesTooltip(progressBar, criteriaInfo)
 		end
+		return
+	end
+
+	if criteriaInfo.syntheticScore then
+		local line = objectivesBlock:AddObjective(objectiveKey, criteriaString, nil, nil, OBJECTIVE_DASH_STYLE_HIDE, OBJECTIVE_TRACKER_COLOR["Normal"])
+		line.Icon:Show()
+		line.Icon:SetAtlas("ui-questtracker-objective-nub", false)
+		SetScoreTooltip(line, criteriaInfo)
+		ClearObjectiveTooltip(line.progressBar)
 		return
 	end
 

@@ -84,6 +84,7 @@ end
 
 function challenge.ClearRunRecord()
 	challenge.CancelCompletionBannerTimer()
+	challenge.state.activeBossFight = nil
 
 	local store = GetRunStore()
 	local dungeonKey = challenge.GetCurrentDungeonKey()
@@ -272,6 +273,7 @@ function challenge.StartRun(run)
 
 	run.startedAt = challenge.GetCurrentServerTime()
 	run.deathCount = math.max(0, tonumber(run.deathCount) or 0)
+	run.wipeCount = math.max(0, tonumber(run.wipeCount) or 0)
 	run.enemyForcesCounts = run.enemyForcesCounts or {}
 	if challenge.UpdateManagedCombatLog then
 		challenge.UpdateManagedCombatLog()

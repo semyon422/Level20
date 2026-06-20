@@ -982,8 +982,18 @@ local dungeonChallengeFrameCheckbox = CreateCheckbox(
 )
 dungeonChallengeFrameCheckbox:SetPoint("TOPLEFT", shadowlandsProtectionCheckbox, "BOTTOMLEFT", 0, -4)
 
+local scoreCriteriaCheckbox = CreateCheckbox(
+	settingsContent,
+	L.DUNGEON_CHALLENGE_SCORE_CRITERIA_LABEL,
+	L.DUNGEON_CHALLENGE_SCORE_CRITERIA_TOOLTIP,
+	function(checked)
+		addon.DungeonChallenge.SetScoreCriteriaEnabled(checked)
+	end
+)
+scoreCriteriaCheckbox:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -4)
+
 local enemyForcesModeDropdown = CreateEnemyForcesModeDropdown(settingsContent)
-enemyForcesModeDropdown:SetPoint("TOPLEFT", dungeonChallengeFrameCheckbox, "BOTTOMLEFT", 0, -4)
+enemyForcesModeDropdown:SetPoint("TOPLEFT", scoreCriteriaCheckbox, "BOTTOMLEFT", 0, -4)
 
 local combatLogManagementCheckbox = CreateCheckbox(
 	settingsContent,
@@ -1119,6 +1129,7 @@ function addon.RefreshWindow()
 	playerMarksCheckbox:SetChecked(Level20DB.showPlayerMarks)
 	shadowlandsProtectionCheckbox:SetChecked(Level20DB.shadowlandsProtection)
 	dungeonChallengeFrameCheckbox:SetChecked(Level20DB.showDungeonChallengeFrame)
+	scoreCriteriaCheckbox:SetChecked(Level20DB.showDungeonChallengeScoreCriteria)
 	enemyForcesModeDropdown:Refresh()
 	combatLogManagementCheckbox:SetChecked(Level20DB.manageCombatLog)
 	guildChallengeStartCheckbox:SetChecked(Level20DB.allowGuildChallengeStart)

@@ -226,6 +226,7 @@ eventFrame:RegisterEvent("SCENARIO_UPDATE")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 eventFrame:RegisterEvent("PLAYER_ALIVE")
+eventFrame:RegisterEvent("ENCOUNTER_START")
 eventFrame:RegisterEvent("ENCOUNTER_END")
 eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
@@ -384,9 +385,17 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		if IsTrackedGroupUnit(unit) then
 			addon.DungeonChallenge.RefreshBattleResDisplay()
 		end
+	elseif event == "ENCOUNTER_START" then
+		local encounterID, encounterName = ...
+		addon.DungeonChallenge.startTimer()
+		addon.DungeonChallenge.BeginBossFight(encounterID, encounterName)
 	elseif event == "ENCOUNTER_END" then
 		local _, _, _, _, success = ...
 		if success == 1 then
+			addon.DungeonChallenge.EndBossFight(true)
+			addon.DungeonChallenge.refresh()
+		else
+			addon.DungeonChallenge.EndBossFight(false)
 			addon.DungeonChallenge.refresh()
 		end
 	end

@@ -34,4 +34,5 @@ challenge.state = challenge.state or {
 	combatLogManagedRunActive = false,
 	combatLogStopPending = false,
 	combatLogStopTimer = nil,
+	activeBossFight = nil,
 }

@@ -34,6 +34,7 @@ DungeonChallenge/EnemyForces.lua
 DungeonChallenge/Run.lua
 DungeonChallenge/Comm.lua
 DungeonChallenge/CombatLog.lua
+DungeonChallenge/Scoring.lua
 DungeonChallenge/Criteria.lua
 DungeonChallenge/BattleRes.lua
 DungeonChallenge/Tracker.lua

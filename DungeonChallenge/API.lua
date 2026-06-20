@@ -28,6 +28,11 @@ function challenge.SetEnemyForcesMode(mode)
 	challenge.refresh(Level20DB.showDungeonChallengeFrame)
 end
 
+function challenge.SetScoreCriteriaEnabled(enabled)
+	Level20DB.showDungeonChallengeScoreCriteria = enabled and true or false
+	challenge.refresh(Level20DB.showDungeonChallengeFrame)
+end
+
 function challenge.AutoResetTimerIfNeeded()
 	local run = challenge.GetRunRecord()
 	local isStopped = challenge.IsTimerStopped(run)

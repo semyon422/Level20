@@ -236,12 +236,67 @@ local function HasSyntheticEnemyForcesCriteria(criteriaList)
 	return false
 end
 
+local function HasSyntheticScoreCriteria(criteriaList)
+	if not criteriaList then
+		return false
+	end
+
+	for _, criteria in ipairs(criteriaList) do
+		if criteria and criteria.syntheticScore then
+			return true
+		end
+	end
+
+	return false
+end
+
 local function AppendEnemyForcesCriteria(criteriaList, enemyForcesCriteria)
 	if not criteriaList or not enemyForcesCriteria or HasSyntheticEnemyForcesCriteria(criteriaList) then
 		return false
 	end
 
 	table.insert(criteriaList, enemyForcesCriteria)
+	return true
+end
+
+function challenge.BuildScoreCriteria(run)
+	if not Level20DB.showDungeonChallengeScoreCriteria then
+		return nil
+	end
+
+	local scoreInfo = challenge.GetScoreInfo and challenge.GetScoreInfo(run) or nil
+	if not scoreInfo then
+		return nil
+	end
+
+	return {
+		description = challenge.L.DUNGEON_CHALLENGE_SCORE:format(scoreInfo.score),
+		quantity = scoreInfo.score,
+		totalQuantity = 0,
+		completed = false,
+		duration = 0,
+		elapsed = 0,
+		failed = false,
+		isWeightedProgress = false,
+		isFormatted = true,
+		quantityString = nil,
+		criteriaType = 0,
+		flags = 0,
+		assetID = challenge.constants.FAKE_AFFIX_ID + 1,
+		criteriaID = challenge.constants.FAKE_AFFIX_ID + 1,
+		excludeFromSnapshot = true,
+		excludeFromCompletion = true,
+		syntheticScore = true,
+		scoreInfo = scoreInfo,
+	}
+end
+
+local function AppendScoreCriteria(criteriaList, scoreCriteria)
+	if not criteriaList or not scoreCriteria or HasSyntheticScoreCriteria(criteriaList) then
+		return false
+	end
+
+	table.insert(criteriaList, scoreCriteria)
 	return true
 end
 
@@ -334,14 +389,17 @@ function challenge.RefreshEncounterCriteria()
 
 	local run = challenge.GetRunRecord()
 	local enemyForcesCriteria = challenge.BuildEnemyForcesCriteria(run)
+	local scoreCriteria = challenge.BuildScoreCriteria(run)
 
 	if not C_Scenario or not C_ScenarioInfo then
 		challenge.BuildEncounterCriteriaFromJournal(challenge.GetStatus())
 		AppendEnemyForcesCriteria(state.encounterCriteria, enemyForcesCriteria)
+		AppendScoreCriteria(state.encounterCriteria, scoreCriteria)
 		if challenge.ShouldRestoreEncounterSnapshot(run, state.encounterCriteria) then
 			table.wipe(state.encounterCriteria)
 			challenge.RestoreEncounterCriteriaSnapshot(run)
 			AppendEnemyForcesCriteria(state.encounterCriteria, enemyForcesCriteria)
+			AppendScoreCriteria(state.encounterCriteria, scoreCriteria)
 		end
 		if run and challenge.HasCompletedAllCriteria() then
 			challenge.CompleteRun(run)
@@ -380,12 +438,14 @@ function challenge.RefreshEncounterCriteria()
 		end
 
 		AppendEnemyForcesCriteria(state.encounterCriteria, enemyForcesCriteria)
+		AppendScoreCriteria(state.encounterCriteria, scoreCriteria)
 
 		if #state.encounterCriteria > 0 then
 			if challenge.ShouldRestoreEncounterSnapshot(run, state.encounterCriteria) then
 				table.wipe(state.encounterCriteria)
 				challenge.RestoreEncounterCriteriaSnapshot(run)
 				AppendEnemyForcesCriteria(state.encounterCriteria, enemyForcesCriteria)
+				AppendScoreCriteria(state.encounterCriteria, scoreCriteria)
 				if run and challenge.HasCompletedAllCriteria() then
 					challenge.CompleteRun(run)
 				end
@@ -403,10 +463,12 @@ function challenge.RefreshEncounterCriteria()
 
 	if challenge.BuildEncounterCriteriaFromJournal(challenge.GetStatus()) then
 		AppendEnemyForcesCriteria(state.encounterCriteria, enemyForcesCriteria)
+		AppendScoreCriteria(state.encounterCriteria, scoreCriteria)
 		if challenge.ShouldRestoreEncounterSnapshot(run, state.encounterCriteria) then
 			table.wipe(state.encounterCriteria)
 			challenge.RestoreEncounterCriteriaSnapshot(run)
 			AppendEnemyForcesCriteria(state.encounterCriteria, enemyForcesCriteria)
+			AppendScoreCriteria(state.encounterCriteria, scoreCriteria)
 			if run and challenge.HasCompletedAllCriteria() then
 				challenge.CompleteRun(run)
 			end
@@ -422,6 +484,7 @@ function challenge.RefreshEncounterCriteria()
 	table.wipe(state.encounterCriteria)
 	challenge.RestoreEncounterCriteriaSnapshot(run)
 	AppendEnemyForcesCriteria(state.encounterCriteria, enemyForcesCriteria)
+	AppendScoreCriteria(state.encounterCriteria, scoreCriteria)
 	if run and challenge.HasCompletedAllCriteria() then
 		challenge.CompleteRun(run)
 	end

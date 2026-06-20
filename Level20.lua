@@ -46,6 +46,8 @@ addon.ENEMY_FORCES_MODE_UNLIMITED = "unlimited"
 ---@field completedAt integer?
 ---@field completedElapsed integer?
 ---@field deathCount integer?
+---@field wipeCount integer?
+---@field lastWipeReason string?
 ---@field enemyForcesCounts table<string, integer>?
 ---@field completionBannerShown boolean?
 ---@field encounterCompletionTimes {[string]: integer}?
@@ -57,6 +59,7 @@ addon.ENEMY_FORCES_MODE_UNLIMITED = "unlimited"
 ---@field showPlayerMarks boolean
 ---@field shadowlandsProtection boolean
 ---@field showDungeonChallengeFrame boolean
+---@field showDungeonChallengeScoreCriteria boolean
 ---@field enemyForcesMode string
 ---@field allowGuildChallengeStart boolean
 ---@field manageCombatLog boolean
@@ -93,6 +96,7 @@ local defaultSettings = {
 	showPlayerMarks = true,
 	shadowlandsProtection = true,
 	showDungeonChallengeFrame = true,
+	showDungeonChallengeScoreCriteria = false,
 	enemyForcesMode = addon.ENEMY_FORCES_MODE_DISABLED,
 	allowGuildChallengeStart = false,
 	manageCombatLog = false,
