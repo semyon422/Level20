@@ -32,10 +32,11 @@ frame:SetTitle(L.ADDON_TITLE)
 frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefaultAnchors")
 
 local activeTab
+local routesTabUnlocked = false
 local debugTabUnlocked = false
 local spectatorWarGameTabUnlocked = false
 local tabs = {}
-local tabOrder = { "info", "settings", "waypoints", "dungeon", "spectatorWarGame", "debug" }
+local tabOrder = { "info", "settings", "waypoints", "dungeon", "routes", "spectatorWarGame", "debug" }
 local defaultTabCount = 4
 
 frame.tabPadding = 0
@@ -61,8 +62,10 @@ infoTab:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 18, -30)
 CreateTab(frame, 2, L.TAB_SETTINGS, "settings")
 CreateTab(frame, 3, L.TAB_WAYPOINTS, "waypoints")
 CreateTab(frame, 4, L.TAB_DUNGEON, "dungeon")
-local spectatorWarGameTab = CreateTab(frame, 5, L.TAB_SPECTATOR_WARGAME, "spectatorWarGame")
-local debugTab = CreateTab(frame, 6, L.TAB_DEBUG, "debug")
+local routesTab = CreateTab(frame, 5, L.TAB_ROUTES, "routes")
+local spectatorWarGameTab = CreateTab(frame, 6, L.TAB_SPECTATOR_WARGAME, "spectatorWarGame")
+local debugTab = CreateTab(frame, 7, L.TAB_DEBUG, "debug")
+routesTab:Hide()
 spectatorWarGameTab:Hide()
 debugTab:Hide()
 
@@ -91,6 +94,10 @@ end)
 local waypointsPanel = CreateFrame("Frame", nil, frame)
 waypointsPanel:SetPoint("TOPLEFT", infoPanel)
 waypointsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
+
+local routesPanel = CreateFrame("Frame", nil, frame)
+routesPanel:SetPoint("TOPLEFT", infoPanel)
+routesPanel:SetPoint("BOTTOMRIGHT", infoPanel)
 
 local dungeonPanel = CreateFrame("Frame", nil, frame)
 dungeonPanel:SetPoint("TOPLEFT", infoPanel)
@@ -282,6 +289,60 @@ clearWaypointButton:SetScript("OnClick", function()
 	C_Map.ClearUserWaypoint()
 	print(L.WAYPOINT_CLEARED)
 end)
+
+local routesSection = CreateSectionFrame(routesPanel, L.ROUTE_OUTLAND, 500, 196)
+routesSection:SetPoint("TOPLEFT", routesPanel, "TOPLEFT", 0, 0)
+
+local routeFactionRow = CreateInfoRow(routesSection, L.ROUTE_FACTION_LABEL)
+routeFactionRow:SetPoint("TOPLEFT", routesSection, "TOPLEFT", 12, -38)
+routeFactionRow:SetWidth(470)
+routeFactionRow.value:SetPoint("RIGHT", routeFactionRow, "RIGHT", 0, 0)
+
+local routeMapRow = CreateInfoRow(routesSection, L.ROUTE_CURRENT_MAP_LABEL, routeFactionRow)
+routeMapRow:SetWidth(470)
+routeMapRow.value:SetPoint("RIGHT", routeMapRow, "RIGHT", 0, 0)
+
+local routeDetectedPhaseRow = CreateInfoRow(routesSection, L.ROUTE_DETECTED_PHASE_LABEL, routeMapRow)
+routeDetectedPhaseRow:SetWidth(470)
+routeDetectedPhaseRow.value:SetPoint("RIGHT", routeDetectedPhaseRow, "RIGHT", 0, 0)
+
+local routeNextStepRow = CreateInfoRow(routesSection, L.ROUTE_NEXT_STEP_LABEL, routeDetectedPhaseRow)
+routeNextStepRow:SetWidth(470)
+routeNextStepRow.value:SetPoint("RIGHT", routeNextStepRow, "RIGHT", 0, 0)
+
+local routeStartButton = CreateFrame("Button", nil, routesSection, "UIPanelButtonTemplate")
+routeStartButton:SetSize(220, 24)
+routeStartButton:SetPoint("TOPLEFT", routeNextStepRow, "BOTTOMLEFT", 0, -10)
+routeStartButton:SetText(L.ROUTE_START)
+
+local debugRouteTaxiNodeDiffRow
+local selectedRouteID = addon.Routes and addon.Routes.GetDefaultRouteID and addon.Routes.GetDefaultRouteID() or nil
+
+routeStartButton:SetScript("OnClick", function()
+	if addon.Routes and addon.Routes.Toggle then
+		addon.Routes.Toggle(selectedRouteID)
+	end
+	addon.RefreshRoutesPanel()
+end)
+
+function addon.RefreshRoutesPanel(updateDiffBaseline)
+	if not addon.Routes or not addon.Routes.GetPanelState then
+		return
+	end
+
+	local routeState = addon.Routes.GetPanelState(selectedRouteID)
+	routesSection.title:SetText(routeState.title or L.ROUTE_OUTLAND)
+	routeFactionRow.value:SetText(routeState.faction or L.UNKNOWN)
+	routeMapRow.value:SetText(routeState.mapText or L.UNKNOWN)
+	routeDetectedPhaseRow.value:SetText(routeState.phaseText or L.UNKNOWN)
+	routeNextStepRow.value:SetText(routeState.nextStepText or L.UNKNOWN)
+	routeStartButton:SetText(routeState.active and L.ROUTE_STOP or L.ROUTE_START)
+	routeStartButton:SetEnabled(routeState.active or routeState.canStart)
+
+	if debugRouteTaxiNodeDiffRow and addon.Routes.GetDebugTaxiNodeDiff then
+		debugRouteTaxiNodeDiffRow.value:SetText(addon.Routes.GetDebugTaxiNodeDiff(updateDiffBaseline))
+	end
+end
 
 local spectatorWarGameControls = {}
 local spectatorWarGameDropdownWidth = 330
@@ -675,6 +736,7 @@ end)
 
 local function ShowTab(tab)
 	if tabs[tab]
+		and (tab ~= "routes" or routesTabUnlocked)
 		and (tab ~= "debug" or debugTabUnlocked)
 		and (tab ~= "spectatorWarGame" or spectatorWarGameTabUnlocked)
 	then
@@ -688,6 +750,7 @@ local function ShowTab(tab)
 	infoPanel:SetShown(activeTab == "info")
 	settingsPanel:SetShown(activeTab == "settings")
 	waypointsPanel:SetShown(activeTab == "waypoints")
+	routesPanel:SetShown(activeTab == "routes")
 	dungeonPanel:SetShown(activeTab == "dungeon")
 	spectatorWarGamePanel:SetShown(activeTab == "spectatorWarGame")
 	debugPanel:SetShown(activeTab == "debug")
@@ -699,6 +762,8 @@ local function ShowTab(tab)
 		UpdateSettingsContentHeight()
 	elseif activeTab == "waypoints" then
 		RefreshWaypointButtons()
+	elseif activeTab == "routes" then
+		addon.RefreshRoutesPanel()
 	elseif activeTab == "dungeon" then
 		addon.RefreshDungeonPanel()
 	elseif activeTab == "spectatorWarGame" then
@@ -711,12 +776,22 @@ end
 
 local function RefreshHiddenTabCount()
 	local count = defaultTabCount
+	if routesTabUnlocked then
+		count = math.max(count, routesTab:GetID())
+	end
+	if spectatorWarGameTabUnlocked then
+		count = math.max(count, spectatorWarGameTab:GetID())
+	end
 	if debugTabUnlocked then
-		count = 6
-	elseif spectatorWarGameTabUnlocked then
-		count = 5
+		count = math.max(count, debugTab:GetID())
 	end
 	PanelTemplates_SetNumTabs(frame, count)
+end
+
+local function LockRoutesTab()
+	routesTabUnlocked = false
+	routesTab:Hide()
+	RefreshHiddenTabCount()
 end
 
 local function LockDebugTab()
@@ -732,6 +807,7 @@ local function LockSpectatorWarGameTab()
 end
 
 frame:HookScript("OnHide", function()
+	LockRoutesTab()
 	LockDebugTab()
 	LockSpectatorWarGameTab()
 end)
@@ -1071,6 +1147,21 @@ local debugUnitTooltipValuesCheckbox = CreateCheckbox(
 )
 debugUnitTooltipValuesCheckbox:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, "BOTTOMLEFT", 0, -4)
 
+debugRouteTaxiNodeDiffRow = CreateInfoRow(debugContent, L.ROUTE_CHANGED_NODES_LABEL, debugUnitTooltipValuesCheckbox)
+debugRouteTaxiNodeDiffRow:SetWidth(430)
+debugRouteTaxiNodeDiffRow.label:SetWidth(130)
+debugRouteTaxiNodeDiffRow.value:SetPoint("LEFT", debugRouteTaxiNodeDiffRow.label, "RIGHT", 12, 0)
+debugRouteTaxiNodeDiffRow.value:SetPoint("RIGHT", debugRouteTaxiNodeDiffRow, "RIGHT", 0, 0)
+debugRouteTaxiNodeDiffRow.value:SetWordWrap(false)
+
+local debugRouteBaselineButton = CreateFrame("Button", nil, debugContent, "UIPanelButtonTemplate")
+debugRouteBaselineButton:SetSize(220, 24)
+debugRouteBaselineButton:SetPoint("TOPLEFT", debugRouteTaxiNodeDiffRow, "BOTTOMLEFT", 0, -8)
+debugRouteBaselineButton:SetText(L.ROUTE_REFRESH_PHASE)
+debugRouteBaselineButton:SetScript("OnClick", function()
+	addon.RefreshRoutesPanel(true)
+end)
+
 local completionBannerPlayerCountSlider = CreateSlider(
 	debugContent,
 	"Level20CompletionBannerPlayerCountSlider",
@@ -1079,7 +1170,7 @@ local completionBannerPlayerCountSlider = CreateSlider(
 	40,
 	1
 )
-completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugUnitTooltipValuesCheckbox, "BOTTOMLEFT", 4, -28)
+completionBannerPlayerCountSlider:SetPoint("TOPLEFT", debugRouteBaselineButton, "BOTTOMLEFT", 4, -28)
 
 local completionBannerPlayerCountValue = debugContent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 completionBannerPlayerCountValue:SetPoint("LEFT", completionBannerPlayerCountSlider, "RIGHT", 12, 0)
@@ -1142,11 +1233,13 @@ function addon.RefreshWindow()
 	UpdateSettingsContentHeight()
 	UpdateDebugContentHeight()
 	addon.RefreshInfoPanel()
+	addon.RefreshRoutesPanel()
 	addon.RefreshDungeonPanel()
 	addon.RefreshSpectatorWarGamePanel()
 end
 
 function addon.ShowWindow()
+	LockRoutesTab()
 	LockDebugTab()
 	LockSpectatorWarGameTab()
 	addon.RefreshWindow()
@@ -1155,6 +1248,11 @@ function addon.ShowWindow()
 end
 
 function addon.ShowHiddenTabsWindow()
+	if not routesTabUnlocked then
+		routesTabUnlocked = true
+		routesTab:Show()
+	end
+
 	if not spectatorWarGameTabUnlocked then
 		spectatorWarGameTabUnlocked = true
 		spectatorWarGameTab:Show()

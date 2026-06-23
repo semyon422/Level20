@@ -3,7 +3,7 @@
 ## Notes: Helper addon for level-20 players.
 ## Notes-ruRU: Вспомогательный аддон для игроков 20-го уровня.
 ## Author: semyon422
-## Version: 4
+## Version: 5
 ## SavedVariables: Level20DB
 
 Level20.lua
@@ -27,6 +27,7 @@ GroupData/Protocol.lua
 GroupData/Roster.lua
 GroupData/Window.lua
 GroupData/Sync.lua
+Routes.lua
 AddonWindow.lua
 DungeonChallenge/Namespace.lua
 DungeonChallenge/Status.lua
