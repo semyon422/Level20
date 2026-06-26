@@ -1,9 +1,9 @@
-## Interface: 120005
+## Interface: 120007
 ## Title: Level20
 ## Notes: Helper addon for level-20 players.
 ## Notes-ruRU: Вспомогательный аддон для игроков 20-го уровня.
 ## Author: semyon422
-## Version: 5
+## Version: 6
 ## SavedVariables: Level20DB
 
 Level20.lua

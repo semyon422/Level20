@@ -1,46 +1,33 @@
 local addonName, addon = ...
 local L = addon.L
 
+local BUTTON_SIZE = 40
+local BUTTON_EDGE_MARGIN = 10
+local BUTTON_NORMAL_TEXTURE = "Interface\\AddOns\\Level20\\Resources\\button_normal.png"
+local BUTTON_HOVERED_TEXTURE = "Interface\\AddOns\\Level20\\Resources\\button_hovered.png"
+local BUTTON_PRESSED_TEXTURE = "Interface\\AddOns\\Level20\\Resources\\button_pressed.png"
+
 local button = CreateFrame("Button", "Level20MinimapButton", Minimap)
-button:SetSize(33, 33)
+button:SetSize(BUTTON_SIZE, BUTTON_SIZE)
 button:SetFrameStrata("MEDIUM")
 button:SetFrameLevel(8)
 button:RegisterForClicks("LeftButtonUp")
 button:RegisterForDrag("LeftButton")
-button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight", "ADD")
 
-local outlineOffsets = {
-	{ -1, 1 },
-	{ 1, 1 },
-	{ -1, -1 },
-	{ 1, -1 },
-	{ 0, 2 },
-	{ 2, 0 },
-	{ 0, -2 },
-	{ -2, 0 },
-}
+button.texture = button:CreateTexture(nil, "BACKGROUND")
+button.texture:SetAllPoints()
+button.texture:SetTexture(BUTTON_NORMAL_TEXTURE)
 
-for index, offset in ipairs(outlineOffsets) do
-	local outline = button:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-	outline:SetPoint("CENTER", offset[1], 1 + offset[2])
-	outline:SetText("20")
-	outline:SetTextColor(0.02, 0.13, 0.09, 0.95)
-	button["outline" .. index] = outline
+local function SetButtonTexture(texture)
+	button.texture:SetTexture(texture)
 end
-
-button.text = button:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-button.text:SetPoint("CENTER", 0, 1)
-button.text:SetText("20")
-button.text:SetTextColor(0.35, 1, 0.75)
-button.text:SetShadowColor(0, 0, 0, 1)
-button.text:SetShadowOffset(1, -1)
 
 local function SetButtonPosition()
 	local angle = math.rad(Level20DB.minimapButtonAngle or 195)
 	local angleCos = math.cos(angle)
 	local angleSin = math.sin(angle)
-	local horizontalRadius = Minimap:GetWidth() / 2 + 5
-	local verticalRadius = Minimap:GetHeight() / 2 + 5
+	local horizontalRadius = Minimap:GetWidth() / 2 + BUTTON_EDGE_MARGIN
+	local verticalRadius = Minimap:GetHeight() / 2 + BUTTON_EDGE_MARGIN
 
 	button:SetPoint("CENTER", Minimap, "CENTER", angleCos * horizontalRadius, angleSin * verticalRadius)
 end
@@ -69,6 +56,7 @@ button:SetScript("OnClick", function()
 end)
 
 button:SetScript("OnEnter", function(self)
+	SetButtonTexture(BUTTON_HOVERED_TEXTURE)
 	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
 	GameTooltip:SetText(L.ADDON_TITLE)
 	GameTooltip:AddLine(L.MINIMAP_OPEN, 1, 1, 1)
@@ -76,15 +64,32 @@ button:SetScript("OnEnter", function(self)
 	GameTooltip:Show()
 end)
 
-button:SetScript("OnLeave", GameTooltip_Hide)
+button:SetScript("OnLeave", function()
+	SetButtonTexture(BUTTON_NORMAL_TEXTURE)
+	GameTooltip_Hide()
+end)
+
+button:SetScript("OnMouseDown", function(_, mouseButton)
+	if mouseButton == "LeftButton" then
+		SetButtonTexture(BUTTON_PRESSED_TEXTURE)
+	end
+end)
+
+button:SetScript("OnMouseUp", function(self, mouseButton)
+	if mouseButton == "LeftButton" then
+		SetButtonTexture(self:IsMouseOver() and BUTTON_HOVERED_TEXTURE or BUTTON_NORMAL_TEXTURE)
+	end
+end)
 
 button:SetScript("OnDragStart", function(self)
+	SetButtonTexture(BUTTON_PRESSED_TEXTURE)
 	self:SetScript("OnUpdate", UpdateButtonAngle)
 end)
 
 button:SetScript("OnDragStop", function(self)
 	self:SetScript("OnUpdate", nil)
 	UpdateButtonAngle()
+	SetButtonTexture(self:IsMouseOver() and BUTTON_HOVERED_TEXTURE or BUTTON_NORMAL_TEXTURE)
 end)
 
 function addon.RefreshMinimapButton()
