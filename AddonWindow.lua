@@ -1116,6 +1116,16 @@ local bagFoldersCheckbox = CreateCheckbox(
 )
 bagFoldersCheckbox:SetPoint("TOPLEFT", guildChallengeStartCheckbox, "BOTTOMLEFT", 0, -4)
 
+local smallMinimapButtonCheckbox = CreateCheckbox(
+	settingsContent,
+	L.MINIMAP_SMALL_BUTTON_LABEL,
+	L.MINIMAP_SMALL_BUTTON_TOOLTIP,
+	function(checked)
+		addon.SetSmallMinimapButtonEnabled(checked)
+	end
+)
+smallMinimapButtonCheckbox:SetPoint("TOPLEFT", bagFoldersCheckbox, "BOTTOMLEFT", 0, -4)
+
 settingsContent:SetPoint("TOPLEFT", settingsScrollFrame, "TOPLEFT", 0, 0)
 UpdateSettingsContentHeight()
 
@@ -1240,6 +1250,7 @@ function addon.RefreshWindow()
 	combatLogManagementCheckbox:SetChecked(Level20DB.manageCombatLog)
 	guildChallengeStartCheckbox:SetChecked(Level20DB.allowGuildChallengeStart)
 	bagFoldersCheckbox:SetChecked(Level20DB.bagFolders and Level20DB.bagFolders.enabled)
+	smallMinimapButtonCheckbox:SetChecked(Level20DB.smallMinimapButton)
 	debugXPWarningCheckbox:SetChecked(Level20DB.debugXPWarning)
 	debugCovenantWarningCheckbox:SetChecked(Level20DB.debugCovenantWarning)
 	debugPlayerMarksCheckbox:SetChecked(Level20DB.debugPlayerMarks)

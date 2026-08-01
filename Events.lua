@@ -273,7 +273,9 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		print(L.LOADED_MESSAGE)
 	elseif event == "ADDON_LOADED" then
 		local loadedAddonName = ...
-		if loadedAddonName == "Blizzard_PlayerSpells" then
+		if loadedAddonName == addonName then
+			addon.RefreshMinimapButton()
+		elseif loadedAddonName == "Blizzard_PlayerSpells" then
 			addon.InstallTalentFilter()
 			addon.InstallPvPTalentFilter()
 			addon.InstallSpellBookFilter()

@@ -177,6 +177,8 @@ L.DEBUG_SHOW_COMPLETION_BANNER = "Показать тестовый баннер
 
 L.MINIMAP_OPEN = "Открыть Level20"
 L.MINIMAP_DRAG = "Перетащите, чтобы переместить"
+L.MINIMAP_SMALL_BUTTON_LABEL = "Уменьшенная кнопка у миникарты"
+L.MINIMAP_SMALL_BUTTON_TOOLTIP = "Уменьшает размер кнопки Level20 рядом с миникартой."
 
 L.BAG_FOLDERS_TITLE = "Сумки Level20"
 L.BAG_FOLDERS_DEFAULT = "Основная"

@@ -2,7 +2,9 @@ local addonName, addon = ...
 local L = addon.L
 
 local BUTTON_SIZE = 40
+local SMALL_BUTTON_SIZE = 28
 local BUTTON_EDGE_MARGIN = 10
+local SMALL_BUTTON_EDGE_MARGIN = 4
 local BUTTON_NORMAL_TEXTURE = "Interface\\AddOns\\Level20\\Resources\\button_normal.png"
 local BUTTON_HOVERED_TEXTURE = "Interface\\AddOns\\Level20\\Resources\\button_hovered.png"
 local BUTTON_PRESSED_TEXTURE = "Interface\\AddOns\\Level20\\Resources\\button_pressed.png"
@@ -26,8 +28,9 @@ local function SetButtonPosition()
 	local angle = math.rad(Level20DB.minimapButtonAngle or 195)
 	local angleCos = math.cos(angle)
 	local angleSin = math.sin(angle)
-	local horizontalRadius = Minimap:GetWidth() / 2 + BUTTON_EDGE_MARGIN
-	local verticalRadius = Minimap:GetHeight() / 2 + BUTTON_EDGE_MARGIN
+	local edgeMargin = Level20DB.smallMinimapButton and SMALL_BUTTON_EDGE_MARGIN or BUTTON_EDGE_MARGIN
+	local horizontalRadius = Minimap:GetWidth() / 2 + edgeMargin
+	local verticalRadius = Minimap:GetHeight() / 2 + edgeMargin
 
 	button:SetPoint("CENTER", Minimap, "CENTER", angleCos * horizontalRadius, angleSin * verticalRadius)
 end
@@ -93,8 +96,15 @@ button:SetScript("OnDragStop", function(self)
 end)
 
 function addon.RefreshMinimapButton()
+	local size = Level20DB.smallMinimapButton and SMALL_BUTTON_SIZE or BUTTON_SIZE
+	button:SetSize(size, size)
 	button:Show()
 	SetButtonPosition()
+end
+
+function addon.SetSmallMinimapButtonEnabled(enabled)
+	Level20DB.smallMinimapButton = enabled and true or false
+	addon.RefreshMinimapButton()
 end
 
 addon.RefreshMinimapButton()

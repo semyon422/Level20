@@ -175,6 +175,8 @@ L.DEBUG_SHOW_COMPLETION_BANNER = "Show test banner"
 
 L.MINIMAP_OPEN = "Open Level20"
 L.MINIMAP_DRAG = "Drag to move"
+L.MINIMAP_SMALL_BUTTON_LABEL = "Smaller minimap button"
+L.MINIMAP_SMALL_BUTTON_TOOLTIP = "Reduces the size of the Level20 button next to the minimap."
 
 L.BAG_FOLDERS_TITLE = "Level20 Bags"
 L.BAG_FOLDERS_DEFAULT = "Default"

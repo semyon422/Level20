@@ -69,6 +69,7 @@ addon.ENEMY_FORCES_MODE_UNLIMITED = "unlimited"
 ---@field debugUnitTooltipValues boolean
 ---@field debugCompletionBannerPlayerCount integer
 ---@field minimapButtonAngle number
+---@field smallMinimapButton boolean
 ---@field dungeonChallengeRuns {[string]: Level20DungeonChallengeRun}
 ---@field bagFolders Level20BagFoldersDB
 ---@field windowPoint string?
@@ -106,6 +107,7 @@ local defaultSettings = {
 	debugUnitTooltipValues = false,
 	debugCompletionBannerPlayerCount = 5,
 	minimapButtonAngle = 195,
+	smallMinimapButton = false,
 	dungeonChallengeRuns = {},
 	bagFolders = {
 		enabled = false,
