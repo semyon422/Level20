@@ -143,6 +143,10 @@ local function ApplyPvPTalentSlotFilter(pvpTalentSlotTray)
 end
 
 function addon.RefreshPvPTalentFrame()
+	if not Level20DB.hideHighLevelTalents then
+		return
+	end
+
 	local _, pvpTalentSlotTray, pvpTalentList = PreparePvPTalentFrames()
 
 	if pvpTalentSlotTray then
@@ -157,7 +161,7 @@ function addon.RefreshPvPTalentFrame()
 end
 
 function addon.InstallPvPTalentFilter()
-	if pvpTalentFilterInstalled then
+	if not Level20DB.hideHighLevelTalents or pvpTalentFilterInstalled then
 		return
 	end
 

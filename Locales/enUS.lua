@@ -193,6 +193,7 @@ L.BAG_FOLDERS_SETTING_TOOLTIP = "Replaces the default normal bag UI with Level20
 L.STATE_ENABLED = "enabled"
 L.STATE_DISABLED = "disabled"
 L.TALENT_FILTER_STATUS = "|cff00ff98Level20|r level-20 talent filtering %s."
+L.TALENT_FILTER_RELOAD_PROMPT = "Reload the UI to finish disabling level-20 talent filtering. Until then, Blizzard's talent frame remains modified and its casting bar error can still occur."
 L.SPELLBOOK_FILTER_STATUS = "|cff00ff98Level20|r level-20 spellbook filtering %s."
 
 L.XP_WARNING = "Warning: you are level 20 with active subscription and XP gain enabled."

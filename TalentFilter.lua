@@ -1,10 +1,28 @@
 local addonName, addon = ...
 local L = addon.L
 
+-- Known issue: modifying Blizzard's talent frame can taint the protected
+-- talent-application casting bar path. RefreshLoadoutOptions, SetNodesFilter,
+-- and SetBasePanOffset each reproduced the taint independently in testing.
+-- The resulting CastingBarFrame:GetTypeInfo error is an accepted tradeoff for
+-- preserving the filtered Blizzard talent window; see README.md.
+
 local talentFilterInstalled = false
 local TALENT_ROW_HEIGHT = 600
 local TALENT_ROW_OFFSET = 3
 local TALENT_POSITION_SCALE = 10
+local TALENT_FILTER_RELOAD_POPUP = "LEVEL20_TALENT_FILTER_RELOAD"
+
+StaticPopupDialogs[TALENT_FILTER_RELOAD_POPUP] = {
+	text = L.TALENT_FILTER_RELOAD_PROMPT,
+	button1 = RELOADUI,
+	button2 = LATER,
+	OnAccept = ReloadUI,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
 
 local function GetTalentOwnerLevel(talentsFrame)
 	if talentsFrame.IsInspecting and talentsFrame:IsInspecting() and talentsFrame.GetInspectUnit then
@@ -104,6 +122,10 @@ local function ApplyTalentLayoutOffset(talentsFrame)
 end
 
 function addon.RefreshTalentsFrame()
+	if not Level20DB.hideHighLevelTalents then
+		return
+	end
+
 	local talentsFrame = PrepareTalentsFrame()
 	if talentsFrame then
 		ApplyTalentLayoutOffset(talentsFrame)
@@ -112,7 +134,7 @@ function addon.RefreshTalentsFrame()
 end
 
 function addon.InstallTalentFilter()
-	if talentFilterInstalled then
+	if not Level20DB.hideHighLevelTalents or talentFilterInstalled then
 		return
 	end
 
@@ -137,6 +159,15 @@ end
 
 function addon.SetTalentFilterEnabled(enabled)
 	Level20DB.hideHighLevelTalents = enabled
+
+	-- WoW cannot remove taint from a frame in the current UI session. Offer a
+	-- reload when disabling an installed filter; choosing Later leaves the saved
+	-- setting disabled, but the existing taint remains until the next UI reload.
+	if not enabled and talentFilterInstalled then
+		StaticPopup_Show(TALENT_FILTER_RELOAD_POPUP)
+		return
+	end
+
 	addon.InstallTalentFilter()
 	addon.RefreshTalentsFrame()
 	addon.InstallPvPTalentFilter()

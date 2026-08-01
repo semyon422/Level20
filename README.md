@@ -19,6 +19,31 @@ Open Level20 from the minimap button, `/level20`, or `/l20`.
 - Can start dungeon challenge runs from a guild addon message when enabled.
 - Adds optional folder-based normal bag windows with custom folders, icons, item assignment, hiding, and show-all controls.
 
+## Known issues
+
+### Talent application cast bar taint
+
+The class/spec talent filter modifies Blizzard's `PlayerSpellsFrame.TalentsFrame`.
+Calling `RefreshLoadoutOptions`, installing a callback with `SetNodesFilter`, and
+calling `SetBasePanOffset` were each independently confirmed to taint Blizzard's
+protected talent-application casting bar path.
+
+One reproducible sequence is:
+
+1. Reload the UI.
+2. Change talents and apply them.
+3. Move while the changes are being applied to interrupt the cast.
+4. Stop moving and apply the changes again.
+
+Blizzard can then raise an error from `CastingBarFrame:GetTypeInfo` while indexing
+the protected `CastingBarTypeInfo` table. The talent change continues, but the
+application cast bar may not appear. This is currently accepted in order to keep
+the filtered Blizzard talent window. When talent filtering is disabled, Level20
+does not install these callbacks or modify the talent frames. Disabling an
+already-installed filter offers to reload the UI because WoW cannot remove
+existing frame taint during the current UI session. Choosing to reload later
+keeps the setting disabled, but the existing taint remains until the next reload.
+
 ## Local API docs helper
 
 This repo includes a small CLI for querying Blizzard's shipped generated API docs from local source:
