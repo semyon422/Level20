@@ -47,11 +47,11 @@ addon.SetMainWindowEscapeEnabled(true)
 frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefaultAnchors")
 
 local activeTab
-local routesTabUnlocked = false
-local debugTabUnlocked = false
-local spectatorWarGameTabUnlocked = false
+local hiddenTabsUnlocked = false
 local tabs = {}
-local tabOrder = { "info", "settings", "waypoints", "dungeon", "routes", "spectatorWarGame", "debug" }
+local tabOrder = { "info", "settings", "waypoints", "dungeon", "cvars", "routes", "spectatorWarGame", "debug" }
+local defaultTabKeys = { info = true, settings = true, waypoints = true, dungeon = true }
+local hiddenTabKeys = { routes = true, spectatorWarGame = true, debug = true, cvars = true }
 local defaultTabCount = 4
 
 frame.tabPadding = 0
@@ -80,9 +80,11 @@ CreateTab(frame, 4, L.TAB_DUNGEON, "dungeon")
 local routesTab = CreateTab(frame, 5, L.TAB_ROUTES, "routes")
 local spectatorWarGameTab = CreateTab(frame, 6, L.TAB_SPECTATOR_WARGAME, "spectatorWarGame")
 local debugTab = CreateTab(frame, 7, L.TAB_DEBUG, "debug")
+local cvarsTab = CreateTab(frame, 8, L.TAB_CVARS, "cvars")
 routesTab:Hide()
 spectatorWarGameTab:Hide()
 debugTab:Hide()
+cvarsTab:Hide()
 
 PanelTemplates_SetNumTabs(frame, defaultTabCount)
 
@@ -137,6 +139,21 @@ debugScrollFrame:SetScript("OnSizeChanged", function(self, width)
 	debugContent:SetWidth(math.max(1, width))
 end)
 
+local cvarsPanel = CreateFrame("Frame", nil, frame)
+cvarsPanel:SetPoint("TOPLEFT", infoPanel)
+cvarsPanel:SetPoint("BOTTOMRIGHT", infoPanel)
+
+local cvarsScrollFrame = CreateFrame("ScrollFrame", nil, cvarsPanel, "ScrollFrameTemplate")
+cvarsScrollFrame:SetPoint("TOPLEFT", cvarsPanel, "TOPLEFT", 4, -4)
+cvarsScrollFrame:SetPoint("BOTTOMRIGHT", cvarsPanel, "BOTTOMRIGHT", -12, 4)
+
+local cvarsContent = CreateFrame("Frame", nil, cvarsScrollFrame)
+cvarsContent:SetSize(1, 1)
+cvarsScrollFrame:SetScrollChild(cvarsContent)
+cvarsScrollFrame:SetScript("OnSizeChanged", function(self, width)
+	cvarsContent:SetWidth(math.max(1, width))
+end)
+
 local function ResizeScrollContentToChildren(content, bottomPadding)
 	local contentTop = content:GetTop()
 	if not contentTop then
@@ -164,6 +181,11 @@ end
 local function UpdateDebugContentHeight()
 	ResizeScrollContentToChildren(debugContent, 6)
 	debugScrollFrame.ScrollBar:Update()
+end
+
+local function UpdateCVarsContentHeight()
+	ResizeScrollContentToChildren(cvarsContent, 6)
+	cvarsScrollFrame.ScrollBar:Update()
 end
 
 local function CreateInfoRow(parent, label, previous)
@@ -749,14 +771,11 @@ dungeonPanel:SetScript("OnUpdate", function(_, elapsed)
 end)
 
 local function ShowTab(tab)
-	if tabs[tab]
-		and (tab ~= "routes" or routesTabUnlocked)
-		and (tab ~= "debug" or debugTabUnlocked)
-		and (tab ~= "spectatorWarGame" or spectatorWarGameTabUnlocked)
-	then
+	local availableTabs = hiddenTabsUnlocked and hiddenTabKeys or defaultTabKeys
+	if tabs[tab] and availableTabs[tab] then
 		activeTab = tab
 	else
-		activeTab = "info"
+		activeTab = hiddenTabsUnlocked and "cvars" or "info"
 	end
 
 	PanelTemplates_SetTab(frame, tabs[activeTab]:GetID())
@@ -768,6 +787,7 @@ local function ShowTab(tab)
 	dungeonPanel:SetShown(activeTab == "dungeon")
 	spectatorWarGamePanel:SetShown(activeTab == "spectatorWarGame")
 	debugPanel:SetShown(activeTab == "debug")
+	cvarsPanel:SetShown(activeTab == "cvars")
 
 	if activeTab == "info" then
 		addon.RefreshInfoPanel()
@@ -785,45 +805,36 @@ local function ShowTab(tab)
 	elseif activeTab == "debug" then
 		addon.RefreshWindow()
 		UpdateDebugContentHeight()
+	elseif activeTab == "cvars" then
+		addon.RefreshDebugCVarCheckboxes()
+		UpdateCVarsContentHeight()
 	end
 end
 
-local function RefreshHiddenTabCount()
-	local count = defaultTabCount
-	if routesTabUnlocked then
-		count = math.max(count, routesTab:GetID())
-	end
-	if spectatorWarGameTabUnlocked then
-		count = math.max(count, spectatorWarGameTab:GetID())
-	end
-	if debugTabUnlocked then
-		count = math.max(count, debugTab:GetID())
-	end
-	PanelTemplates_SetNumTabs(frame, count)
-end
+local function SetHiddenTabMode(enabled)
+	hiddenTabsUnlocked = enabled and true or false
+	local visibleTabs = hiddenTabsUnlocked and hiddenTabKeys or defaultTabKeys
+	local previousTab
 
-local function LockRoutesTab()
-	routesTabUnlocked = false
-	routesTab:Hide()
-	RefreshHiddenTabCount()
-end
-
-local function LockDebugTab()
-	debugTabUnlocked = false
-	debugTab:Hide()
-	RefreshHiddenTabCount()
-end
-
-local function LockSpectatorWarGameTab()
-	spectatorWarGameTabUnlocked = false
-	spectatorWarGameTab:Hide()
-	RefreshHiddenTabCount()
+	PanelTemplates_SetNumTabs(frame, #tabOrder)
+	for _, tabKey in ipairs(tabOrder) do
+		local tab = tabs[tabKey]
+		local shown = visibleTabs[tabKey] and true or false
+		tab:SetShown(shown)
+		tab:ClearAllPoints()
+		if shown then
+			if previousTab then
+				tab:SetPoint("TOPLEFT", previousTab, "TOPRIGHT", 3, 0)
+			else
+				tab:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 18, -30)
+			end
+			previousTab = tab
+		end
+	end
 end
 
 frame:HookScript("OnHide", function()
-	LockRoutesTab()
-	LockDebugTab()
-	LockSpectatorWarGameTab()
+	SetHiddenTabMode(false)
 end)
 
 for _, tabKey in ipairs(tabOrder) do
@@ -1171,6 +1182,50 @@ local debugUnitTooltipValuesCheckbox = CreateCheckbox(
 )
 debugUnitTooltipValuesCheckbox:SetPoint("TOPLEFT", debugPlayerMarksCheckbox, "BOTTOMLEFT", 0, -4)
 
+local debugCVarSettings = {
+	{ cvar = "ResampleAlwaysSharpen", label = L.DEBUG_CVAR_RESAMPLE_ALWAYS_SHARPEN_LABEL, tooltip = L.DEBUG_CVAR_RESAMPLE_ALWAYS_SHARPEN_TOOLTIP },
+	{ cvar = "floatingCombatTextCombatDamage_v2", label = L.DEBUG_CVAR_COMBAT_DAMAGE_LABEL, tooltip = L.DEBUG_CVAR_COMBAT_DAMAGE_TOOLTIP },
+	{ cvar = "Sound_ListenerAtCharacter", label = L.DEBUG_CVAR_SOUND_LISTENER_AT_CHARACTER_LABEL, tooltip = L.DEBUG_CVAR_SOUND_LISTENER_AT_CHARACTER_TOOLTIP },
+	{ cvar = "UnitNameOwn", label = L.DEBUG_CVAR_OWN_NAME_LABEL, tooltip = L.DEBUG_CVAR_OWN_NAME_TOOLTIP },
+	{ cvar = "UnitNameFriendlyPlayerName", label = L.DEBUG_CVAR_FRIENDLY_PLAYER_NAMES_LABEL, tooltip = L.DEBUG_CVAR_FRIENDLY_PLAYER_NAMES_TOOLTIP },
+	{ cvar = "UnitNameEnemyPlayerName", label = L.DEBUG_CVAR_ENEMY_PLAYER_NAMES_LABEL, tooltip = L.DEBUG_CVAR_ENEMY_PLAYER_NAMES_TOOLTIP },
+	{ cvar = "UnitNamePlayerGuild", label = L.DEBUG_CVAR_PLAYER_GUILD_NAMES_LABEL, tooltip = L.DEBUG_CVAR_PLAYER_GUILD_NAMES_TOOLTIP },
+	{ cvar = "UnitNamePlayerPVPTitle", label = L.DEBUG_CVAR_PLAYER_PVP_TITLES_LABEL, tooltip = L.DEBUG_CVAR_PLAYER_PVP_TITLES_TOOLTIP },
+	{ cvar = "UnitNameNPC", label = L.DEBUG_CVAR_NPC_NAMES_LABEL, tooltip = L.DEBUG_CVAR_NPC_NAMES_TOOLTIP },
+	{ cvar = "nameplateShowEnemyMinus", label = L.DEBUG_CVAR_ENEMY_MINUS_NAMEPLATES_LABEL, tooltip = L.DEBUG_CVAR_ENEMY_MINUS_NAMEPLATES_TOOLTIP },
+	{ cvar = "chatBubbles", label = L.DEBUG_CVAR_CHAT_BUBBLES_LABEL, tooltip = L.DEBUG_CVAR_CHAT_BUBBLES_TOOLTIP },
+}
+local debugCVarCheckboxes = {}
+local previousCVarControl
+
+for _, setting in ipairs(debugCVarSettings) do
+	local cvar = setting.cvar
+	local checkbox = CreateCheckbox(
+		cvarsContent,
+		setting.label,
+		setting.tooltip .. "\n\nCVar: " .. cvar,
+		function(checked)
+			C_CVar.SetCVar(cvar, checked and "1" or "0")
+		end
+	)
+	if previousCVarControl then
+		checkbox:SetPoint("TOPLEFT", previousCVarControl, "BOTTOMLEFT", 0, -4)
+	else
+		checkbox:SetPoint("TOPLEFT", cvarsContent, "TOPLEFT", 0, 0)
+	end
+	debugCVarCheckboxes[#debugCVarCheckboxes + 1] = { cvar = cvar, checkbox = checkbox }
+	previousCVarControl = checkbox
+end
+
+cvarsContent:SetPoint("TOPLEFT", cvarsScrollFrame, "TOPLEFT", 0, 0)
+UpdateCVarsContentHeight()
+
+function addon.RefreshDebugCVarCheckboxes()
+	for _, entry in ipairs(debugCVarCheckboxes) do
+		entry.checkbox:SetChecked(C_CVar.GetCVarBool(entry.cvar) and true or false)
+	end
+end
+
 debugRouteTaxiNodeDiffRow = CreateInfoRow(debugContent, L.ROUTE_CHANGED_NODES_LABEL, debugUnitTooltipValuesCheckbox)
 debugRouteTaxiNodeDiffRow:SetWidth(430)
 debugRouteTaxiNodeDiffRow.label:SetWidth(130)
@@ -1254,9 +1309,11 @@ function addon.RefreshWindow()
 	debugCovenantWarningCheckbox:SetChecked(Level20DB.debugCovenantWarning)
 	debugPlayerMarksCheckbox:SetChecked(Level20DB.debugPlayerMarks)
 	debugUnitTooltipValuesCheckbox:SetChecked(Level20DB.debugUnitTooltipValues)
+	addon.RefreshDebugCVarCheckboxes()
 	completionBannerPlayerCountSlider:SetValue(Level20DB.debugCompletionBannerPlayerCount or 5)
 	UpdateSettingsContentHeight()
 	UpdateDebugContentHeight()
+	UpdateCVarsContentHeight()
 	addon.RefreshInfoPanel()
 	addon.RefreshRoutesPanel()
 	addon.RefreshDungeonPanel()
@@ -1264,33 +1321,16 @@ function addon.RefreshWindow()
 end
 
 function addon.ShowWindow()
-	LockRoutesTab()
-	LockDebugTab()
-	LockSpectatorWarGameTab()
+	SetHiddenTabMode(false)
 	addon.RefreshWindow()
 	ShowTab("info")
 	frame:Show()
 end
 
 function addon.ShowHiddenTabsWindow()
-	if not routesTabUnlocked then
-		routesTabUnlocked = true
-		routesTab:Show()
-	end
-
-	if not spectatorWarGameTabUnlocked then
-		spectatorWarGameTabUnlocked = true
-		spectatorWarGameTab:Show()
-	end
-
-	if not debugTabUnlocked then
-		debugTabUnlocked = true
-		debugTab:Show()
-	end
-
-	RefreshHiddenTabCount()
+	SetHiddenTabMode(true)
 	addon.RefreshWindow()
-	ShowTab("spectatorWarGame")
+	ShowTab("cvars")
 	frame:Show()
 end
 

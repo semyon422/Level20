@@ -411,6 +411,9 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		or event == "CVAR_UPDATE" then
 		addon.RefreshXPWarning()
 		addon.RefreshCombatLogWarning()
+		if event == "CVAR_UPDATE" and addon.RefreshDebugCVarCheckboxes then
+			addon.RefreshDebugCVarCheckboxes()
+		end
 		if event == "PLAYER_ALIVE" then
 			addon.DungeonChallenge.RefreshBattleResDisplay()
 		end
