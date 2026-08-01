@@ -595,8 +595,7 @@ local function GetAccountTypeText()
 end
 
 local function GetSubscriptionText()
-	local levelCap = GetRestrictedAccountData()
-	if levelCap == addon.LEVEL_CAP then
+	if addon.GroupData and addon.GroupData.HasActiveSubscription and not addon.GroupData.HasActiveSubscription() then
 		return L.SUBSCRIPTION_INACTIVE
 	end
 

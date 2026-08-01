@@ -85,6 +85,10 @@ local function IsPlayerInInstance()
 	return IsInInstance()
 end
 
+function groupData.HasActiveSubscription()
+	return GetRestrictedAccountData() ~= addon.LEVEL_CAP
+end
+
 function groupData.FormatChromieStatusText(chromieText, warModeEnabled, lorewalkingActive)
 	local text = chromieText or L.UNKNOWN
 
@@ -109,6 +113,7 @@ function groupData.BuildLocalPayload()
 
 	local payload = {
 		addon = GetAddonVersionText(),
+		sub = groupData.HasActiveSubscription(),
 		inst = IsPlayerInInstance(),
 		wm = IsWarModeEnabled(),
 		lw = IsLorewalkingEnabled(),

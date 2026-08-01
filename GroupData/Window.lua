@@ -3,7 +3,7 @@ local L = addon.L
 
 local groupData = addon.GroupData
 
-local WINDOW_WIDTH = 980
+local WINDOW_WIDTH = 1032
 local WINDOW_HEIGHT = 320
 local TABLE_INSET = 16
 local HEADER_HEIGHT = 19
@@ -13,6 +13,7 @@ local ROLE_COLUMN_WIDTH = 40
 local TRINKET_COLUMN_WIDTH = 72
 local COUNT_COLUMN_WIDTH = 72
 local ADDON_COLUMN_WIDTH = 72
+local SUBSCRIPTION_COLUMN_WIDTH = 52
 local INSTANCE_COLUMN_WIDTH = 52
 local TIME_COLUMN_WIDTH = 172
 local HEADER_LEFT_INSET = 4
@@ -218,6 +219,7 @@ local function BuildRows()
 			addonVersion = GetDisplayValue(data, "addonVersion", function(value)
 				return value or "v?"
 			end),
+			subscriptionActive = GetDisplayValue(data, "subscriptionActive", GetBooleanIconData),
 			inInstance = GetDisplayValue(data, "inInstance", GetBooleanIconData),
 			timeText = timeText,
 			oozeEquipped = GetDisplayValue(data, "oozeEquipped", GetBooleanIconData),
@@ -286,6 +288,7 @@ local function InitializeTable(window)
 		"GameFontNormal"
 	)
 	AddStatusColumn(tableBuilder, ADDON_COLUMN_WIDTH, L.GROUP_DATA_HEADER_ADDON, "addonVersion")
+	AddBooleanStatusColumn(tableBuilder, SUBSCRIPTION_COLUMN_WIDTH, L.GROUP_DATA_HEADER_SUBSCRIPTION, "subscriptionActive")
 	AddBooleanStatusColumn(tableBuilder, INSTANCE_COLUMN_WIDTH, L.GROUP_DATA_HEADER_INSTANCE, "inInstance")
 	AddStatusColumn(tableBuilder, TIME_COLUMN_WIDTH, L.GROUP_DATA_HEADER_TIME, "timeText")
 	AddBooleanStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_OOZE, "oozeEquipped")
