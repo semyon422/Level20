@@ -318,6 +318,7 @@ local function CreateWindow()
 	window:SetScript("OnDragStop", SaveWindowPosition)
 	window:SetTitle(L.GROUP_TRINKETS_WINDOW_TITLE)
 	window:Hide()
+	table.insert(UISpecialFrames, window:GetName())
 	window.CloseButton = CreateFrame("Button", nil, window, "UIPanelCloseButtonDefaultAnchors")
 
 	local tableFrame = CreateFrame("Frame", nil, window)
@@ -364,9 +365,22 @@ local function CreateWindow()
 
 	window:SetScript("OnShow", function()
 		window:Raise()
+		if addon.SetMainWindowEscapeEnabled then
+			addon.SetMainWindowEscapeEnabled(false)
+		end
 		ArrangeTable()
 		groupData.RefreshWindow()
 		groupData.RefreshAndBroadcast(true)
+	end)
+	window:SetScript("OnHide", function()
+		-- CloseSpecialWindows hides every registered frame in one pass. Restore
+		-- the main window on the next frame so the same Escape press cannot also
+		-- close it after closing this higher-priority window.
+		C_Timer.After(0, function()
+			if not window:IsShown() and addon.SetMainWindowEscapeEnabled then
+				addon.SetMainWindowEscapeEnabled(true)
+			end
+		end)
 	end)
 
 	if Level20DB.groupDataWindowPoint then

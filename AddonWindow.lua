@@ -29,6 +29,21 @@ end)
 frame:Hide()
 frame:SetTitle(L.ADDON_TITLE)
 
+function addon.SetMainWindowEscapeEnabled(enabled)
+	local frameName = frame:GetName()
+	for index = #UISpecialFrames, 1, -1 do
+		if UISpecialFrames[index] == frameName then
+			table.remove(UISpecialFrames, index)
+		end
+	end
+
+	if enabled then
+		table.insert(UISpecialFrames, frameName)
+	end
+end
+
+addon.SetMainWindowEscapeEnabled(true)
+
 frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefaultAnchors")
 
 local activeTab
