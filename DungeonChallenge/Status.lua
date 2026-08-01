@@ -161,11 +161,17 @@ function challenge.IsSupportedInstanceType(instanceType)
 	return instanceType == "party" or instanceType == "raid"
 end
 
+function challenge.IsGarrisonInstance(instanceID)
+	return challenge.constants.GARRISON_INSTANCE_IDS[tonumber(instanceID) or 0] == true
+end
+
 function challenge.ShouldUse()
 	if not Level20DB.showDungeonChallengeFrame or challenge.IsRealChallengeModeActive() then
 		return false
 	end
 
 	local status = challenge.GetStatus()
-	return status.isInInstance and challenge.IsSupportedInstanceType(status.instanceType)
+	return status.isInInstance
+		and challenge.IsSupportedInstanceType(status.instanceType)
+		and not challenge.IsGarrisonInstance(status.instanceID)
 end

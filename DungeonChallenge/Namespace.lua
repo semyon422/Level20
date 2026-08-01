@@ -14,6 +14,14 @@ challenge.constants = {
 	COMPLETION_BANNER_DELAY_SECONDS = 1,
 	COMBAT_LOG_STOP_DELAY_SECONDS = 1,
 	AUTORESET_DELAY_SECONDS = 10,
+	GARRISON_INSTANCE_IDS = {
+		[1152] = true,
+		[1153] = true,
+		[1154] = true,
+		[1158] = true,
+		[1159] = true,
+		[1160] = true,
+	},
 }
 
 challenge.state = challenge.state or {
