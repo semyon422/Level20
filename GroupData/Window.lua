@@ -3,7 +3,7 @@ local L = addon.L
 
 local groupData = addon.GroupData
 
-local WINDOW_WIDTH = 1032
+local WINDOW_WIDTH = 1100
 local WINDOW_HEIGHT = 320
 local TABLE_INSET = 16
 local HEADER_HEIGHT = 19
@@ -12,6 +12,7 @@ local CLASS_COLUMN_WIDTH = 40
 local ROLE_COLUMN_WIDTH = 40
 local TRINKET_COLUMN_WIDTH = 72
 local COUNT_COLUMN_WIDTH = 72
+local DURABILITY_COLUMN_WIDTH = 64
 local ADDON_COLUMN_WIDTH = 72
 local SUBSCRIPTION_COLUMN_WIDTH = 52
 local INSTANCE_COLUMN_WIDTH = 52
@@ -228,6 +229,9 @@ local function BuildRows()
 				return tostring(value or 0)
 			end),
 			amberOwned = GetDisplayValue(data, "amberOwned", GetBooleanIconData),
+			durabilityPercent = GetDisplayValue(data, "durabilityPercent", function(value)
+				return string.format("%d%%", value)
+			end),
 			isPlayer = data.name == playerKey,
 			isOffline = isOffline,
 		}
@@ -295,6 +299,7 @@ local function InitializeTable(window)
 	AddBooleanStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_DRAGONLING, "dragonlingEquipped")
 	AddStatusColumn(tableBuilder, COUNT_COLUMN_WIDTH, L.GROUP_DATA_HEADER_UTTS, "uttsCount")
 	AddBooleanStatusColumn(tableBuilder, TRINKET_COLUMN_WIDTH, L.GROUP_DATA_HEADER_AMBER, "amberOwned")
+	AddStatusColumn(tableBuilder, DURABILITY_COLUMN_WIDTH, L.GROUP_DATA_HEADER_DURABILITY, "durabilityPercent")
 
 	ScrollUtil.RegisterTableBuilder(window.ScrollBox, tableBuilder, IdentityDataProvider)
 	window.tableBuilder = tableBuilder

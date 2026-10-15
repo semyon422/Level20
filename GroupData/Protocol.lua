@@ -28,6 +28,23 @@ local function GetTrackedItemCount(itemID)
 	return C_Item.GetItemCount(itemID, false, false) or 0
 end
 
+local function GetEquippedDurabilityPercent()
+	local currentTotal, maximumTotal = 0, 0
+	for slot = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
+		local current, maximum = GetInventoryItemDurability(slot)
+		if current and maximum and maximum > 0 then
+			currentTotal = currentTotal + current
+			maximumTotal = maximumTotal + maximum
+		end
+	end
+
+	if maximumTotal == 0 then
+		return nil
+	end
+
+	return math.floor((currentTotal / maximumTotal) * 100 + 0.5)
+end
+
 local function GetAddonVersionText()
 	local version = addon.GetCurrentVersion and addon.GetCurrentVersion()
 	if not version or version <= 0 then
@@ -121,6 +138,7 @@ function groupData.BuildLocalPayload()
 		dragon = IsTrackedTrinketEquipped(DRAGONLING_TRINKET_ITEM_ID),
 		utts = GetTrackedItemCount(UTTS_ITEM_ID),
 		amber = GetTrackedItemCount(AMBER_ITEM_ID) > 0,
+		dur = GetEquippedDurabilityPercent(),
 		brce = battleResPayload.brce or 0,
 		brie = battleResPayload.brie or 0,
 	}

@@ -15,6 +15,7 @@ local PERSISTED_PLAYER_FIELDS = {
 	"dragonlingEquipped",
 	"uttsCount",
 	"amberOwned",
+	"durabilityPercent",
 	"classBattleResCooldownEndTime",
 	"itemBattleResCooldownEndTime",
 }
@@ -108,6 +109,7 @@ function groupData.StorePlayerData(fullName, payload)
 		dragonlingEquipped = payload.dragon,
 		uttsCount = payload.utts,
 		amberOwned = payload.amber,
+		durabilityPercent = payload.dur,
 		classBattleResCooldownEndTime = payload.brce,
 		itemBattleResCooldownEndTime = payload.brie,
 	}

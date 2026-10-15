@@ -238,6 +238,7 @@ eventFrame:RegisterEvent("DISABLE_XP_GAIN")
 eventFrame:RegisterEvent("CHAT_MSG_ADDON")
 eventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+eventFrame:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
 eventFrame:RegisterEvent("WAR_MODE_STATUS_UPDATE")
 eventFrame:RegisterEvent("UNIT_PHASE")
@@ -347,6 +348,7 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 			end
 		end
 	elseif event == "PLAYER_EQUIPMENT_CHANGED"
+		or event == "UPDATE_INVENTORY_DURABILITY"
 		or event == "BAG_UPDATE_DELAYED"
 		or event == "WAR_MODE_STATUS_UPDATE" then
 		if event == "WAR_MODE_STATUS_UPDATE" then
