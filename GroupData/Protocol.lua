@@ -25,7 +25,7 @@ local function GetTrackedItemCount(itemID)
 		return 0
 	end
 
-	return GetItemCount(itemID, false, false) or 0
+	return C_Item.GetItemCount(itemID, false, false) or 0
 end
 
 local function GetAddonVersionText()

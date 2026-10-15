@@ -22,7 +22,7 @@ local function IsTrackedGroupUnit(unit)
 end
 
 local function GetPlayerItemBattleResCount()
-	return GetItemCount(UTTS_ITEM_ID, false, false) or 0
+	return C_Item.GetItemCount(UTTS_ITEM_ID, false, false) or 0
 end
 
 local function GetPlayerKeyForUnit(unit)
