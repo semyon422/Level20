@@ -3,7 +3,7 @@
 ## Notes: Helper addon for level-20 players.
 ## Notes-ruRU: Вспомогательный аддон для игроков 20-го уровня.
 ## Author: semyon422
-## Version: 7
+## Version: 8
 ## IconTexture: Interface\AddOns\Level20\Resources\icon32.png
 ## Category: LvL20
 ## SavedVariables: Level20DB
